@@ -1,0 +1,32 @@
+# KUPKB_Vis tables species and gene YAML parameter file
+# gene and each brach represent directories in the FTP tree, the sequences are the files
+# to download from the specific directories. This for NCBI. The other ones are locations
+# of the datasets, dataset descriptions etc. as well as the address to download the
+# STRING raw file... Quite human readable and can be edited by anyone,as long as very
+# basic YAML syntax rules are maintained...
+FTP: ftp.ncbi.nlm.nih.gov
+gene:
+ DATA:
+  - gene2accession.gz
+  - gene2ensembl.gz
+  - gene2go.gz
+  - gene_refseq_uniprotkb_collab.gz
+  - GENE_INFO:
+     Mammalia:
+      - All_Mammalia.gene_info.gz
+pub:
+ taxonomy:
+  - taxdump.tar.gz
+species:
+ - Homo sapiens
+ - Mus musculus
+ - Rattus norvegicus
+ - Rodentia
+ - Canis lupus familiaris
+ - Bos taurus
+DESCRIPTION: /media/HD5/Work/TestGround/experiment_descriptions.xls
+DATA: /media/HD5/Work/TestGround/datasets
+INTERACTION_PATH: download
+GENE_PATH: download
+#INTERACTION_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB
+#GENE_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB
