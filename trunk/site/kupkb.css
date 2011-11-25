@@ -1,3 +1,5 @@
+html { height: 100%; }
+
 body 
 {
     background: white;
@@ -9,6 +11,7 @@ body
     url(images/bottom-left-corner.png) no-repeat bottom left,
     url(images/up-right-corner.png) no-repeat top right;
     background: url(images/up-left-corner.png)\0/;
+    height: 100%;
 }
 
 table
@@ -31,21 +34,37 @@ table
 	height: 100%;
 }
 
-.graphContainer 
-{	
-	width: 80%;
+#graphContainer 
+{		
+	width: 90%;
+	height: 90%;
 	border: solid;
 	border-width: 1px;
 	border-color: #000000;
 }
 
-.controlContainer
+#controlContainer
 {	
-	width: 20%;
+	width: 100%;
 	background-color: #E0E0E0;
 	border: solid;
 	border-width: 1px;
 	border-color: #000000;
+}
+
+#functionContainer
+{	
+	width: 10%;
+	background-color: #FFFFEC;
+	border: solid;
+	border-width: 1px;
+	border-color: #000000;
+}
+
+#cytoscapeweb 
+{ 
+	width: 100%;
+	height: 100%; 
 }
 
 h1 
@@ -130,12 +149,6 @@ tr.odd
 	layer-background-color:lightyellow;
 	background-color:lightyellow;
 	color:black;
-}
-
-#cytoscapeweb 
-{ 
-	width: 100%;
-	height: 80%; 
 }
 
 #note 

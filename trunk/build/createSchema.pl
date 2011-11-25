@@ -165,7 +165,8 @@ sub createDB
 	my $eu_cq = "CREATE TABLE `entrez_to_uniprot` (
 				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				`entrez_id` INT(16) UNSIGNED NOT NULL,
-				`uniprot_id` VARCHAR(16) NULL
+				`uniprot_id` VARCHAR(16) NULL,
+				INDEX `entrez_id` (`entrez_id`)
 				) ENGINE = INNODB;";
 				
 	my $ee_cq = "CREATE TABLE `entrez_to_ensembl` (
