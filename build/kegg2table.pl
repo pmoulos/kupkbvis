@@ -152,7 +152,8 @@ foreach my $org (@organisms)
 						$member_fields{"entrez_member"} = $cuge;
 					}
 					$member_fields{"species"} = $nc2kg_fields{"ncbi_tax_id"};
-					&insertMember(\%member_fields);
+					# The are some tRNA and RNA genes which do not have an Entrez ID...
+					&insertMember(\%member_fields) if ($member_fields{"entrez_member"} !~ m/[a-z]/i);
 				}
 			}
 			else { &deathBySOAP; }
