@@ -106,7 +106,9 @@ sub createDB
 				`target` VARCHAR(16) NOT NULL,
 				`species` VARCHAR(64) NOT NULL,
 				FOREIGN KEY (`species`) REFERENCES species(`tax_id`)
-				ON DELETE RESTRICT ON UPDATE RESTRICT
+				ON DELETE RESTRICT ON UPDATE RESTRICT,
+				INDEX `source` (`source`),
+				INDEX `target` (`target`)
 				) ENGINE = INNODB;";
 
 	my $ds_cq = "CREATE TABLE `datasets` (
@@ -205,7 +207,7 @@ sub createDB
 	my $ke_cq = "CREATE TABLE `kegg_pathways` (
 				`pathway_id` VARCHAR(16) NOT NULL PRIMARY KEY,
 				`name` VARCHAR(200) NULL,
-				`class` VARCHAR(32) NULL,
+				`class` VARCHAR(200) NULL,
 				`organism` VARCHAR(3) NOT NULL,
 				FOREIGN KEY (`organism`) REFERENCES ncbitax_to_keggtax(`kegg_tax_code`)
 				ON DELETE RESTRICT ON UPDATE RESTRICT

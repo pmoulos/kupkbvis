@@ -44,26 +44,60 @@ $init_go_1 = 'SELECT `go_id`,`go_term`,`category` '.
 $init_go_2 = ' GROUP BY `go_id`';
 
 /* Fill the KEGG pathways drop down */
-$init_kegg_1 = 'SELECT kegg_pathways.pathway_id,`name` '.
+$init_kegg_1 = 'SELECT kegg_pathways.pathway_id,`name`,`class` '.
 			   'FROM `kegg_pathways` INNER JOIN `pathway_members` '.
 			   'ON kegg_pathways.pathway_id=pathway_members.pathway_id '.
 			   'WHERE pathway_members.entrez_member IN ';
 $init_kegg_2 = ' GROUP BY kegg_pathways.pathway_id';
 
 /* Update location and datasets based on disease */
-$update_locdata_disease_1 = 'SELECT `experiment_id`,`display_name`,`biomaterial_0`,`biomaterial_1`,`disease_0`,`disease_1` '.
-							'FROM `datasets` INNER JOIN `dataset_descriptions` '.
-							'ON datasets.experiment_id=dataset_descriptions.experiment_name '.
-							'WHERE `disease_0`=';
-$update_locdata_disease_2 =	' OR `disease_1`=';
+$update_locdata_disease_1 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
+							'FROM `data` INNER JOIN `genes` '.
+							'ON data.entrez_gene_id=genes.entrez_id '.
+							'INNER JOIN `datasets` '.
+							'ON data.dataset_id=datasets.experiment_id '.
+							'INNER JOIN `dataset_descriptions` '.
+							'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							'WHERE genes.entrez_id IN ';
+$update_locdata_disease_2_1 = ' AND (datasets.disease_0=\'';
+$update_locdata_disease_2_2 = '\' OR datasets.disease_1=\'';
+$update_locdata_disease_3 = '\') UNION ';
+$update_locdata_disease_4 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
+							'FROM `data` INNER JOIN `entrez_to_uniprot` '.
+							'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+							'INNER JOIN `datasets` '.
+							'ON data.dataset_id=datasets.experiment_id '.
+							'INNER JOIN `dataset_descriptions` '.
+							'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							'WHERE entrez_to_uniprot.entrez_id IN ';
+$update_locdata_disease_5_1 = ' AND (datasets.disease_0=\'';
+$update_locdata_disease_5_2 = '\' OR datasets.disease_1=\'';
+$update_locdata_disease_6 = '\')';
 #WHERE disease_0 LIKE '%Diabetic nephropathy%' OR disease_1 LIKE '%Diabetic nephropathy%'
 
 /* Update disease and datasets based on location */
-$update_disdata_location_1 = 'SELECT `experiment_id`,`display_name`,`biomaterial_0`,`biomaterial_1`,`disease_0,disease_1` '.
-							 'FROM `datasets` INNER JOIN `dataset_descriptions` '.
-							 'ON datasets.experiment_id=dataset_descriptions.experiment_name '.
-							 'WHERE `biomaterial_0`='.
-$update_disdata_location_2 = 'OR `biomaterial_1`=';
+$update_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
+							'FROM `data` INNER JOIN `genes` '.
+							'ON data.entrez_gene_id=genes.entrez_id '.
+							'INNER JOIN `datasets` '.
+							'ON data.dataset_id=datasets.experiment_id '.
+							'INNER JOIN `dataset_descriptions` '.
+							'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							'WHERE genes.entrez_id IN ';
+$update_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
+$update_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
+$update_disdata_location_3 = '\') UNION ';
+$update_disdata_location_4 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
+							'FROM `data` INNER JOIN `entrez_to_uniprot` '.
+							'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+							'INNER JOIN `datasets` '.
+							'ON data.dataset_id=datasets.experiment_id '.
+							'INNER JOIN `dataset_descriptions` '.
+							'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							'WHERE entrez_to_uniprot.entrez_id IN ';
+$update_disdata_location_5_1 = ' AND (datasets.biomaterial_0=\'';
+$update_disdata_location_5_2 = '\' OR datasets.biomaterial_1=\'';
+$update_disdata_location_6 = '\')';
 /*WHERE biomaterial_0 LIKE '%kidney%' OR biomaterial_1 LIKE '%kidney%'*/
 
 /* Select the gene regulation for a selected dataset for both cases */
@@ -72,9 +106,39 @@ $regulation_1 = 'SELECT `entrez_gene_id`,`uniprot_id`,`expression_strength`,`dif
 				'WHERE `dataset_id`=';
 $regulation_2 = ' AND `entrez_gene_id` IN ';
 $regulation_3 = ' UNION '.
-				'SELECT `entrez_gene_id`,`data.uniprot_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio,pvalue`,`fdr` '.
+				'SELECT `entrez_gene_id`,data.uniprot_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				'FROM `data` INNER JOIN `entrez_to_uniprot` '.
 				'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
 				'WHERE entrez_to_uniprot.entrez_id IN ';
 $regulation_4 = ' AND `dataset_id`=';
+
+/* Autocomplete gene names */
+$auto_genes_1 = 'SELECT `gene_symbol`,`description`,species.name '.
+				'FROM `genes` INNER JOIN `species` '.
+				'ON genes.species=species.tax_id '.
+				'WHERE `gene_symbol` LIKE ';
+$auto_genes_2 = ' AND `species`=';
+
+/* Find Ensembl protein from set of entrez ids */
+$ensembl_from_entrez = 'SELECT DISTINCT `entrez_id`,`source` '.
+					   'FROM `interactions` INNER JOIN `entrez_to_ensembl` '.
+					   'ON interactions.source=entrez_to_ensembl.ensembl_protein '.
+					   'WHERE entrez_to_ensembl.entrez_id IN ';
+
+/* Find Ensembl protein from set of entrez ids and initiate nodes*/
+$init_nodes = 'SELECT DISTINCT interactions.source AS id,'.
+			  'genes.gene_symbol AS label,'.
+			  'entrez_to_ensembl.entrez_id AS entrez_id '.
+			  'FROM interactions INNER JOIN entrez_to_ensembl '.
+			  'ON interactions.source=entrez_to_ensembl.ensembl_protein '.
+			  'INNER JOIN genes '.
+			  'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
+			  'WHERE entrez_to_ensembl.entrez_id IN ';
+
+/* Get interactions */
+$init_edges_1 = 'SELECT DISTINCT CONCAT_WS("_to_",`source`,`target`) AS `id`,'.
+				'`target`, `source`, `interaction` '.
+			    'FROM `interactions` '.
+			    'WHERE `source` IN ';
+$init_edges_2 = ' AND `target` IN ';
 ?>

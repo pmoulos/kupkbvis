@@ -23,16 +23,17 @@
 		<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 		<title>Kidney and Urinary Pathway Knowledge Visualizer</title>
 		<link rel="icon" href="/images/justkidney.ico" type="image/x-icon" />
-		<link type="text/css" rel="stylesheet" href="kupkb.css">
+        <link type="text/css" rel="stylesheet" href="css/jquery-ui-1.8.16.custom.css" />
+		<link type="text/css" rel="stylesheet" href="css/kupkb.css">
+        <script type="text/javascript" src="js/json2.min.js"></script>
+        <script type="text/javascript" src="js/AC_OETags.min.js"></script>
+        <script type="text/javascript" src="js/cytoscapeweb.min.js"></script>
+        <script type="text/javascript" src="js/jquery-1.7.min.js"></script>
+        <script type="text/javascript" src="js/jquery-ui-1.8.16.custom.min.js"></script>
+        <script type="text/javascript" src="js/jquery.json-2.3.min.js"></script>
+		<script type="text/javascript" src="js/custom.js"></script>
         
-        <script type="text/javascript" src="/js/json2.min.js"></script>
-        <script type="text/javascript" src="/js/AC_OETags.min.js"></script>
-        <script type="text/javascript" src="/js/cytoscapeweb.min.js"></script>
-        <script type="text/javascript" src="/js/jquery-1.7.min.js"></script>
-        <script type="text/javascript" src="/js/jquery.json-2.3.min.js"></script>
-		<script type="text/javascript" src="/js/custom.js"></script>
-        
-        <script type="text/javascript">
+        <!--<script type="text/javascript">
             window.onload = function() {
                 // id of Cytoscape Web container div
                 var div_id = "cytoscapeweb";
@@ -134,10 +135,12 @@
                 
                 vis.draw(draw_options);
             };
-        </script>
+        </script>-->
     </head>
     
     <body>
+    	<!-- Make sure to clear the cache from elements... It might have strange effects... -->
+    	<script type="text/javascript">clearCache()</script>
 		<div class="mainContainer">
 			<div class="mainPageTitle">
 				<h1>The Kidney & Urinary Pathway <span style="color:#E21A30;">K</span>nowledge <span style="color:#E21A30;">B</span>ase</h1>
@@ -157,59 +160,145 @@
 			<table>
 				<tr>
 					<td id="graphContainer">
-						<!--<div id="cytoscapeweb">Cytoscape Web will replace the contents of this div with your graph.</div>-->
+						<div id="cytoscapeweb">Cytoscape Web will replace the contents of this div with your graph.</div>
 					</td>
 					<td id="functionContainer">
 						<div><span class="boldText">Enter search terms</span></div>	
 						<div>						
 						<label for="enter_genes">
-							<textarea id="enter_genes" name="enter_genes" wrap="hard" onkeydown="searchAllow()" onkeyup="searchAllow()"></textarea>
+							<!--<input id="enter_genes" name="enter_genes" wrap="hard" onkeyup="searchAllow()"></input>-->
+							<textarea id="enter_genes" name="enter_genes" wrap="hard" onkeyup="searchAllow()" onclick="searchAllow()"></textarea>
+							<script type="text/javascript">bindAutoComplete('enter_genes')</script>
 						</label>
 						</div>
 						<div id="errorText"></div>
-						<div><button id="search_button" class="searchButton" onclick="search()" disabled>GO</button></div>
-						<div id="loadingCircle" style="display:none;"><img src="images/loading_small.gif"></div>
-    					<!--<div>Functions like export buttons etc. go here</div>-->
+						<div><button id="search_button" class="primaryButton" onclick="search()" disabled>GO</button></div>
+						<div><button id="clear_button" class="primaryButton" onclick="resetSearch()" disabled>Clear</button></div>
+						<div id="loadingCircle" style="display:none; float: left;"><img src="images/loading_small.gif"></div>
+						<div><p>&nbsp;</p></div>
+    					<div>
+							<fieldset><legend class="fieldSetTitle" style="font-size: 1.2em; background-color:#FFFF5F;">Network</legend>
+								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Nodes</legend>
+									<input type="checkbox" id="x" checked disabled> property 1<br/>
+									<input type="checkbox" id="y" disabled> property 2<br/>
+								</fieldset>
+								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Edges</legend>
+									<input type="checkbox" id="binding_check" checked disabled> binding<br/>
+									<input type="checkbox" id="ptmod_check" disabled> modification<br/>
+									<input type="checkbox" id="expression_check" disabled> expression<br/>
+									<input type="checkbox" id="activation_check" disabled> activation<br/>
+								</fieldset>
+							</fieldset>
+    					</div>
 					</td>
 				</tr>
 				<tr>
 					<td colspan=2, id="controlContainer">
-					<fieldset>
-						<legend class="fieldSetTitle">Parameters</legend>						
-						<?php
-							echo "<table class=\"innerTable\" style=\"width:25%\">";
-							
-							$species = initSpecies();
-							array_unshift_assoc($species,999999,'Select...');
-							echo "<tr><td class=\"innerCell\">";
-							echo "<span class=\"boldText\">Select species: </span>";
-							echo "</td><td class=\"innerCell\">";
-            				echo html_selectbox('species_list',$species,'NULL',array('onchange' => 'update(\'species_list\')'));
-            				echo "</td></tr>";
-            				
-							$disease = array('0' => 'Select');
-							echo "<tr><td class=\"innerCell\">";
-							echo "<span class=\"boldText\">Select disease: </span>";
-							echo "</td><td class=\"innerCell\">";
-            				echo html_selectbox('disease_list',$disease,'NULL',array('disabled' => 'disabled','onchange' => 'update()'));
-							echo "</td></tr>";
-							
-							$location = array('0' => 'Select');
-							echo "<tr><td class=\"innerCell\">";
-							echo "<span class=\"boldText\">Select location: </span>";
-							echo "</td><td class=\"innerCell\">";
-            				echo html_selectbox('location_list',$location,'NULL',array('disabled' => 'disabled'));
-							echo "</td></tr>";
-							
-							$dataset = array('0' => 'Select');
-							echo "<tr><td class=\"innerCell\">";
-							echo "<span class=\"boldText\">Select dataset: </span>";
-							echo "</td><td class=\"innerCell\">";
-            				echo html_selectbox('dataset_list',$dataset,'NULL',array('disabled' => 'disabled'));
-							echo "</td></tr>";				
-							
-							echo "</table>";
-    					?>
+					<fieldset><legend class="fieldSetTitle" style="font-size: 1.2em; background-color:#FFFF5F;">Parameters</legend>
+						<fieldset class="optsGroup" style="background-color:#F5FFFF;">
+							<legend class="fieldSetTitle" style="background-color:#FFFF5F;">KUPKB data</legend>
+							<table class="innerTable">		
+							<?php
+								$species = initSpecies();
+								array_unshift_assoc($species,999999,'Select...');
+								echo "<tr><td class=\"innerCell\">";
+								echo "<span class=\"boldText\">Select species: </span>";
+								echo "</td><td class=\"innerCell\">";
+	            				echo html_selectbox('species_list',$species,'NULL',array('onchange' => 'update(\'species_list\')'));
+	            				echo "</td></tr>";
+	            				
+								$disease = array('0' => 'Select...');
+								echo "<tr><td class=\"innerCell\">";
+								echo "<span class=\"boldText\">Select disease: </span>";
+								echo "</td><td class=\"innerCell\">";
+	            				echo html_selectbox('disease_list',$disease,'NULL',array('disabled' => 'disabled','onchange' => 'update(\'disease_list\')'));
+								echo "</td></tr>";
+								
+								$location = array('0' => 'Select...');
+								echo "<tr><td class=\"innerCell\">";
+								echo "<span class=\"boldText\">Select location: </span>";
+								echo "</td><td class=\"innerCell\">";
+	            				echo html_selectbox('location_list',$location,'NULL',array('disabled' => 'disabled','onchange' => 'update(\'location_list\')'));
+								echo "</td></tr>";
+								
+								$dataset = array('0' => 'Select...');
+								echo "<tr><td class=\"innerCell\">";
+								echo "<span class=\"boldText\">Select dataset: </span>";
+								echo "</td><td class=\"innerCell\">";
+	            				echo html_selectbox('dataset_list',$dataset,'NULL',array('disabled' => 'disabled'));
+								echo "</td></tr>";				
+	    					?>
+	    					<tr><td class="innerCell" colspan=2>
+	    					<button id="reset_data_button" class="secondaryButton" onclick="resetData()" disabled>Reset</button>
+	    					</tr></td>
+	    					</table>
+	    				</fieldset>
+	    				<fieldset class="optsGroup"><legend class="fieldSetTitle">Gene Ontology</legend>
+	    					<table class="innerTable">
+							<tr><td class="innerCell"><span class="boldText">Select GO terms:</span></td>
+							<td>
+							<table class="innerTable"><tr>
+							<td id="go_component" class="goLabel" onclick="changeGOCategory('go_component')">Component</td>
+							<td id="go_function" class="goLabel" onclick="changeGOCategory('go_function')">Function</td>
+							<td id="go_process"class="goLabel" onclick="changeGOCategory('go_process')">Process</td>
+							</tr></table>
+							</td></tr>
+							<tr><td class="innerCell" colspan=2>
+	    					<?php
+	    						$goterms = array('0' => 'Select...');
+	            				echo html_selectbox('go_list',$goterms,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:21em;'));
+							?>
+							</td></tr>
+							<tr><td class="innerCell">
+							<button id="show_selected_go" class="secondaryButton" onclick="" disabled>Show selected</button>
+							<button id="show_all_go" class="secondaryButton" onclick="" disabled>Show all</button>
+							</td>
+							<td class="innerCell">
+							<button id="clear_selected_go" class="secondaryButton" onclick="" disabled>Clear selected</button>
+							<button id="clear_all_go" class="secondaryButton" onclick="" disabled>Clear all</button>
+							</td></tr>
+	    					</table>
+	    				</fieldset>
+						<fieldset class="optsGroup"><legend class="fieldSetTitle">KEGG Pathways</legend>
+						<table class="innerTable">
+							<?php
+	    						$kegg = array('0' => 'Select...');
+								echo "<tr><td class=\"innerCell\" colspan=2>";
+								echo "<span class=\"boldText\">Select KEGG pathways: </span>";
+								echo "</td></tr><tr><td class=\"innerCell\" colspan=2>";
+	            				echo html_selectbox('kegg_list',$kegg,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:21em;'));
+								echo "</td></tr>";
+							?>
+							<tr><td class="innerCell">
+							<button id="show_selected_kegg" class="secondaryButton" onclick="" disabled>Show selected</button>
+							<button id="show_all_kegg" class="secondaryButton" onclick="" disabled>Show all</button>
+							</td>
+							<td class="innerCell">
+							<button id="clear_selected_kegg" class="secondaryButton" onclick="" disabled>Clear selected</button>
+							<button id="clear_all_kegg" class="secondaryButton" onclick="" disabled>Clear all</button>
+							</td></tr>
+						</table>
+	    				</fieldset>
+	    				<fieldset class="optsGroup"><legend class="fieldSetTitle">miRNA</legend>
+						<table class="innerTable">
+							<?php
+	    						$mirna = array('0' => 'Select...');
+								echo "<tr><td class=\"innerCell\" colspan=2>";
+								echo "<span class=\"boldText\">Select target miRNAs: </span>";
+								echo "</td></tr><tr><td class=\"innerCell\" colspan=2>";
+	            				echo html_selectbox('mirna_list',$mirna,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:21em;'));
+								echo "</td></tr>";
+							?>
+							<tr><td class="innerCell">
+							<button id="show_selected_mirna" class="secondaryButton" onclick="" disabled>Show selected</button>
+							<button id="show_all_mirna" class="secondaryButton" onclick="" disabled>Show all</button>
+							</td>
+							<td  class="innerCell">
+							<button id="clear_selected_mirna" class="secondaryButton" onclick="" disabled>Clear selected</button>
+							<button id="clear_all_mirna" class="secondaryButton" onclick="" disabled>Clear all</button>
+							</tr></td>
+						</table>
+	    				</fieldset>
 					</fieldset>					
 					</td>
 				</tr>

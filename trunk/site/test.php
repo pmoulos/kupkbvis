@@ -7,4 +7,26 @@
 					  'huttlin_mouse_phospho','gse1009','huttlin_mouse_nonphospho','gse17141','gse4816','vontoerne_nelson_ifta_14d',
 					  'vontoerne_nelson_ifta_7d','vontoerne_nelson_ifta_56d','gse7887','gse13672_ratproxtub','gse13672_ratmtal',
 					  'gse6466_neonatal','gse6466_adult','gse22561','gse17142','hills_brunskill_proxtubtgfmrna');
+	
+	function testSpecies($id)
+	{
+		$conn = open_connection();
+		$init_speciess = 'SELECT `tax_id`,`name` FROM `species` WHERE `tax_id`='.$id;
+		$result = mysql_query($init_speciess,$conn);
+		while (list($id,$name) = mysql_fetch_array($result))
+		{
+		    $species[$id] = $name;
+		}
+		close_connection($conn);
+		return($species);
+	}
+	
+	/*if ($_REQUEST['species'])
+	{
+		$species = (int)$_REQUEST['species'];
+		echo $species;
+		echo "<br>";
+		$t = testSpecies($species);
+		print_r($t);
+	}*/
 ?>
