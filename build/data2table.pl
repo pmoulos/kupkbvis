@@ -32,22 +32,8 @@ our $help = 0;       # Help?
 # Check inputs
 &checkInputs;
 
-# Check for Regexp::Common
-if ($mode eq "data")
-{
-	eval
-	{
-		require Regexp::Common;
-	};
-	if ($@)
-	{
-		my $butcher = "Module Regexp::Common is required to continue running the program.\n".
-					  "If you have ActiveState Perl installed, use the Package Manager to get\n".
-					  "the module. If you don't know how to install the package, sort the files\n".
-					  "using another tool like Excel or contact your system administrator.";
-		die "\n$butcher\n\n";
-	}
-}
+# Check for required packages Regexp::Common
+if ($mode eq "data") { &tryModule("Regexp::Common"); }
 
 # Database connection
 our $conn;
@@ -56,18 +42,7 @@ our $UNIVERSAL_COUNTER = 0;
 
 if ($type eq "excel")
 {
-	eval
-	{
-		require Spreadsheet::ParseExcel;
-	};
-	if ($@)
-	{
-		my $killer = "Module Spreadsheet::ParseExcel is required to continue running the program.\n".
-					 "If you have ActiveState Perl installed, use the Package Manager to get\n".
-					 "the module. If you don't know how to install the package, sort the files\n".
-					 "using another tool like Excel or contact your system administrator.";
-		die "\n$killer\n\n";
-	}
+	&tryModule("Spreadsheet::ParseExcel");
 	
 	for (my $i=0; $i<@input; $i++)
 	{
@@ -76,7 +51,7 @@ if ($type eq "excel")
 			case /description/i
 			{
 				disp("Inserting experiment descriptions from Excel file $input[$i] to database...");
-				&parseExcelDescription($input[$i])
+				&parseExcelDescription($input[$i]);
 			}
 			case /dataset/i
 			{
@@ -204,7 +179,7 @@ elsif ($type eq "text")
 	}
 }
 
-disp("Finished!\n\n");
+disp("Finished!\n");
 
 
 sub parseExcelDescription
@@ -1174,6 +1149,23 @@ sub parseReal
 	my @p = $v =~ m/$RE{num}{real}/g;
 	$p[0] = sprintf("%.9f",$p[0]);
 	return($p[0]);
+}
+
+sub tryModule
+{
+	my $module = shift @_;
+	eval "require $module";
+	if ($@)
+	{
+		my $killer = "Module $module is required to continue with the execution. If you are in\n". 
+					 "Windows and you have ActiveState Perl installed, use the Package Manager\n".
+					 "to get the module. If you are under Linux, log in as a super user (or use\n".
+					 "sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
+					 "to answer some questions). After this type \"install $module\" to install\n".
+					 "the module. If you don't know how to install the module, contact your\n".
+					 "system administrator.";
+		die "\n$killer\n\n";
+	}
 }
 
 sub programUsage 

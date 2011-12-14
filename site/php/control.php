@@ -88,8 +88,9 @@
 		$schema = initDataSchema();
 		$nodes = initNodes($entrez);
 		$edges = initEdges($proteins);
-		$resultNetwork = array("dataScema" => $schema, "data" => array("nodes" => $nodes, "edges" => $edges));
-		echo json_encode($resultNetwork,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
+		$resultNetwork = array("dataSchema" => $schema, "data" => array("nodes" => $nodes, "edges" => $edges));
+		#echo json_encode($resultNetwork,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
+		echo json_encode($resultNetwork,JSON_NUMERIC_CHECK);
 	}
 	
 	if ($_REQUEST['suggest_term'])
@@ -99,7 +100,18 @@
 		$result = getAutocompGenes($term,$species);
 		echo json_encode($result,JSON_FORCE_OBJECT);
 	}
-	
+
+	#################################### DEBUG ###########################################
+	if ($_REQUEST['json_debug'])
+	{		
+		$json_debug = $_REQUEST['json_debug'];
+		$path = '/media/HD5/Work/TestGround/PHPCounter/json_network.json';
+		$file = fopen($path,'w+');
+		fwrite($file,json_encode($json_debug,JSON_NUMERIC_CHECK));
+		fclose($file);
+		chown($path,"panos");
+	}
+	######################################################################################
 	
 	# FUNCTIONS	
 	
@@ -355,10 +367,13 @@
 		$gene_list = '('.implode(", ",$entrez).')';
 		$query = $init_nodes.$gene_list;
 		$result = mysql_query($query,$conn);
-		while ($row = mysql_fetch_array($result))
+		while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
 		{
-		    $nodes[] = $row;
-		}		
+		    $nodes[] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
+							 "strength" => "", "expression" => "",
+							 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+							 "object_type" => "gene");
+		}
 		close_connection($conn);
 		return($nodes);
 	}
@@ -372,9 +387,10 @@
 			$conn = open_connection();
 			$pro_list = '(\''.implode("', '",$ensembl).'\')';
 			$query = $init_edges_1.$pro_list.$init_edges_2.$pro_list;
-			while ($row = mysql_fetch_array($result))
+			$result = mysql_query($query,$conn);
+			while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
 			{
-				$edges[] = $row;
+				$edges[] = array("id" => $id, "target" => $target, "source" => $source, "interaction" => $interaction);
 			}
 			/*while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
 			{
@@ -389,8 +405,15 @@
 		$node_schema = array();
 		$node_schema[] = array("name" => "label", "type" => "string");
 		$node_schema[] = array("name" => "entrez_id", "type" => "int");
+		$node_schema[] = array("name" => "strength", "type" => "string");
+		$node_schema[] = array("name" => "expression", "type" => "string");
+		$node_schema[] = array("name" => "ratio", "type" => "number");
+		$node_schema[] = array("name" => "pvalue", "type" => "number");
+		$node_schema[] = array("name" => "fdr", "type" => "number");
+		$node_schema[] = array("name" => "object_type", "type" => "string");
 
-		$edge_schema = array("name" => "interaction_type", "type" => "string");
+		$edge_schema = array();
+		$edge_schema[] = array("name" => "interaction", "type" => "string");
 
 		return(array("nodes" => $node_schema, "edges" => $edge_schema));
 	}

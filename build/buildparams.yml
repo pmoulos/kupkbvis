@@ -21,12 +21,11 @@ species:
  - Homo sapiens
  - Mus musculus
  - Rattus norvegicus
- - Rodentia
  - Canis lupus familiaris
- - Bos taurus
 DESCRIPTION: /media/HD5/Work/TestGround/experiment_descriptions.xls
 DATA: /media/HD5/Work/TestGround/datasets
 INTERACTION_PATH: download
 GENE_PATH: download
+CURATORS: /media/HD5/Work/TestGround/contr_emails.txt
 #INTERACTION_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB
 #GENE_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB

@@ -30,24 +30,13 @@ our $waitbar;    # Use a waitbar for parsing?
 our $help = 0;   # Help?
 
 # Check for the presence of YAML, required!!!
-eval
-{
-	require YAML;
-};
-if ($@)
-{
-	my $death = "Module YAML is required to continue with the execution. If you are in\n". 
-				"Windows and you have ActiveState Perl installed, use the Package Manager\n".
-				"to get the module. If you are under Linux, log in as a super user (or use\n".
-				"sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
-				"to answer some questions). After this type \"install YAML\" to install\n".
-				"the module. If you don't know how to install the package, contact your\n".
-				"system administrator.";
-	die "\n$death\n";
-}
+&tryModule("YAML");
 
 # Check inputs
 &checkInputs;
+
+# So it might not get out of scope...
+our $tmpdir;
 
 # Record progress...
 my $date = &now;
@@ -79,9 +68,10 @@ if ($input =~ m/download/i) # Case where we download from FTP
 	use Archive::Extract;
 	use Net::FTP;
 
-	my ($f,$ftp,$tmpdir,$tmpzip,$ae,$ok);
+	my ($f,$ftp,$tmpzip,$ae,$ok);
 	$ftp = Net::FTP->new("ftp.ncbi.nlm.nih.gov",Debug => 0) or die "\nCannot connect to FTP: $@","\n";
 	$ftp->login("anonymous") or die "\nCannot login ",$ftp->message,"\n";
+	$ftp->binary; # Saves a lot of trouble...
 
 	$tmpdir = File::Temp->newdir();
 	foreach $f (@{$phref->{"gene"}->{"DATA"}})
@@ -92,25 +82,25 @@ if ($input =~ m/download/i) # Case where we download from FTP
 		$ftp->get("/gene/DATA/".$f,$tmpzip) or die "FTP get failed ",$ftp->message,"\n";
 		disp("Uncompressing...");
 		$ae = Archive::Extract->new(archive => $tmpzip);
-		$ok = $ae->extract or die $ae->error,"\n";
+		$ok = $ae->extract(to => $tmpdir) or die $ae->error,"\n";
 	}
-	foreach $f (@{$phref->{"gene"}->{"DATA"}[2]->{"GENE_INFO"}->{"Mammalia"}})
+	foreach $f (@{$phref->{"gene"}->{"DATA"}[4]->{"GENE_INFO"}->{"Mammalia"}})
 	{
 		disp("Getting file $f from NCBI FTP server...");
 		$tmpzip = File::Spec->catfile($tmpdir,$f);
 		$ftp->get("/gene/DATA/GENE_INFO/Mammalia/".$f,$tmpzip) or die "FTP get failed ",$ftp->message,"\n";
 		disp("Uncompressing...");
 		$ae = Archive::Extract->new(archive => $tmpzip);
-		$ok = $ae->extract or die $ae->error,"\n";
+		$ok = $ae->extract(to => $tmpdir) or die $ae->error,"\n";
 	}
-	foreach $f (@{$phref->{"gene"}->{"pub"}->{"taxonomy"}})
+	foreach $f (@{$phref->{"pub"}->{"taxonomy"}})
 	{
 		disp("Getting file $f from NCBI FTP server...");
 		$tmpzip = File::Spec->catfile($tmpdir,$f);
 		$ftp->get("/pub/taxonomy/".$f,$tmpzip) or die "FTP get failed ",$ftp->message,"\n";
 		disp("Uncompressing...");
 		$ae = Archive::Extract->new(archive => $tmpzip);
-		$ok = $ae->extract or die $ae->error,"\n";
+		$ok = $ae->extract(to => $tmpdir) or die $ae->error,"\n";
 	}
 	$ftp->quit;
 	
@@ -298,7 +288,7 @@ if (-d $input)
 }
 
 $date = &now;
-disp("$date - Finished!\n\n");
+disp("$date - Finished!\n");
 
 
 # Process inputs
@@ -495,9 +485,7 @@ sub loadDefaultParams
 							"Homo sapiens",
 							"Mus musculus",
 							"Rattus norvegicus",
-							"Rodentia",
-							"Canis lupus familiaris",
-							"Bos taurus"
+							"Canis lupus familiaris"
 					],
 			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
@@ -640,6 +628,23 @@ sub countLines
 sub disp
 {
 	print "\n@_" if (!$silent);
+}
+
+sub tryModule
+{
+	my $module = shift @_;
+	eval "require $module";
+	if ($@)
+	{
+		my $killer = "Module $module is required to continue with the execution. If you are in\n". 
+					 "Windows and you have ActiveState Perl installed, use the Package Manager\n".
+					 "to get the module. If you are under Linux, log in as a super user (or use\n".
+					 "sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
+					 "to answer some questions). After this type \"install $module\" to install\n".
+					 "the module. If you don't know how to install the module, contact your\n".
+					 "system administrator.";
+		die "\n$killer\n\n";
+	}
 }
 
 sub programUsage 

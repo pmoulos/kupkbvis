@@ -30,22 +30,9 @@ our $help = 0;    # Help?
 our $service;
 
 # Check for the presence of YAML, required!!!
-eval
-{
-	require YAML;
-};
-if ($@)
-{
-	my $death = "Module YAML is required to continue with the execution. If you are in\n". 
-				"Windows and you have ActiveState Perl installed, use the Package Manager\n".
-				"to get the module. If you are under Linux, log in as a super user (or use\n".
-				"sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
-				"to answer some questions). After this type \"install YAML\" to install\n".
-				"the module. If you don't know how to install the package, contact your\n".
-				"system administrator.";
-	die "\n$death\n";
-}
+&tryModule("YAML");
 
+# Check inputs
 &checkInputs;
 
 # Read the parameters file
@@ -451,9 +438,7 @@ sub loadDefaultParams
 							"Homo sapiens",
 							"Mus musculus",
 							"Rattus norvegicus",
-							"Rodentia",
-							"Canis lupus familiaris",
-							"Bos taurus"
+							"Canis lupus familiaris"
 					],
 			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
@@ -485,6 +470,23 @@ sub deathBySOAP
 sub disp
 {
 	print "\n@_" if (!$silent);
+}
+
+sub tryModule
+{
+	my $module = shift @_;
+	eval "require $module";
+	if ($@)
+	{
+		my $killer = "Module $module is required to continue with the execution. If you are in\n". 
+					 "Windows and you have ActiveState Perl installed, use the Package Manager\n".
+					 "to get the module. If you are under Linux, log in as a super user (or use\n".
+					 "sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
+					 "to answer some questions). After this type \"install $module\" to install\n".
+					 "the module. If you don't know how to install the module, contact your\n".
+					 "system administrator.";
+		die "\n$killer\n\n";
+	}
 }
 
 sub programUsage 
