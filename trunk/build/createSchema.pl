@@ -28,7 +28,7 @@ our $help = 0;    # Help?
 # Do the job
 disp("Creating KUPKB_Vis schema...");
 &createDB();
-disp("KUPKB_Vis schema created!\n\n");
+disp("KUPKB_Vis schema created!\n");
 
 
 # Process inputs
@@ -72,6 +72,12 @@ sub createDB
 	# Create the tables now
 	$conn = &openConnection();
 
+	my $st_cq = "CREATE TABLE `species` (
+				`tax_id` INT(10) UNSIGNED NOT NULL,
+				`name` VARCHAR(200) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+				PRIMARY KEY (`tax_id`)
+				) ENGINE = INNODB;";
+
 	my $dd_cq = "CREATE TABLE `dataset_descriptions` (
 				`experiment_name` VARCHAR(200) NOT NULL,
 				`display_name` VARCHAR(200) NULL,
@@ -101,10 +107,10 @@ sub createDB
 
 	my $ia_cq = "CREATE TABLE `interactions` (
 				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-				`source` VARCHAR(16) NOT NULL,
+				`source` VARCHAR(32) NOT NULL,
 				`interaction` VARCHAR(32) NOT NULL,
-				`target` VARCHAR(16) NOT NULL,
-				`species` VARCHAR(64) NOT NULL,
+				`target` VARCHAR(32) NOT NULL,
+				`species` INT(10) UNSIGNED NOT NULL,
 				FOREIGN KEY (`species`) REFERENCES species(`tax_id`)
 				ON DELETE RESTRICT ON UPDATE RESTRICT,
 				INDEX `source` (`source`),
@@ -157,12 +163,6 @@ sub createDB
 				FOREIGN KEY (`dataset_id`) REFERENCES datasets(`experiment_id`)
 				ON DELETE RESTRICT ON UPDATE RESTRICT
 				) ENGINE = INNODB;";
-
-	my $st_cq = "CREATE TABLE `species` (
-				`tax_id` INT(10) UNSIGNED NOT NULL,
-				`name` VARCHAR(200) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
-				PRIMARY KEY (`tax_id`)
-				) ENGINE = INNODB;";
 				
 	my $eu_cq = "CREATE TABLE `entrez_to_uniprot` (
 				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -174,8 +174,8 @@ sub createDB
 	my $ee_cq = "CREATE TABLE `entrez_to_ensembl` (
 				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				`entrez_id` INT(16) UNSIGNED NOT NULL,
-				`ensembl_gene` VARCHAR(20) NULL,
-				`ensembl_protein` VARCHAR(20) NULL,
+				`ensembl_gene` VARCHAR(32) NULL,
+				`ensembl_protein` VARCHAR(32) NULL,
 				`species` INT(10) UNSIGNED NOT NULL,
 				FOREIGN KEY (`species`) REFERENCES species(`tax_id`)
 				ON DELETE RESTRICT ON UPDATE RESTRICT
@@ -223,12 +223,12 @@ sub createDB
 				ON DELETE RESTRICT ON UPDATE RESTRICT
 				) ENGINE = INNODB;";
 			
+	$conn->do($st_cq);
 	$conn->do($dd_cq);
 	$conn->do($gt_cq);
 	$conn->do($ia_cq);
 	$conn->do($ds_cq);
 	$conn->do($dt_cq);
-	$conn->do($st_cq);
 	$conn->do($eu_cq);
 	$conn->do($ee_cq);
 	$conn->do($eg_cq);
@@ -282,12 +282,12 @@ sub programUsage
 	my $usagetext = << "END";
 	
 $scriptname
-Manage a local copy of HMDB metabocards database dump.
+Create the KUPKB_Vis database schema.
 
 Author : Panagiotis Moulos (pmoulos\@eie.gr)
 
 Main usage
-$scriptname --metabocards file/dir/flag [OPTIONS]
+$scriptname --dbdata username password [OPTIONS]
 
 --- Required ---
   --dbdata|b		Connection data for the local database. It should

@@ -52,7 +52,6 @@ function bindAutoComplete(id)
 				terms.pop(); // remove the current input
 				topush = truncOrg(ui.item.value);
 				terms.push(topush); // add the selected item
-				//terms.push(ui.item.value); // add the selected item
 				terms.push(""); // add placeholder to get the comma-and-space at the end
 				this.value = terms.join("\n");
 				return false;
@@ -80,8 +79,8 @@ function search()
 			type: 'POST',
 			url: urlBase+'php/control.php',
 			data: { species: species, genes: searchJSON },
-			beforeSend: function() { $('#loadingCircle').show(); },
-			complete: function() { $('#loadingCircle').hide(); },
+			beforeSend: loadingSmall(),
+			complete: unloadingSmall(),
 			success: function(data)
 			{				
 				if ($.isEmptyObject(data))
@@ -159,7 +158,8 @@ function search()
 								if (data[outerkey] !== null)
 								{
 									$("#kegg_list").removeData();
-									enable(['kegg_list']);		
+									enable(['kegg_list']);
+									$("#kegg_list").data("values",data[outerkey]);
 									for (innerkey in data[outerkey])
 									{									
 										$("#kegg_list").append("<optgroup label=\"" + innerkey + "\">");
@@ -169,7 +169,6 @@ function search()
 												+ data[outerkey][innerkey][innermost] + "</option>");
 										}
 									}
-									$("#kegg_list").data("values",data[outerkey]);
 								}
 								break;
 						}
@@ -182,10 +181,8 @@ function search()
 			},
 			dataType: "json"
 		});
-		enable(['reset_data_button']);
 
-		//Cross-fingers
-		initNetwork();
+		fetchNetwork(); // Initiate the network
 	}
 }
 
@@ -209,12 +206,16 @@ function update(id)
 					type: 'POST',
 					url: urlBase+'php/control.php',
 					data: { species: selSpecies, genes: searchJSON },
-					beforeSend: function() 
-					{ 
-						$("#loadingCircle").show();
-						disable(['disease_list','location_list','disease_list','reset_data_button']);
+					beforeSend: function()
+					{
+						$("#filterCircle").show();
+						loadingSmall();
 					},
-					complete: function() { $("#loadingCircle").hide(); },
+					complete: function()
+					{
+						$("#filterCircle").hide();
+						unloadingSmall();
+					},
 					success: function(data)
 					{				
 						if ($.isEmptyObject(data))
@@ -247,7 +248,7 @@ function update(id)
 										{
 											$("#location_list").removeData();				
 											enable(['location_list']);
-											$("#disease_list").data("values",data[outerkey]); //Cache!					
+											$("#location_list").data("values",data[outerkey]); //Cache!					
 											for (innerkey in data[outerkey])
 											{
 												$("#location_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
@@ -313,7 +314,8 @@ function update(id)
 					},
 					dataType: "json"
 				});
-				enable(['reset_data_button']);
+
+				fetchNetwork(); // Re-initiate network
 			}
 			break;
 			
@@ -327,12 +329,12 @@ function update(id)
 				data: { disease: selDisease },
 				beforeSend: function()
 				{
-					$('#loadingCircle').show();
+					$("#filterCircle").show();
 					disable(['disease_list','location_list','dataset_list','reset_data_button']); 
 				},
 				complete: function() 
 				{ 
-					$('#loadingCircle').hide();
+					$("#filterCircle").hide();
 					enable(['disease_list']); 
 				},
 				success: function(data)
@@ -394,12 +396,12 @@ function update(id)
 				data: { location: selLocation },
 				beforeSend: function()
 				{
-					$('#loadingCircle').show();
+					$("#filterCircle").show();
 					disable(['disease_list','location_list','dataset_list']); 
 				},
 				complete: function() 
 				{ 
-					$('#loadingCircle').hide();
+					$("#filterCircle").hide();
 					enable(['location_list']); 
 				},
 				success: function(data)
@@ -459,48 +461,49 @@ function changeGOCategory(category)
 	// Contains the object retrieved with AJAX and has Component, Function and Process
 	var goData = $("#go_list").data("values");
 	var cat,key;
-	
-	$("#go_list").empty();
-	switch (category) // Is the cell ID in the corresponding part of the page
+
+	if (goData)
 	{
-		case 'go_component':	
-			cat = 'Component';									
-			for (key in goData[cat])
-			{
-				$("#go_list").append("<option title=\"" + goData[cat][key] + "\" value=" + key + ">" + goData[cat][key] + "</option>");
-			}
-			$("#go_component").css("background-color","#FFE5E0");
-			$("#go_function").css("background-color","#FFFFFF");
-			$("#go_process").css("background-color","#FFFFFF");
-			break;
-	 	case 'go_function':	
-			cat = 'Function';									
-			for (key in goData[cat])
-			{
-				$("#go_list").append("<option title=\"" + goData[cat][key] + "\" value=" + key + ">" + goData[cat][key] + "</option>");
-			}
-			$("#go_component").css("background-color","#FFFFFF");
-			$("#go_function").css("background-color","#FFE5E0");
-			$("#go_process").css("background-color","#FFFFFF");
-			break;
-		case 'go_process':	
-			cat = 'Process';									
-			for (key in goData[cat])
-			{
-				$("#go_list").append("<option title=\"" + goData[cat][key] + "\" value=" + key + ">" + goData[cat][key] + "</option>");
-			}
-			$("#go_component").css("background-color","#FFFFFF");
-			$("#go_function").css("background-color","#FFFFFF");
-			$("#go_process").css("background-color","#FFE5E0");
-			break;
+		$("#go_list").empty();
+		switch (category) // Is the cell ID in the corresponding part of the page
+		{
+			case 'go_component':	
+				cat = 'Component';									
+				for (key in goData[cat])
+				{
+					$("#go_list").append("<option title=\"" + goData[cat][key] + "\" value=" + key + ">" + goData[cat][key] + "</option>");
+				}
+				$("#go_component").css("background-color","#FFE5E0");
+				$("#go_function").css("background-color","#FFFFFF");
+				$("#go_process").css("background-color","#FFFFFF");
+				break;
+			case 'go_function':	
+				cat = 'Function';									
+				for (key in goData[cat])
+				{
+					$("#go_list").append("<option title=\"" + goData[cat][key] + "\" value=" + key + ">" + goData[cat][key] + "</option>");
+				}
+				$("#go_component").css("background-color","#FFFFFF");
+				$("#go_function").css("background-color","#FFE5E0");
+				$("#go_process").css("background-color","#FFFFFF");
+				break;
+			case 'go_process':	
+				cat = 'Process';									
+				for (key in goData[cat])
+				{
+					$("#go_list").append("<option title=\"" + goData[cat][key] + "\" value=" + key + ">" + goData[cat][key] + "</option>");
+				}
+				$("#go_component").css("background-color","#FFFFFF");
+				$("#go_function").css("background-color","#FFFFFF");
+				$("#go_process").css("background-color","#FFE5E0");
+				break;
+		}
 	}
 }
 
-function initNetwork()
+function fetchNetwork()
 {
 	var urlBase = initMe();
-	var networkJSON;
-
 	$.ajax(
 	{
 		type: 'POST',
@@ -508,25 +511,33 @@ function initNetwork()
 		data: { network: "network" }, //Some random word for posting...
 		beforeSend: function()
 		{
-			$('#loadingCircle').show();
-			//disable(['disease_list','location_list','dataset_list','reset_data_button']); 
+			$("#hello_kidney").empty(); // Remove the splash
+			$("#loading_big").show();
+			disable(['disease_list','location_list','dataset_list','reset_data_button','go_list','kegg_list','mirna_list']); 
 		},
 		complete: function() 
 		{ 
-			$('#loadingCircle').hide();
-			//enable(['disease_list']); 
+			$("#loading_big").hide();
+			enable(['disease_list','location_list','dataset_list','reset_data_button','go_list','kegg_list','mirna_list']);
 		},
 		success: function(data)
-		{				
-			if ($.isEmptyObject(data))
+		{
+			if ($.isEmptyObject(data)) // In case the object is empty indeed
 			{
 				displayError('The network is empty... :-(');
 			}
+			else if (data.data.nodes[0] === undefined)
+			{
+				displayError('No interactions found! :-(');
+				clearNetwork();
+				$("#cytoscapeweb").html("<table class=\"innerTable\"><tr><td>" +
+										"<div id=\"hello_kidney\"><img src=\"images/noInteractions.png\"/></div>" +
+										"</td></tr></table>");
+			}
 			else
-			{																																
-				//networkJSON['dataSchema'] = data['dataSchema'];
-				//networkJSON['data'] = data['dataSchema'];
-				networkJSON = $.toJSON(data);
+			{
+				initNetwork(data);
+				enable(['binding_check','ptmod_check','expression_check','activation_check']);
 			}
 		},
 		error: function(data,error)
@@ -535,19 +546,161 @@ function initNetwork()
 		},
 		dataType: "json"
 	});
+}
 
-	// initialization options
+function initNetwork(networkJSON)
+{
+	/*networkJSON =
+	{
+		"dataSchema":
+		{
+			"nodes":[
+						{"name":"label","type":"string"},
+						{"name":"entrez_id","type":"int"}
+					],
+			"edges":[{"name":"interaction","type":"string"}]
+		},
+		"data":
+		{
+			"nodes":
+			[
+				{"id":"ENSP00000221930","label":"TGFB1","entrez_id":7040},
+				{"id":"ENSP00000262158","label":"SMAD7","entrez_id":4092},
+				{"id":"ENSP00000262160","label":"SMAD2","entrez_id":4087},
+				{"id":"ENSP00000273430","label":"AGTR1","entrez_id":185},
+				{"id":"ENSP00000290866","label":"ACE","entrez_id":1636},
+				{"id":"ENSP00000332973","label":"SMAD3","entrez_id":4088},
+				{"id":"ENSP00000341551","label":"SMAD4","entrez_id":4089},
+				{"id":"ENSP00000356954","label":"CTGF","entrez_id":1490},
+				{"id":"ENSP00000364133","label":"TGFBR1","entrez_id":7046},
+				{"id":"ENSP00000379204","label":"BMP7","entrez_id":655}
+			],
+			"edges":
+			[
+				{"id":"ENSP00000221930_to_ENSP00000262160","target":"ENSP00000262160","source":"ENSP00000221930","interaction":"ptmod"},
+				{"id":"ENSP00000221930_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000221930","interaction":"activation"},
+				{"id":"ENSP00000221930_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000221930","interaction":"binding"},
+				{"id":"ENSP00000262158_to_ENSP00000262158","target":"ENSP00000262158","source":"ENSP00000262158","interaction":"expression"},
+				{"id":"ENSP00000262158_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262158","interaction":"activation"},
+				{"id":"ENSP00000262158_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262158","interaction":"binding"},
+				{"id":"ENSP00000262158_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262158","interaction":"expression"},
+				{"id":"ENSP00000262158_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262158","interaction":"binding"},
+				{"id":"ENSP00000262158_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262158","interaction":"expression"},
+				{"id":"ENSP00000262158_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000262158","interaction":"expression"},
+				{"id":"ENSP00000262158_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262158","interaction":"binding"},
+				{"id":"ENSP00000262158_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262158","interaction":"ptmod"},
+				{"id":"ENSP00000262160_to_ENSP00000221930","target":"ENSP00000221930","source":"ENSP00000262160","interaction":"ptmod"},
+				{"id":"ENSP00000262160_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262160","interaction":"binding"},
+				{"id":"ENSP00000262160_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262160","interaction":"activation"},
+				{"id":"ENSP00000262160_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262160","interaction":"binding"},
+				{"id":"ENSP00000262160_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262160","interaction":"expression"},
+				{"id":"ENSP00000262160_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000262160","interaction":"activation"},
+				{"id":"ENSP00000262160_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262160","interaction":"binding"},
+				{"id":"ENSP00000262160_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262160","interaction":"ptmod"},
+				{"id":"ENSP00000273430_to_ENSP00000290866","target":"ENSP00000290866","source":"ENSP00000273430","interaction":"activation"},
+				{"id":"ENSP00000273430_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000273430","interaction":"activation"},
+				{"id":"ENSP00000273430_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000273430","interaction":"expression"},
+				{"id":"ENSP00000290866_to_ENSP00000273430","target":"ENSP00000273430","source":"ENSP00000290866","interaction":"activation"},
+				{"id":"ENSP00000332973_to_ENSP00000262158","target":"ENSP00000262158","source":"ENSP00000332973","interaction":"activation"},
+				{"id":"ENSP00000332973_to_ENSP00000262158","target":"ENSP00000262158","source":"ENSP00000332973","interaction":"binding"}
+			]
+		}
+	};*/
+
+	/*var visual_style =
+	{
+		"global":
+		{
+			"backgroundColor":"#FFFFFF",
+			"selectionFillColor":"#9A9AFF"
+		},
+		"nodes":
+		{
+			"shape":
+			{
+				"defaultValue":"ELLIPSE",
+				"discreteMapper":
+				{
+					"attrName":"object_type",
+					"entries":
+					[
+						{"attrValue":"gene","value":"ELLIPSE"},
+						{"attrValue":"goterm","value":"ROUNDRECT"},
+						{"attrValue":"pathway","value":"PARALLELOGRAM"},
+						{"attrValue":"mirna","value":"DIAMOND"}
+					]
+				}
+			},
+			"borderWidth":1,
+			"borderColor":"#000000",
+			"size":
+			{
+				"defaultValue":"auto",
+				"continuousMapper":{"attrName":"pvalue","minValue":16,"maxValue":64}
+			},
+			"color":
+			{
+				"defaultValue":"#F7F7F7",
+				"continuousMapper":{"attrName":"ratio","minValue":"#00FF00","maxValue":"#FF0000"}
+			},
+			"labelHorizontalAnchor":"center",
+			"selectionColor":"#5FFFFB",
+			"selectionGlowColor":"#95FFFE",
+			"selectionGlowStrength":32,
+			"labelFontWeight":
+			{
+				"defaultValue":"normal",
+				"discreteMapper":
+				{
+					"attrName":"object_type",
+					"entries":
+					[
+						{"attrValue":"gene","value":"normal"},
+						{"attrValue":"goterm","value":"bold"},
+						{"attrValue":"pathway","value":"bold"},
+						{"attrValue":"mirna","value":"normal"}
+					]
+				}
+			}
+		},
+		"edges":
+		{
+			"color":
+			{
+				"defaultValue":"#999999",
+				"discreteMapper":
+				{
+					"attrName":"interaction",
+					"entries":
+					[
+						{"attrValue":"binding","value":"#028E9B"},
+						{"attrValue":"ptmod","value":"#133CAC"},
+						{"attrValue":"expression","value":"#FFAD00"},
+						{"attrValue":"activation","value":"#FF7800"},
+						{"attrValue":"go","value":"#FFC000"},
+						{"attrValue":"kegg","value":"#D30068"},
+						{"attrValue":"mirna","value":"#A67D00"}
+					]
+				}
+			},
+			"width":1
+		}
+	};*/
+	
+	// Initialization options, visual style, initial controls, visualization
 	var options =
 	{
 		swfPath: "../swf/CytoscapeWeb",
 		flashInstallerPath: "../swf/playerProductInstall"
 	};
-                
+	var visual_style = initVisualStyle();
 	var vis = new org.cytoscapeweb.Visualization("cytoscapeweb",options);
-                
+
 	// callback when Cytoscape Web has finished drawing
 	vis.ready(function()
 	{
+		// Store the network so it can be accessible to other functions
+		$("#cytoscapeweb").data("visObject",vis);
 		/*// add a listener for when nodes and edges are clicked
 		vis
 		.addListener("click","nodes",function(event)
@@ -587,15 +740,31 @@ function initNetwork()
 		// draw options
 	var draw_options =
 	{
-		// your data goes here
 		network: networkJSON,
-		// hide pan zoom
-		panZoomControlVisible: false 
+		visualStyle: visual_style,
+		panZoomControlVisible: true 
 	};
 		
 	vis.draw(draw_options);
 }
 
+function loadingSmall()
+{
+	$('#loadingCircle').show();
+	disable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
+			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
+			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
+			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
+}
+
+function unloadingSmall()
+{
+	$('#loadingCircle').hide();
+	enable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
+			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
+			'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
+			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
+}
 
 function searchAllow()
 {
@@ -630,20 +799,45 @@ function enable(id)
 	}
 }
 
+function clearNetwork()
+{
+	var vis = $("#cytoscapeweb").data("network");
+	if (vis) { vis.removeElements(); }
+	$("#cytoscapeweb").removeData();
+	$("#cytoscapeweb").empty();
+}
+
 function resetSearch()
 { 	
-	hideError();	
+	hideError();
+	clearNetwork();
+	$("#cytoscapeweb").html("<table class=\"innerTable\"><tr><td>" +
+							"<div id=\"hello_kidney\"><img src=\"images/netInitPic.png\" alt=\"Your network will appear here.\"/></div>" +
+							"<div id=\"loading_big\" style=\"display:none;\"><img src=\"images/loading.gif\"/></div>" +
+							"</td></tr></table>");
 	$("#enter_genes").val('');
 	$("#disease_list").empty();
 	$("#location_list").empty();
 	$("#dataset_list").empty();
+	$("#go_list").empty();
+	$("#kegg_list").empty();
+	//$("#mirna_list").empty();
 	$("#disease_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#location_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#dataset_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
+	$("#go_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
+	$("#kegg_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
+	//$("#mirna_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#disease_list").removeData();
 	$("#location_list").removeData();
 	$("#dataset_list").removeData();
-	disable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button']);
+	$("#go_list").removeData();
+	$("#kegg_list").removeData();
+	//$("#mirna_list").removeData();
+	disable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
+			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
+			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
+			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
 }
 
 function resetData() 
@@ -713,6 +907,27 @@ function debugMessage(msg)
 {
 	$('#debugContainer').text(msg);
 	$('#debugContainer').show("fast");
+}
+
+function postDebugMessage(msg)
+{
+	var urlBase = initMe();
+
+	$.ajax(
+	{
+		type: 'POST',
+		url: urlBase+'php/control.php',
+		data: { json_debug: msg },
+		success: function(data)
+		{
+			debugMessage("Success");
+		},
+		error: function(data,error)
+		{
+			displayError('Ooops! ' + error + " " + data.responseText);						
+		},
+		dataType: "json"
+	});
 }
 
 /*

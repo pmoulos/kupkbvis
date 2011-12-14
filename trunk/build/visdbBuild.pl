@@ -24,23 +24,8 @@ our $silent = 0; # Display verbose messages
 our $waitbar;    # Use the waitbar feature of sub-scripts?
 our $help = 0;   # Help?
 
-# Check for the presence of YAML, required!!!
-eval
-{
-	require YAML;
-};
-if ($@)
-{
-	my $death = "Module YAML is required to continue with the execution. If you are in\n". 
-				"Windows and you have ActiveState Perl installed, use the Package Manager\n".
-				"to get the module. If you are under Linux, log in as a super user (or use\n".
-				"sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
-				"to answer some questions). After this type \"install YAML\" to install\n".
-				"the module. If you don't know how to install the package, contact your\n".
-				"system administrator.";
-	die "\n$death\n";
-}
-
+# Check for the presence of required modules
+&tryModule("YAML");
 # Check inputs
 &checkInputs;
 
@@ -68,26 +53,47 @@ if ($paramfile)
 }
 else { $phref = &loadDefaultParams(); } # Not given
 
+my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$dataOK,$keggOK);
+$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $dataOK = $keggOK = -1;
+
 # Do the job... -create the schema first
-`perl createSchema.pl --dbdata $dbdata[0] $dbdata[1]`;
+$schemaOK = system("perl createSchema.pl --dbdata $dbdata[0] $dbdata[1]");
 disp("================================================================================\n");
 # Build the sub-background knowledge
-`perl ncbi2table.pl --input $phref->{"GENE_PATH"} --param $paramfile --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar`;
-disp("================================================================================\n");
-`perl string2table.pl --input $phref->{"INTERACTION_PATH"} --param $paramfile --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar`;
-disp("================================================================================\n");
+if ($schemaOK==0)
+{
+	$ncbiOK = system("perl ncbi2table.pl --input $phref->{\"GENE_PATH\"} --param $paramfile --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar");
+	disp("================================================================================\n");
+}
+if ($ncbiOK==0)
+{
+	$stringOK = system("perl string2table.pl --input $phref->{\"INTERACTION_PATH\"} --param $paramfile --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar");
+	disp("================================================================================\n");
+}
 # Build the data tables
-`perl data2table.pl --input $phref->{"DESCRIPTION"} --mode "description" --dbdata $dbdata[0] $dbdata[1]`;
-disp("================================================================================\n");
-`perl data2table.pl --input $phref->{"DATA"} --mode "dataset" --dbdata $dbdata[0] $dbdata[1]`;
-disp("================================================================================\n");
-`perl data2table.pl --input $phref->{"DATA"} --mode "data" --dbdata $dbdata[0] $dbdata[1]`;
-disp("================================================================================\n");
+if ($stringOK==0)
+{
+	$descriptionOK = system("perl data2table.pl --input $phref->{\"DESCRIPTION\"} --mode description --dbdata $dbdata[0] $dbdata[1] --curators $phref->{\"CURATORS\"}");
+	disp("================================================================================\n");
+}
+if ($descriptionOK==0)
+{
+	$datasetOK = system("perl data2table.pl --input $phref->{\"DATA\"} --mode dataset --dbdata $dbdata[0] $dbdata[1] --type excel");
+	disp("================================================================================\n");
+}
+if ($datasetOK==0)
+{
+	$dataOK = system("perl data2table.pl --input $phref->{\"DATA\"} --mode data --dbdata $dbdata[0] $dbdata[1] --type excel");
+	disp("================================================================================\n");
+}
 # Build the KEGG tables
-`perl kegg2table.pl --paramfile $phref->{"DATA"} --dbdata $dbdata[0] $dbdata[1]`;
-disp("================================================================================\n");
+if ($dataOK==0)
+{
+	$keggOK = system("perl kegg2table.pl --param $paramfile --dbdata $dbdata[0] $dbdata[1]");
+	disp("================================================================================\n");
+}
 $date = &now;
-disp("$date - Finished!\n\n");
+($dataOK==0) ? (disp("$date - Finished!\n\n")) : (disp("$date - Error occurred!\n\n")) ;
 
 
 # Process inputs
@@ -145,9 +151,7 @@ sub loadDefaultParams
 							"Homo sapiens",
 							"Mus musculus",
 							"Rattus norvegicus",
-							"Rodentia",
-							"Canis lupus familiaris",
-							"Bos taurus"
+							"Canis lupus familiaris"
 					],
 			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
@@ -176,6 +180,23 @@ sub now
 sub disp
 {
 	print "\n@_" if (!$silent);
+}
+
+sub tryModule
+{
+	my $module = shift @_;
+	eval "require $module";
+	if ($@)
+	{
+		my $killer = "Module $module is required to continue with the execution. If you are in\n". 
+					 "Windows and you have ActiveState Perl installed, use the Package Manager\n".
+					 "to get the module. If you are under Linux, log in as a super user (or use\n".
+					 "sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
+					 "to answer some questions). After this type \"install $module\" to install\n".
+					 "the module. If you don't know how to install the module, contact your\n".
+					 "system administrator.";
+		die "\n$killer\n\n";
+	}
 }
 
 sub programUsage 

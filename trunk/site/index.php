@@ -31,111 +31,8 @@
         <script type="text/javascript" src="js/jquery-1.7.min.js"></script>
         <script type="text/javascript" src="js/jquery-ui-1.8.16.custom.min.js"></script>
         <script type="text/javascript" src="js/jquery.json-2.3.min.js"></script>
+        <script type="text/javascript" src="js/graph_control.js"></script>
 		<script type="text/javascript" src="js/custom.js"></script>
-        
-        <!--<script type="text/javascript">
-            window.onload = function() {
-                // id of Cytoscape Web container div
-                var div_id = "cytoscapeweb";
-                
-                // NOTE: - the attributes on nodes and edges
-                //       - it also has directed edges, which will automatically display edge arrows
-                var xml = '\
-                <graphml>\
-                  <key id="label" for="all" attr.name="label" attr.type="string"/>\
-                  <key id="weight" for="node" attr.name="weight" attr.type="double"/>\
-                  <graph edgedefault="directed">\
-                    <node id="1">\
-                        <data key="label">A</data>\
-                        <data key="weight">2.0</data>\
-                    </node>\
-                    <node id="2">\
-                        <data key="label">B</data>\
-                        <data key="weight">1.5</data>\
-                    </node>\
-                    <node id="3">\
-                        <data key="label">C</data>\
-                        <data key="weight">1.0</data>\
-                    </node>\
-                    <edge source="1" target="2">\
-                        <data key="label">A to B</data>\
-                    </edge>\
-                    <edge source="1" target="3">\
-                        <data key="label">A to C</data>\
-                    </edge>\
-                  </graph>\
-                </graphml>\
-                ';
-                
-                // visual style we will use
-                var visual_style = {
-                    global: {
-                        backgroundColor: "white"
-                    },
-                    nodes: {
-                        shape: "OCTAGON",
-                        borderWidth: 3,
-                        borderColor: "#ffffff",
-                        size: {
-                            defaultValue: 25,
-                            continuousMapper: { attrName: "weight", minValue: 25, maxValue: 75 }
-                        },
-                        color: {
-                            discreteMapper: {
-                                attrName: "id",
-                                entries: [
-                                    { attrValue: 1, value: "#0B94B1" },
-                                    { attrValue: 2, value: "#9A0B0B" },
-                                    { attrValue: 3, value: "#dddd00" }
-                                ]
-                            }
-                        },
-                        labelHorizontalAnchor: "center"
-                    },
-                    edges: {
-                        width: 3,
-                        color: "#0B94B1"
-                    }
-                };
-                
-                // initialization options
-                var options = {
-                    swfPath: "/swf/CytoscapeWeb",
-                    flashInstallerPath: "/swf/playerProductInstall"
-                };
-                
-                var vis = new org.cytoscapeweb.Visualization(div_id, options);
-                
-						//Leave as template               
-                vis.ready(function() 
-                {
-                    // set the style programmatically
-                    document.getElementById("color").onclick = function(){
-                        visual_style.global.backgroundColor = "white";
-                        vis.visualStyle(visual_style);
-                    };
-                });
-
-                var draw_options = {
-                    // your data goes here
-                    network: xml,
-                    
-                    // show edge labels too
-                    edgeLabelsVisible: true,
-                    
-                    // let's try another layout
-                    layout: "Tree",
-                    
-                    // set the style at initialisation
-                    visualStyle: visual_style,
-                    
-                    // hide pan zoom
-                    panZoomControlVisible: false 
-                };
-                
-                vis.draw(draw_options);
-            };
-        </script>-->
     </head>
     
     <body>
@@ -146,21 +43,20 @@
 				<h1>The Kidney & Urinary Pathway <span style="color:#E21A30;">K</span>nowledge <span style="color:#E21A30;">B</span>ase</h1>
 			</div>
 			<a href="" class="image"><img src="images/logobetaok.png" alt="e-lico" border="0"/></a>
-			
-			<!--<table>
-				<tr>
-					<td id="graphContainer">
-						<div id="cytoscapeweb">Cytoscape Web will replace the contents of this div with your graph.</div>
-					</td>
-					<td id="controlContainer">Controls go here</td>
-				</tr>
-			</table>-->
 			<div id="errorContainer"></div>
 			<div id="debugContainer"></div>
 			<table>
 				<tr>
 					<td id="graphContainer">
-						<div id="cytoscapeweb">Cytoscape Web will replace the contents of this div with your graph.</div>
+						<div id="cytoscapeweb">
+							<table class="innerTable"><tr><td>
+								<div id="hello_kidney"><img src="images/netInitPic.png" alt="Your network will appear here."/></div>
+								<div id="loading_big" style="display:none;"><img src="images/loading.gif"/></div>
+							</td></tr></table>
+							<!--<table class="innerTable"><tr><td>
+								<div id="loading_big" style="display:none;"><img src="images/loading.gif"/></div>
+							</td></tr></table>-->
+						</div>
 					</td>
 					<td id="functionContainer">
 						<div><span class="boldText">Enter search terms</span></div>	
@@ -183,10 +79,10 @@
 									<input type="checkbox" id="y" disabled> property 2<br/>
 								</fieldset>
 								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Edges</legend>
-									<input type="checkbox" id="binding_check" checked disabled> binding<br/>
-									<input type="checkbox" id="ptmod_check" disabled> modification<br/>
-									<input type="checkbox" id="expression_check" disabled> expression<br/>
-									<input type="checkbox" id="activation_check" disabled> activation<br/>
+									<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges('binding_check')"> binding<br/>
+									<input type="checkbox" id="ptmod_check" disabled onclick="filterEdges('ptmod_check')"> modification<br/>
+									<input type="checkbox" id="expression_check" disabled onclick="filterEdges('expression_check')"> expression<br/>
+									<input type="checkbox" id="activation_check" disabled onclick="filterEdges('activation_check')"> activation<br/>
 								</fieldset>
 							</fieldset>
     					</div>
@@ -230,6 +126,7 @@
 	    					?>
 	    					<tr><td class="innerCell" colspan=2>
 	    					<button id="reset_data_button" class="secondaryButton" onclick="resetData()" disabled>Reset</button>
+	    					<div id="filterCircle" style="display:none; float: left;"><img src="images/loading_small.gif"></div>
 	    					</tr></td>
 	    					</table>
 	    				</fieldset>

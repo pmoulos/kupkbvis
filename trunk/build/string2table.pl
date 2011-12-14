@@ -30,21 +30,7 @@ our $waitbar;    # Use a waitbar for parsing?
 our $help = 0;   # Help?
 
 # Check for the presence of YAML, required!!!
-eval
-{
-	require YAML;
-};
-if ($@)
-{
-	my $death = "Module YAML is required to continue with the execution. If you are in\n". 
-				"Windows and you have ActiveState Perl installed, use the Package Manager\n".
-				"to get the module. If you are under Linux, log in as a super user (or use\n".
-				"sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
-				"to answer some questions). After this type \"install YAML\" to install\n".
-				"the module. If you don't know how to install the package, contact your\n".
-				"system administrator.";
-	die "\n$death\n";
-}
+&tryModule("YAML");
 
 # Check inputs
 &checkInputs;
@@ -80,18 +66,15 @@ if ($input =~ m/download/i) # Case where we download from HTTP
 	use LWP::Simple;
 
 	my $staticURL = "http://string-db.org/newstring_download/protein.actions.v9.0.txt.gz";
-	my $tmpdir = File::Temp->newdir();
+	our $tmpdir = File::Temp->newdir();
 	my $tmpzip = File::Spec->catfile($tmpdir,"ppis.gz");
 	disp("Downloading protein-protein interactions file... It might take some time...");
 	my $tmp = getstore($staticURL,$tmpzip);
 	disp("Uncompressing...");
 	my $ae = Archive::Extract->new(archive => $tmpzip);
-	my $ok = $ae->extract or die $ae->error,"\n";
-	
-	opendir(TMPDIR,$tmpdir);
-	my @ppis = readdir(TMPDIR);
-	closedir(TMPDIR);
-	$input = $ppis[0];
+	my $ok = $ae->extract(to => $tmpdir) or die $ae->error,"\n";
+
+	$input = File::Spec->catfile($tmpdir,"ppis");
 }
 
 # In the case of input being a directory or having downloaded and passed to next argument
@@ -133,7 +116,7 @@ if (-f $input)
 }
 
 $date = &now;
-disp("$date - Finished!\n\n");
+disp("$date - Finished!\n");
 
 
 # Process inputs
@@ -246,9 +229,7 @@ sub loadDefaultParams
 							"Homo sapiens",
 							"Mus musculus",
 							"Rattus norvegicus",
-							"Rodentia",
-							"Canis lupus familiaris",
-							"Bos taurus"
+							"Canis lupus familiaris"
 					],
 			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
@@ -350,6 +331,23 @@ sub countLines
 sub disp
 {
 	print "\n@_" if (!$silent);
+}
+
+sub tryModule
+{
+	my $module = shift @_;
+	eval "require $module";
+	if ($@)
+	{
+		my $killer = "Module $module is required to continue with the execution. If you are in\n". 
+					 "Windows and you have ActiveState Perl installed, use the Package Manager\n".
+					 "to get the module. If you are under Linux, log in as a super user (or use\n".
+					 "sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
+					 "to answer some questions). After this type \"install $module\" to install\n".
+					 "the module. If you don't know how to install the module, contact your\n".
+					 "system administrator.";
+		die "\n$killer\n\n";
+	}
 }
 
 sub programUsage 
