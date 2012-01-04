@@ -31,7 +31,7 @@ function bindAutoComplete(id)
 					},
 					error: function(data,error)
 					{												
-						displayError('Ooops! ' + error + ' ' + data.statusText);						
+						displayError('Ooops! ' + error + ' ' + data.responseText);						
 					},
 					dataType: "json"
 				});
@@ -79,8 +79,8 @@ function search()
 			type: 'POST',
 			url: urlBase+'php/control.php',
 			data: { species: species, genes: searchJSON },
-			beforeSend: loadingSmall(),
-			complete: unloadingSmall(),
+			beforeSend: function() { loadingSmall(); },
+			complete: function() { unloadingSmall(); },
 			success: function(data)
 			{				
 				if ($.isEmptyObject(data))
@@ -162,7 +162,7 @@ function search()
 									$("#kegg_list").data("values",data[outerkey]);
 									for (innerkey in data[outerkey])
 									{									
-										$("#kegg_list").append("<optgroup label=\"" + innerkey + "\">");
+                                        $("#kegg_list").append("<optgroup label=\"" + innerkey + "\">");
 										for (innermost in data[outerkey][innerkey]) // Grouping!
 										{
 											$("#kegg_list").append("<option title=\"" + data[outerkey][innerkey][innermost] + "\" value=" + innermost + ">" 
@@ -686,12 +686,13 @@ function initNetwork(networkJSON)
 			"width":1
 		}
 	};*/
-	
 	// Initialization options, visual style, initial controls, visualization
 	var options =
 	{
-		swfPath: "../swf/CytoscapeWeb",
-		flashInstallerPath: "../swf/playerProductInstall"
+		//swfPath: "../swf/CytoscapeWeb",
+		//flashInstallerPath: "../swf/playerProductInstall"
+        swfPath: "swf/CytoscapeWeb",
+        flashInstallerPath: "swf/playerProductInstall"
 	};
 	var visual_style = initVisualStyle();
 	var vis = new org.cytoscapeweb.Visualization("cytoscapeweb",options);
@@ -870,6 +871,8 @@ function truncOrg(val) { return val.replace(/((\s+\-\s+)([\(\)\-,A-Za-z0-9]*\s*)
 
 function extractLast(term) { return split(term).pop(); }
 
+function fixKEGGClass(val) { return val.replace(/;\s+/,' - '); }
+
 function displayError(error)
 {				
 	$('#errorText').text(error);
@@ -896,9 +899,11 @@ function clearCache()
 	$("#mirna_list").removeData();
 }
 
+
 function initMe()
 {
-	var urlBase = 'http://kupkbvis-dev:81/';
+	//var urlBase = 'http://kupkbvis-dev:81/';
+    var urlBase = 'http://localhost/kupkbvis/site/'
 	hideError(); //Hide previous errors
 	return(urlBase);
 }
