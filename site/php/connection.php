@@ -1,4 +1,5 @@
 <?php
+
 function open_connection()
 {
 	include('config/config.php');	   
@@ -11,4 +12,5 @@ function close_connection($conn)
 {
     mysql_close($conn);
 }
+
 ?>

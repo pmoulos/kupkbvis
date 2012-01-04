@@ -201,7 +201,7 @@ function initEdgeMapper()
 // status: on, off
 function filterEdges(caller)
 {
-	visObject = getVisData('cytoscapeweb');
+    visObject = getVisData('cytoscapeweb');
 	//visObject.filter("edges",filterEdgeCallback(type,status),true);
 	visObject.filter("edges",function(caller)
 	{

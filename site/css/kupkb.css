@@ -3,26 +3,44 @@ html { height: 100%; }
 body 
 {
     background: white;
+    /*background: url(../images/up-left-corner.png) no-repeat top left,
+    url(../images/bottom-left-corner.png) no-repeat bottom left,
+    url(../images/up-right-corner.png) no-repeat top right,
+    url(../images/up-left-corner.png) no-repeat top left;*/
     color: #7F7F7F;
     font-family: Arial Unicode MS, Arial, sans-serif;
     font-size: small;
     line-height: 1.7em;
-    background: url(../images/up-left-corner.png) no-repeat top left,
-    url(../images/bottom-left-corner.png) no-repeat bottom left,
-    url(../images/up-right-corner.png) no-repeat top right;
-    background: url(../images/up-left-corner.png)\0/;
     height: 100%;
+    width: 100%;
+    margin: 0px;
 }
 
 table
 {
-	border: solid;
+    border: solid;
 	border-width: 1px;
 	border-collapse: collapse;
 	border-color: #000000;
 	border-spacing: 100px;
 	width: 100%;
 	height: 100%;
+}  
+
+table.main
+{
+    background: url(../images/up-left-corner.png) no-repeat top left,
+    url(../images/bottom-left-corner.png) no-repeat bottom left,
+    url(../images/up-right-corner.png) no-repeat top right,
+    url(../images/up-left-corner.png) no-repeat top left;
+    border-spacing: 0px;
+    border-style: none;
+}
+
+td.main
+{
+    padding: 0px;
+    border-style: none;
 }
 
 textarea
@@ -38,10 +56,8 @@ textarea
 
 select
 {
-    width: 15em;
+    width: 100%;
 }
-
-div.abs { position: absolute; }
 
 .boldText
 {
@@ -50,7 +66,8 @@ div.abs { position: absolute; }
 
 .innerTable
 {
-	border-style: solid;
+	width: 100%;
+    border-style: solid;
 	border-width: 0px;
 	border-spacing: 0px;
 }
@@ -58,6 +75,26 @@ div.abs { position: absolute; }
 .innerCell
 {
 	padding: 5px;
+    vertical-align: middle;
+    /*border-width: 1px;
+    border-style: dashed;*/
+}
+
+.optsCell
+{
+    padding: 5px;
+    vertical-align: top;
+    /*border-width: 1px;
+    border-style: dashed;*/
+}
+
+.buttonCell
+{
+    padding-left: 3px;
+    padding-right: 3px;
+    vertical-align: middle;
+    /*border-width: 1px;
+    border-style: dashed;*/
 }
 
 .goLabel
@@ -70,7 +107,7 @@ div.abs { position: absolute; }
 	padding-bottom: 0px;
 	padding-top: 0px;
 	background-color: #FFFFFF;
-	text-align: left;
+	text-align: center;
 	font-size: 0.9em;
 	color: #555555;
 }
@@ -83,8 +120,6 @@ div.abs { position: absolute; }
 
 .optsGroup
 {
-	width: 23%;
-	float: left;
 	background-color: #F4F4F4;
 	border-radius: 8px;
 	-webkit-border-radius: 8px;
@@ -93,12 +128,12 @@ div.abs { position: absolute; }
 
 .mainContainer 
 {
-	margin-right:50px;
-	margin-left: 50px;
-	padding-left: 30px;
-	padding-top:20px;
-	padding-bottom:50px;
+    margin-left: 60px;
+    margin-right: 60px;
+	margin-top: 20px;
+    margin-bottom: 20px;
 	height: 100%;
+    width: 90%;
 }
 
 .fieldSetTitle
@@ -113,13 +148,30 @@ div.abs { position: absolute; }
 	padding: 5px;
 }
 
+#appContainer
+{
+    width: 100%;
+    table-layout: fixed;
+}
+
 #graphContainer 
 {		
-	width: 85%;
-	height: 90%;
+	width: 80%;
+	height: 100%;
 	border: solid;
 	border-width: 1px;
 	border-color: #000000;
+}
+
+#functionContainer
+{    
+    width: 20%;
+    height: 100%;
+    border: solid;
+    border-width: 1px;
+    border-color: #000000;
+    background-color: #FFFFDA;
+    vertical-align: text-top;    
 }
 
 #controlContainer
@@ -133,21 +185,12 @@ div.abs { position: absolute; }
 	line-height: 2em;
 }
 
-#functionContainer
-{	
-	width: 15%;
-	background-color: #FFFFDA;
-	border: solid;
-	border-width: 1px;
-	border-color: #000000;
-	vertical-align: text-top;	
-}
-
 #cytoscapeweb 
 { 
 	width: 100%;
 	height: 100%;
 	text-align: center;
+    display: block;
 }
 
 #errorText
@@ -187,13 +230,23 @@ h1
 {
 	font-size: 1.2em;
 	margin-left: 2px;
+    margin-top: 5px;
+    padding-left: 7px;
+    padding-right: 7px;
+    padding-bottom: 3px;
+    padding-top: 3px;
 	float: left;
+    overflow: visible;
 }
 
 .secondaryButton 
 {
-	margin-left: 2px;
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-bottom: 0px;
+    padding-top: 0px;
 	float: left;
+    overflow: visible;
 }
 
 .mainPageTitle 
