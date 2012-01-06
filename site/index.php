@@ -21,7 +21,7 @@
         <script type="text/javascript" src="js/jquery-ui-1.8.16.custom.min.js"></script>
         <script type="text/javascript" src="js/jquery.json-2.3.min.js"></script>
         <script type="text/javascript" src="js/graph_control.js"></script>
-		<script type="text/javascript" src="js/custom.js"></script>
+		<script type="text/javascript" src="js/app_control.js"></script>
     </head>
     
     <body>
@@ -68,10 +68,17 @@
 									<input type="checkbox" id="y" disabled> property 2<br/>
 								</fieldset>
 								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Edges</legend>
-									<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges('binding_check')"><span style="color:#028E9B; font-weight:bold;"> binding</span><br/>
-									<input type="checkbox" id="ptmod_check" disabled onclick="filterEdges('ptmod_check')"><span style="color:#133CAC; font-weight:bold;"> modification</span><br/>
-									<input type="checkbox" id="expression_check" disabled onclick="filterEdges('expression_check')"><span style="color:#FFAD00; font-weight:bold;"> expression</span><br/>
-									<input type="checkbox" id="activation_check" disabled onclick="filterEdges('activation_check')"><span style="color:#FF7800; font-weight:bold;"> activation</span><br/>
+									<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Genes</legend>
+										<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges()"><span style="color:#028E9B; font-weight:bold;"> binding</span><br/>
+										<input type="checkbox" id="ptmod_check" disabled onclick="filterEdges()"><span style="color:#133CAC; font-weight:bold;"> modification</span><br/>
+										<input type="checkbox" id="expression_check" disabled onclick="filterEdges()"><span style="color:#FFAD00; font-weight:bold;"> expression</span><br/>
+										<input type="checkbox" id="activation_check" disabled onclick="filterEdges()"><span style="color:#FF7800; font-weight:bold;"> activation</span><br/>
+									</fieldset>
+									<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Other</legend>
+										<input type="checkbox" id="go_check" checked disabled onclick="filterEdges()"><span style="color:#9BA402; font-weight:bold;"> GO terms</span><br/>
+										<input type="checkbox" id="kegg_check" disabled onclick="filterEdges()"><span style="color:#D30068; font-weight:bold;"> KEGG pathways</span><br/>
+										<input type="checkbox" id="mirna_check" disabled onclick="filterEdges()"><span style="color:#A67D00; font-weight:bold;"> miRNAs</span><br/>
+									</fieldset>
 								</fieldset>
 							</fieldset>
     					</div>
@@ -80,7 +87,7 @@
 				<tr>
 					<td id="controlContainer" colspan=2>
 					<fieldset><legend class="fieldSetTitle" style="font-size: 1.2em; background-color:#FFFF5F;">Parameters</legend>                    
-                    <table class="innerTable"><tr>
+                    <table class="innerTable" style="table-layout:inherit"><tr>
                         <td class="optsCell">           
 						<fieldset class="optsGroup" style="background-color:#F5FFFF">
 							<legend class="fieldSetTitle" style="background-color:#FFFF5F;">KUPKB data</legend>
@@ -127,28 +134,31 @@
 	    				<fieldset class="optsGroup"><legend class="fieldSetTitle">Gene Ontology</legend>
 	    					<table class="innerTable">
 							<tr><td class="innerCell" style="width:40%"><span class="boldText">GO category:</span></td>
-							<td class="innerCell" style="width:60%">
+							<td class="innerCell" style="width:60%" colspan=2>
 							<table class="innerTable" style="height:50%"><tr>
 							<td id="go_component" class="goLabel" onclick="changeGOCategory('go_component')">Component</td>
 							<td id="go_function" class="goLabel" onclick="changeGOCategory('go_function')">Function</td>
 							<td id="go_process"class="goLabel" onclick="changeGOCategory('go_process')">Process</td>
 							</tr></table>
 							</td></tr>
-							<tr><td class="innerCell" colspan=2>
+							<tr><td class="innerCell" colspan=3>
 	    					<?php
 	    						$goterms = array('0' => 'Select...');
 	            				echo html_selectbox('go_list',$goterms,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:23em;'));
 							?>
 							</td></tr>
 							<tr><td class="buttonCell">
-							<button id="show_selected_go" class="secondaryButton" onclick="" disabled>Show selected</button>
+							<button id="show_selected_go" class="secondaryButton" onclick="showMeta('go','selected')" disabled>Show selected</button>
 							</td><td class="buttonCell">
-                            <button id="clear_selected_go" class="secondaryButton" onclick="" disabled>Clear selected</button>
+                            <button id="clear_selected_go" class="secondaryButton" onclick="clearMeta('go','selected','')" disabled>Clear selected</button>
+                            </td><td class="buttonCell">
                             </td></tr>
                             <tr><td class="buttonCell">
-                            <button id="show_all_go" class="secondaryButton" onclick="" disabled>Show all</button>
+                            <button id="show_all_go" class="secondaryButton" onclick="showMeta('go','all')" disabled>Show all</button>
 							</td><td class="buttonCell">
-							<button id="clear_all_go" class="secondaryButton" onclick="" disabled>Clear all</button>
+							<button id="clear_all_go" class="secondaryButton" onclick="clearMeta('go','all','')" disabled>Clear all</button>
+							</td><td class="buttonCell" style="float:right">
+                            <button id="clear_all_go_cat" class="secondaryButton" onclick="clearMeta('go','all','all')" disabled>Clear all GO</button>
 							</td></tr>
 	    					</table>
 	    				</fieldset>

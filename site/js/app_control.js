@@ -73,7 +73,7 @@ function search()
 	}
 	if ($("#enter_genes").val() !== '')
 	{
-		var searchJSON = $.toJSON($("#enter_genes").val().split(/\n|\r/));		
+		var searchJSON = $.toJSON($("#enter_genes").val().split(/\n|\r/));
 		$.ajax(
 		{
 			type: 'POST',
@@ -465,7 +465,7 @@ function changeGOCategory(category)
 	if (goData)
 	{
 		$("#go_list").empty();
-		switch (category) // Is the cell ID in the corresponding part of the page
+		switch(category) // Is the cell ID in the corresponding part of the page
 		{
 			case 'go_component':	
 				cat = 'Component';									
@@ -498,6 +498,86 @@ function changeGOCategory(category)
 				$("#go_process").css("background-color","#FFE5E0");
 				break;
 		}
+	}
+}
+
+/* what: go, kegg, mirna
+ * howmany: all, selected */
+function showMeta(what,howmany)
+{
+	var urlBase = initMe();
+	var toSend;
+
+	switch(what)
+	{
+		case 'go':
+			switch(howmany)
+			{
+				case 'selected':
+					toSend = $.toJSON($("#go_list").val());
+					break;
+				case 'all':
+					$("#go_list option").attr("selected","selected");
+					toSend = $.toJSON($("#go_list").val());
+					break;
+			}
+			$.ajax(
+			{
+				type: 'POST',
+				url: urlBase+'php/control.php',
+				data: { go: toSend },
+				beforeSend: function() { $('#loadingCircle').show(); },
+				complete: function() { $('#loadingCircle').hide(); },
+				success: function(data)
+				{						
+					if ($.isEmptyObject(data))
+					{
+						displayError('Select one or more GO terms first!');
+					}
+					else
+					{
+						addElements(data);
+					}
+				},
+				error: function(data,error)
+				{												
+					displayError('Ooops! ' + error + ' ' + data.responseText);						
+				},
+				dataType: "json"
+			});
+			break;
+
+		case 'kegg':
+			break;
+
+		case 'mirna':
+			break;
+	}
+}
+
+function clearMeta(what,howmany,flag)
+{
+	// Move control to a function in graph_control.js
+	if (flag === "all")
+	{
+		removeMeta(what,howmany,flag);
+	}
+	else
+	{
+		var selcat;
+		if ($("#go_component").css("background-color") === "rgb(255, 229, 224)")
+		{
+			selcat = "component";
+		}
+		else if ($("#go_function").css("background-color") === "rgb(255, 229, 224)")
+		{
+			selcat = "function";
+		}
+		else if ($("#go_process").css("background-color") === "rgb(255, 229, 224)")
+		{
+			selcat = "process";
+		}
+		removeMeta(what,howmany,selcat);
 	}
 }
 
@@ -537,7 +617,8 @@ function fetchNetwork()
 			else
 			{
 				initNetwork(data);
-				enable(['binding_check','ptmod_check','expression_check','activation_check']);
+				enable(['binding_check','ptmod_check','expression_check','activation_check',
+						'go_check','kegg_check','mirna_check']);
 			}
 		},
 		error: function(data,error)
@@ -605,9 +686,9 @@ function initNetwork(networkJSON)
 				{"id":"ENSP00000332973_to_ENSP00000262158","target":"ENSP00000262158","source":"ENSP00000332973","interaction":"binding"}
 			]
 		}
-	};*/
+	};
 
-	/*var visual_style =
+	var visual_style =
 	{
 		"global":
 		{
@@ -702,7 +783,9 @@ function initNetwork(networkJSON)
 	{
 		// Store the network so it can be accessible to other functions
 		$("#cytoscapeweb").data("visObject",vis);
-		/*// add a listener for when nodes and edges are clicked
+		// Start with only the selected edges
+		filterEdges();
+		// Add click listeners
 		vis
 		.addListener("click","nodes",function(event)
 		{
@@ -711,31 +794,30 @@ function initNetwork(networkJSON)
 		.addListener("click","edges",function(event)
 		{
 			handle_click(event);
-		});
+		})
+		// Add context menus
+		.addContextMenuItem("Show level 1 neighbors","nodes",function(event) {})
+		.addContextMenuItem("Show level 2 neighbors","nodes",function(event) {})
+		.addContextMenuItem("Show level 3 neighbors","nodes",function(event) {})
+		.addContextMenuItem("Hide","nodes",function(event) {})
+		.addContextMenuItem("Delete","nodes",function(event) {})
+		.addContextMenuItem("Properties","nodes",function(event) {})
+		;
 
 		function handle_click(event)
 		{
 			var target = event.target;
 			 
-			clear();
-			print("event.group = " + event.group);
+			//$("#debugContainer").hide();
+			var msg = "event.group = " + event.group;
 			for (var i in target.data)
 			{
 				var variable_name = i;
 				var variable_value = target.data[i];
-				print("event.target.data." + variable_name + " = " + variable_value);
+				msg = msg + "<br/>" + "event.target.data." + variable_name + " = " + variable_value;
 			}
+			//debugMessage(msg);
 		}
-		
-		function clear()
-		{
-			document.getElementById("note").innerHTML = "";
-		}
-	
-		function print(msg)
-		{
-			document.getElementById("note").innerHTML += "<p>" + msg + "</p>";
-		}*/
 	});
 
 		// draw options
@@ -753,7 +835,7 @@ function loadingSmall()
 {
 	$('#loadingCircle').show();
 	disable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
-			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
+			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
 }
@@ -762,7 +844,7 @@ function unloadingSmall()
 {
 	$('#loadingCircle').hide();
 	enable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
-			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
+			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
 }
@@ -835,6 +917,9 @@ function resetSearch()
 	$("#go_list").removeData();
 	$("#kegg_list").removeData();
 	//$("#mirna_list").removeData();
+	$("#go_component").css("background-color","#FFE5E0");
+	$("#go_function").css("background-color","#FFFFFF");
+	$("#go_process").css("background-color","#FFFFFF");
 	disable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
 			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
@@ -899,18 +984,23 @@ function clearCache()
 	$("#mirna_list").removeData();
 }
 
-
 function initMe()
 {
-	//var urlBase = 'http://kupkbvis-dev:81/';
-    var urlBase = 'http://localhost/kupkbvis/site/'
+	var urlBase = 'http://kupkbvis-dev:81/';
+    //var urlBase = 'http://localhost/kupkbvis/site/'
 	hideError(); //Hide previous errors
 	return(urlBase);
 }
 
+function randomFromTo(from,to)
+{
+	return(Math.floor(Math.random()*(to-from+1)+from));
+}
+
 function debugMessage(msg)
 {
-	$('#debugContainer').text(msg);
+	//$('#debugContainer').text(msg);
+	$('#debugContainer').html(msg);
 	$('#debugContainer').show("fast");
 }
 
