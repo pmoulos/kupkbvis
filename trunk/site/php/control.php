@@ -82,6 +82,7 @@ if ($_REQUEST['location'])
 
 if ($_REQUEST['dataset']) {}
 
+# Response to AJAX network construction
 if ($_REQUEST['network']) // The network!
 {
 	$entrez = $_SESSION['entrez'];
@@ -92,6 +93,19 @@ if ($_REQUEST['network']) // The network!
 	$resultNetwork = array("dataSchema" => $schema, "data" => array("nodes" => $nodes, "edges" => $edges));
 	#echo json_encode($resultNetwork,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 	echo json_encode($resultNetwork,JSON_NUMERIC_CHECK);
+
+	$_SESSION['proteins'] = $proteins;
+}
+
+# Response to Select GO terms multi-select list
+if ($_REQUEST['go'])
+{
+	$proteins = $_SESSION['proteins'];
+	//$proteins = $_REQUEST['proteins'];
+	$gots = $_REQUEST['go'];
+	$gots = json_decode($gots,$assoc=TRUE);
+	$elements = getGOElements($gots,$proteins);
+	echo json_encode($elements,JSON_NUMERIC_CHECK);
 }
 
 if ($_REQUEST['suggest_term'])
@@ -182,6 +196,45 @@ function getDatasetID($entrez)
 	return($dataset);
 }
 
+function getGOElements($gots,$ensembl)
+{
+	global $get_go_1,$get_go_2;
+	$go_nodes = array();
+	$go_edges = array();
+	$visited_go = array();
+	$visited_rel = array();
+	if(!empty($ensembl) && !empty($gots))
+	{
+		$conn = open_connection();			
+		$protein_list = is_array($ensembl) ? implode("', '",$ensembl) : $ensembl;
+		$go_list = is_array($gots) ? implode("', '",$gots) : $gots;	
+		$query = $get_go_1.'(\''.$protein_list.'\')'.$get_go_2.'(\''.$go_list.'\')';
+		$result = mysql_query($query,$conn);
+		while (list($edge_id,$entrez_id,$go_id,$go_term,$category,$pubmed,$protein) = mysql_fetch_array($result))
+		{
+			if ($visited_go[$go_id] != 1)
+			{
+				$go_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+									"data" => array("id" => $go_id, "label" => $go_term, "entrez_id" => 0,
+													"strength" => "", "expression" => "",
+													"ratio" => 999, "pvalue" => 999, "fdr" => 999,
+													"object_type" => strtolower($category)));
+				$visited_go[$go_id] = 1;
+			}
+			if ($visited_rel[$edge_id] != 1) // Some pubmeds can cause damage
+			{
+				$link = $pubmed === "-" ? "" : "http://www.ncbi.nlm.nih.gov/pubmed/".$pubmed;
+				$go_edges[] = array("group" => "edges",
+									"data" => array("id" => $edge_id, "target" => $protein, "source" => $go_id,
+													"interaction" => "go", "custom" => $link));
+				$visited_rel[$edge_id] = 1;
+			}
+		}
+		close_connection($conn);
+	}
+	return(array_merge($go_nodes,$go_edges));
+}
+	
 function initLocation($dataset) 
 {
 	global $init_location;
@@ -384,6 +437,7 @@ function initEdges($ensembl)
 {
 	global $init_edges_1,$init_edges_2;
 	$edges = array();
+	$seen = array();
 	if(is_array($ensembl) && !empty($ensembl))
 	{
 		$conn = open_connection();
@@ -392,7 +446,17 @@ function initEdges($ensembl)
 		$result = mysql_query($query,$conn);
 		while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
 		{
-			$edges[] = array("id" => $id, "target" => $target, "source" => $source, "interaction" => $interaction);
+			$current_edge = array("id" => $id, "target" => $target, "source" => $source,
+								  "interaction" => $interaction, "custom" => "");
+			// Little hack to eliminate directionality
+			$current_edge_tid = implode("_",array($source,$target,$interaction));
+			if ($seen[$current_edge_tid] != 1)
+			{
+				$edges[] = $current_edge;
+				$current_edge_tid_inv = implode("_",array($target,$source,$interaction));
+				$seen[$current_edge_tid_inv] = 1;
+				
+			}
 		}
 		/*while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
 		{
@@ -416,6 +480,7 @@ function initDataSchema()
 
 	$edge_schema = array();
 	$edge_schema[] = array("name" => "interaction", "type" => "string");
+	$edge_schema[] = array("name" => "custom", "type" => "string");
 
 	return(array("nodes" => $node_schema, "edges" => $edge_schema));
 }

@@ -44,18 +44,17 @@ function initNodeStyle()
 		borderWidth: 1,
 		borderColor: "#000000",
 		size: "auto",
-		color: "#F7F7F7",
-		// size and color will be passed to bypasser as we initialize colorless
+		// size will be passed to bypasser as we initialize colorless
 		/*size:
 		{
 			defaultValue: "auto",
 			continuousMapper: nodeMapper.pvalueMapper
-		},
+		},*/
 		color:
 		{
-		//	defaultValue: "#F7F7F7",
-		//	continuousMapper: nodeMapper.ratioMapper
-		},*/
+			defaultValue: "#F7F7F7",
+			discreteMapper: nodeMapper.metaMapper
+		},
 		labelHorizontalAnchor: "center",
 		labelVerticalAnchor: "middle",
 		selectionColor: "#5FFFFB",
@@ -102,7 +101,9 @@ function initNodeMapper()
 			entries:
 			[
 				{ attrValue: "gene", value: "ELLIPSE" },
-				{ attrValue: "goterm", value: "ROUNDRECT" },
+				{ attrValue: "component", value: "ROUNDRECT" },
+				{ attrValue: "function", value: "ROUNDRECT" },
+				{ attrValue: "process", value: "ROUNDRECT" },
 				{ attrValue: "pathway", value: "PARALLELOGRAM" },
 				{ attrValue: "mirna", value: "DIAMOND" }
 			]
@@ -130,22 +131,17 @@ function initNodeMapper()
 		ratioMapper: { attrName: "ratio", minValue: "#00FF00", maxValue: "#FF0000" },
 		pvalueMapper: { attrName: "pvalue", minValue: 16, maxValue: 64 },
 		fdrMapper: { attrName: "fdr", minValue: 16, maxValue: 64 },
-		goMapper:
+		metaMapper:
 		{
-			attrName: "go",
+			attrName: "object_type",
 			entries:
 			[
-				{ attrValue: "Component", value: "#A468D5" },
-				{ attrValue: "Function", value: "#BFA630" },
-				{ attrValue: "Unmodified", value: "#6E86D6" }
-			]
-		},
-		keggMapper:
-		{
-			attrName: "kegg",
-			entries:
-			[
-				{ attrValue: "KEGG", value: "#FFC973" }
+				{ attrValue: "gene", value: "#F7F7F7" },
+				{ attrValue: "component", value: "#A468D5" },
+				{ attrValue: "function", value: "#BFA630" },
+				{ attrValue: "process", value: "#6E86D6" },
+				{ attrValue: "pathway", value: "#BFA630" },
+				{ attrValue: "mirna", value: "#6E86D6" }
 			]
 		},
 		fontWeightMapper:
@@ -154,7 +150,9 @@ function initNodeMapper()
 			entries:
 			[
 				{ attrValue: "gene", value: "normal" },
-				{ attrValue: "goterm", value: "bold" },
+				{ attrValue: "component", value: "bold" },
+				{ attrValue: "function", value: "bold" },
+				{ attrValue: "process", value: "bold" },
 				{ attrValue: "pathway", value: "bold" },
 				{ attrValue: "mirna", value: "normal" }
 			]
@@ -177,7 +175,7 @@ function initEdgeMapper()
 				{ attrValue: "ptmod", value: "#133CAC" },
 				{ attrValue: "expression", value: "#FFAD00" },
 				{ attrValue: "activation", value: "#FF7800" },
-				{ attrValue: "go", value: "#FFC000" },
+				{ attrValue: "go", value: "#9BA402" },
 				{ attrValue: "kegg", value: "#D30068" },
 				{ attrValue: "mirna", value: "#A67D00" }
 			]
@@ -199,36 +197,165 @@ function initEdgeMapper()
 
 // type: interaction type
 // status: on, off
-function filterEdges(caller)
+function filterEdges()
 {
-    visObject = getVisData('cytoscapeweb');
-	//visObject.filter("edges",filterEdgeCallback(type,status),true);
-	visObject.filter("edges",function(caller)
+    var visObject = getVisData('cytoscapeweb');
+	var edges = visObject.edges();
+	var checked = {};
+	var toFilter = [];
+	var i = 0;
+	var len = edges.length;
+
+	checked.binding = $("#binding_check").is(":checked") ? true : false;
+	checked.ptmod = $("#ptmod_check").is(":checked") ? true : false;
+	checked.expression = $("#expression_check").is(":checked") ? true : false;
+	checked.activation = $("#activation_check").is(":checked") ? true : false;
+	checked.go = $("#go_check").is(":checked") ? true : false;
+	checked.kegg = $("#kegg_check").is(":checked") ? true : false;
+	checked.mirna = $("#mirna_check").is(":checked") ? true : false;
+
+	// $.each can be slow when having lots of edges...
+	for (i=0;i<len;i++)
 	{
-		var outcome;	
-		switch(caller)
+		switch(edges[i].data.interaction)
 		{
-			case 'binding_check':
-				outcome = $('#binding_check').is(':checked') ? true : false;
+			case 'binding':
+				if (checked.binding) { toFilter.push(edges[i].data.id); }
 				break;
-			case 'ptmod_check':
-				outcome = $('#ptmod_check').is(':checked') ? true : false;
+			case 'ptmod':
+				if (checked.ptmod) { toFilter.push(edges[i].data.id); }
 				break;
-			case 'expression_check':
-				outcome = $('#expression_check').is(':checked') ? true : false;
+			case 'expression':
+				if (checked.expression) { toFilter.push(edges[i].data.id); }
 				break;
-			case 'activation_check':
-				outcome = $('#activation_check').is(':checked') ? true : false;
+			case 'activation':
+				if(checked.activation) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'go':
+				if(checked.go) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'kegg':
+				if(checked.kegg) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'mirna':
+				if(checked.mirna) { toFilter.push(edges[i].data.id); }
 				break;
 		}
-		return outcome;
-	},
-	true);
+	}
+
+    //visObject.removeFilter("edges");
+	visObject.filter("edges",toFilter,true);
+}
+
+function removeMeta(what,howmany,cat)
+{
+	var visObject = getVisData('cytoscapeweb');
+	var nodes = visObject.nodes();
+	var toRemove = [];
+	var i = 0;
+	var len = nodes.length;
+	var tmp;
+	
+	switch(what)
+	{
+		case 'go':
+			switch(howmany)
+			{
+				case 'selected':
+					toRemove = JSON.parse($.toJSON($("#go_list").val()));
+					break;
+				case 'all':
+					if (cat === "all")
+					{
+						for (i=0;i<len;i++)
+						{
+							tmp = nodes[i].data.object_type;
+							if (tmp === "component" || tmp === "function" || tmp === "process")
+							{
+								toRemove.push(nodes[i].data.id);
+							}
+						}
+					}
+					else
+					{
+						for (i=0;i<len;i++)
+						{
+							tmp = nodes[i].data.object_type;
+							if (tmp === cat)
+							{
+								toRemove.push(nodes[i].data.id);
+							}
+						}
+					}
+					break;
+			}
+			removeElements(toRemove);
+			break;
+
+		case 'kegg':
+			switch(howmany)
+			{
+				case 'selected':
+					break;
+				case 'all':
+					break;
+			}
+			break;
+
+		case 'mirna':
+			switch(howmany)
+			{
+				case 'selected':
+					break;
+				case 'all':
+					break;
+			}
+			break;
+	}
+}
+
+function addElements(elems)
+{
+	var visObject = getVisData('cytoscapeweb');
+
+	// We must check if any of the elements (IDs) are already in the canvas
+	// and remove them, else cytoscapeweb throws error
+	var nodes = visObject.nodes();
+	var nodeLength = nodes.length;
+	var elemLength = elems.length;
+	var toRemove = [];
+	var nids = [];
+	var i = 0;
+
+	for (i=0; i<nodeLength; i++)
+	{
+		if ($.inArray(nodes[i].data.object_type,["component","function","process","pathway","mirna"]) !== -1)
+		{
+			nids.push(nodes[i].data.id);
+		}
+	}
+	
+	for (i=0; i<elemLength; i++)
+	{
+		if (elems[i].group === "nodes" && $.inArray(elems[i].data.id,nids) !== -1)
+		{
+			toRemove.push(elems[i].data.id);
+		}
+	}
+
+	visObject.removeElements(elems);
+	visObject.addElements(elems,true);
+}
+
+function removeElements(elems)
+{
+	var visObject = getVisData('cytoscapeweb');
+	visObject.removeElements(elems,true);
 }
 
 function getVisData(container)
 {
-	return($(container).data("visObject"));
+	return($("#"+container).data("visObject"));
 }
 
 function setVisData(container,data)
@@ -245,6 +372,7 @@ function setData(container,name,data)
 {
 	$(container).data(name,data);
 }
+
 // Check for initialized ratio, pvalue... If 999 then wrong coloring
 /*var nodes = vis.nodes();
 if (nodes[0].data.ratio === 999 || nodes[0].data.pvalue === 999 || nodes[0].data.fdr === 999)

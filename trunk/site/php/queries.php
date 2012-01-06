@@ -136,9 +136,16 @@ $init_nodes = 'SELECT DISTINCT interactions.source AS id,'.
 			  'WHERE entrez_to_ensembl.entrez_id IN ';
 
 /* Get interactions */
-$init_edges_1 = 'SELECT DISTINCT CONCAT_WS("_to_",`source`,`target`) AS `id`,'.
+$init_edges_1 = 'SELECT DISTINCT CONCAT_WS("_",CONCAT_WS("_to_",`source`,`target`),`interaction`) AS `id`,'.
 				'`target`, `source`, `interaction` '.
 			    'FROM `interactions` '.
 			    'WHERE `source` IN ';
 $init_edges_2 = ' AND `target` IN ';
+
+/* Get the selected GO terms and their genes to create GO nodes and edges */
+$get_go_1 = 'SELECT CONCAT_WS("_to_",`go_id`,`ensembl_protein`) AS `edge_id`,entrez_to_go.entrez_id,`go_id`,`go_term`,`category`,`pubmed`,`ensembl_protein` '.
+			'FROM `entrez_to_go` INNER JOIN `entrez_to_ensembl` '.
+			'ON entrez_to_go.entrez_id=entrez_to_ensembl.entrez_id '.
+			'WHERE `ensembl_protein` IN ';
+$get_go_2 = ' AND `go_id` IN ';
 ?>
