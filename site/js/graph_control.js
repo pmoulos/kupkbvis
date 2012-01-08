@@ -64,7 +64,12 @@ function initNodeStyle()
 		{
 			defaultValue: "normal",
 			discreteMapper: nodeMapper.fontWeightMapper
-		}
+		},
+        labelFontColor:
+        {
+            defaultValue: "#000000",
+            discreteMapper: nodeMapper.fontColorMapper
+        }
 	};
 
 	return(nodeStyle);
@@ -140,7 +145,7 @@ function initNodeMapper()
 				{ attrValue: "component", value: "#A468D5" },
 				{ attrValue: "function", value: "#BFA630" },
 				{ attrValue: "process", value: "#6E86D6" },
-				{ attrValue: "pathway", value: "#BFA630" },
+				{ attrValue: "pathway", value: "#700900" },
 				{ attrValue: "mirna", value: "#6E86D6" }
 			]
 		},
@@ -156,7 +161,20 @@ function initNodeMapper()
 				{ attrValue: "pathway", value: "bold" },
 				{ attrValue: "mirna", value: "normal" }
 			]
-		}
+		},
+        fontColorMapper:
+        {
+            attrName: "object_type",
+            entries:
+            [
+                { attrValue: "gene", value: "#000000" },
+                { attrValue: "component", value: "#000000" },
+                { attrValue: "function", value: "#000000" },
+                { attrValue: "process", value: "#000000" },
+                { attrValue: "pathway", value: "#FFFFFF" },
+                { attrValue: "mirna", value: "#000000" }
+            ]
+        }
 	};
 
 	return(nodeMapper);
@@ -289,15 +307,22 @@ function removeMeta(what,howmany,cat)
 					}
 					break;
 			}
-			removeElements(toRemove);
 			break;
 
 		case 'kegg':
 			switch(howmany)
 			{
 				case 'selected':
+                    toRemove = JSON.parse($.toJSON($("#kegg_list").val()));
 					break;
 				case 'all':
+                    for (i=0;i<len;i++)
+                    {
+                        if (nodes[i].data.object_type === "pathway")
+                        {
+                            toRemove.push(nodes[i].data.id);
+                        }
+                    }
 					break;
 			}
 			break;
@@ -312,6 +337,8 @@ function removeMeta(what,howmany,cat)
 			}
 			break;
 	}
+    
+    removeElements(toRemove);
 }
 
 function addElements(elems)

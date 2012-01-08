@@ -148,4 +148,13 @@ $get_go_1 = 'SELECT CONCAT_WS("_to_",`go_id`,`ensembl_protein`) AS `edge_id`,ent
 			'ON entrez_to_go.entrez_id=entrez_to_ensembl.entrez_id '.
 			'WHERE `ensembl_protein` IN ';
 $get_go_2 = ' AND `go_id` IN ';
+
+/* Get the selected KEGG pathways and their proteins to create KEGG nodes and edges */
+$get_kegg_1 = 'SELECT CONCAT_WS("_to_",pathway_members.pathway_id,`ensembl_protein`) AS `edge_id`,`entrez_member`,pathway_members.pathway_id,`name`,`class`,`ensembl_protein` '.
+              'FROM `pathway_members` INNER JOIN `entrez_to_ensembl` '.
+              'ON pathway_members.entrez_member=entrez_to_ensembl.entrez_id '.
+              'INNER JOIN `kegg_pathways` '.
+              'ON pathway_members.pathway_id=kegg_pathways.pathway_id '.
+              'WHERE `ensembl_protein` IN ';
+$get_kegg_2 = 'AND pathway_members.pathway_id IN ';
 ?>

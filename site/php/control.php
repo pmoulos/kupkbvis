@@ -101,11 +101,21 @@ if ($_REQUEST['network']) // The network!
 if ($_REQUEST['go'])
 {
 	$proteins = $_SESSION['proteins'];
-	//$proteins = $_REQUEST['proteins'];
 	$gots = $_REQUEST['go'];
 	$gots = json_decode($gots,$assoc=TRUE);
 	$elements = getGOElements($gots,$proteins);
 	echo json_encode($elements,JSON_NUMERIC_CHECK);
+}
+
+# Response to Select KEGG pathways multi-select list
+if ($_REQUEST['kegg'])
+{
+    $proteins = $_SESSION['proteins'];
+    //$proteins = $_REQUEST['proteins'];
+    $keggs = $_REQUEST['kegg'];
+    $keggs = json_decode($keggs,$assoc=TRUE);
+    $elements = getKEGGElements($keggs,$proteins);
+    echo json_encode($elements,JSON_NUMERIC_CHECK);
 }
 
 if ($_REQUEST['suggest_term'])
@@ -233,6 +243,44 @@ function getGOElements($gots,$ensembl)
 		close_connection($conn);
 	}
 	return(array_merge($go_nodes,$go_edges));
+}
+
+function getKEGGElements($keggs,$ensembl)
+{
+    global $get_kegg_1,$get_kegg_2;
+    $kegg_nodes = array();
+    $kegg_edges = array();
+    $visited_kegg = array();
+    $visited_rel = array();
+    if(!empty($ensembl) && !empty($keggs))
+    {
+        $conn = open_connection();            
+        $protein_list = is_array($ensembl) ? implode("', '",$ensembl) : $ensembl;
+        $kegg_list = is_array($keggs) ? implode("', '",$keggs) : $keggs;    
+        $query = $get_kegg_1.'(\''.$protein_list.'\')'.$get_kegg_2.'(\''.$kegg_list.'\')';
+        $result = mysql_query($query,$conn);
+        while (list($edge_id,$entrez_id,$kegg_id,$kegg_name,$kegg_class,$protein) = mysql_fetch_array($result))
+        {
+            if ($visited_kegg[$kegg_id] != 1)
+            {
+                $kegg_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+                                      "data" => array("id" => $kegg_id, "label" => $kegg_name, "entrez_id" => 0,
+                                                      "strength" => "", "expression" => "",
+                                                      "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+                                                      "object_type" => "pathway"));
+                $visited_kegg[$kegg_id] = 1;
+            }
+            if ($visited_rel[$edge_id] != 1) // Just in case... to be removed...
+            {
+                $kegg_edges[] = array("group" => "edges",
+                                      "data" => array("id" => $edge_id, "target" => $protein, "source" => $kegg_id,
+                                                    "interaction" => "kegg", "custom" => $kegg_class));
+                $visited_rel[$edge_id] = 1;
+            }
+        }
+        close_connection($conn);
+    }
+    return(array_merge($kegg_nodes,$kegg_edges));
 }
 	
 function initLocation($dataset) 
