@@ -548,6 +548,40 @@ function showMeta(what,howmany)
 			break;
 
 		case 'kegg':
+            switch(howmany)
+            {
+                case 'selected':
+                    toSend = $.toJSON($("#kegg_list").val());
+                    break;
+                case 'all':
+                    $("#kegg_list option").attr("selected","selected");
+                    toSend = $.toJSON($("#kegg_list").val());
+                    break;
+            }
+            $.ajax(
+            {
+                type: 'POST',
+                url: urlBase+'php/control.php',
+                data: { kegg: toSend },
+                beforeSend: function() { $('#loadingCircle').show(); },
+                complete: function() { $('#loadingCircle').hide(); },
+                success: function(data)
+                {                        
+                    if ($.isEmptyObject(data))
+                    {
+                        displayError('Select one or more KEGG pathways first!');
+                    }
+                    else
+                    {
+                        addElements(data);
+                    }
+                },
+                error: function(data,error)
+                {                                                
+                    displayError('Ooops! ' + error + ' ' + data.responseText);                        
+                },
+                dataType: "json"
+            });
 			break;
 
 		case 'mirna':
@@ -558,27 +592,40 @@ function showMeta(what,howmany)
 function clearMeta(what,howmany,flag)
 {
 	// Move control to a function in graph_control.js
-	if (flag === "all")
-	{
-		removeMeta(what,howmany,flag);
-	}
-	else
-	{
-		var selcat;
-		if ($("#go_component").css("background-color") === "rgb(255, 229, 224)")
-		{
-			selcat = "component";
-		}
-		else if ($("#go_function").css("background-color") === "rgb(255, 229, 224)")
-		{
-			selcat = "function";
-		}
-		else if ($("#go_process").css("background-color") === "rgb(255, 229, 224)")
-		{
-			selcat = "process";
-		}
-		removeMeta(what,howmany,selcat);
-	}
+    switch(what)
+    {
+	    case "go":
+            if (flag === "all")
+	        {
+		        removeMeta(what,howmany,flag);
+	        }
+	        else // selcat used only for GO terms
+	        {
+		        var selcat;
+		        if ($("#go_component").css("background-color") === "rgb(255, 229, 224)")
+		        {
+			        selcat = "component";
+		        }
+		        else if ($("#go_function").css("background-color") === "rgb(255, 229, 224)")
+		        {
+			        selcat = "function";
+		        }
+		        else if ($("#go_process").css("background-color") === "rgb(255, 229, 224)")
+		        {
+			        selcat = "process";
+		        }
+                else { selcat = ""; }
+		        removeMeta(what,howmany,selcat);
+	        }
+            break;
+        
+        case "kegg":
+            removeMeta(what,howmany,'');
+            break;
+        
+        case "mirna":
+            break;
+    }
 }
 
 function fetchNetwork()
@@ -986,8 +1033,8 @@ function clearCache()
 
 function initMe()
 {
-	var urlBase = 'http://kupkbvis-dev:81/';
-    //var urlBase = 'http://localhost/kupkbvis/site/'
+	//var urlBase = 'http://kupkbvis-dev:81/';
+    var urlBase = 'http://localhost/kupkbvis/site/'
 	hideError(); //Hide previous errors
 	return(urlBase);
 }

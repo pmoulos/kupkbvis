@@ -63,12 +63,11 @@
 						<div><p>&nbsp;</p></div>
     					<div>
 							<fieldset><legend class="fieldSetTitle" style="font-size: 1.2em; background-color:#FFFF5F;">Network</legend>
-								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Nodes</legend>
-									<input type="checkbox" id="x" checked disabled> property 1<br/>
-									<input type="checkbox" id="y" disabled> property 2<br/>
+								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Genes</legend>
+									<input type="checkbox" id="x" checked disabled> size relative to significance<br/>
 								</fieldset>
-								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Edges</legend>
-									<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Genes</legend>
+								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Relationships</legend>
+									<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Interactions</legend>
 										<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges()"><span style="color:#028E9B; font-weight:bold;"> binding</span><br/>
 										<input type="checkbox" id="ptmod_check" disabled onclick="filterEdges()"><span style="color:#133CAC; font-weight:bold;"> modification</span><br/>
 										<input type="checkbox" id="expression_check" disabled onclick="filterEdges()"><span style="color:#FFAD00; font-weight:bold;"> expression</span><br/>
@@ -174,14 +173,14 @@
 								echo "</td></tr>";
 							?>
 							<tr><td class="buttonCell">
-							<button id="show_selected_kegg" class="secondaryButton" onclick="" disabled>Show selected</button>
+							<button id="show_selected_kegg" class="secondaryButton" onclick="showMeta('kegg','selected')" disabled>Show selected</button>
 							</td><td class="buttonCell">
-                            <button id="clear_selected_kegg" class="secondaryButton" onclick="" disabled>Clear selected</button>
+                            <button id="clear_selected_kegg" class="secondaryButton" onclick="clearMeta('kegg','selected','')" disabled>Clear selected</button>
 							</td></tr>
                             <tr><td class="buttonCell">
-							<button id="show_all_kegg" class="secondaryButton" onclick="" disabled>Show all</button>
+							<button id="show_all_kegg" class="secondaryButton" onclick="showMeta('kegg','all')" disabled>Show all</button>
                             </td><td class="buttonCell">
-							<button id="clear_all_kegg" class="secondaryButton" onclick="" disabled>Clear all</button>
+							<button id="clear_all_kegg" class="secondaryButton" onclick="clearMeta('kegg','all','')" disabled>Clear all</button>
 							</td></tr>
 						</table>
 	    				</fieldset>
@@ -197,14 +196,14 @@
 								echo "</td></tr>";
 							?>
 							<tr><td class="buttonCell">
-							<button id="show_selected_mirna" class="secondaryButton" onclick="" disabled>Show selected</button>
+							<button id="show_selected_mirna" class="secondaryButton" onclick="showMeta('mirna','selected')" disabled>Show selected</button>
 							</td><td class="buttonCell">
-                            <button id="clear_selected_mirna" class="secondaryButton" onclick="" disabled>Clear selected</button>
+                            <button id="clear_selected_mirna" class="secondaryButton" onclick="clearMeta('mirna','selected','')" disabled>Clear selected</button>
 							</td></tr>
                             <tr><td class="buttonCell">
-                            <button id="show_all_mirna" class="secondaryButton" onclick="" disabled>Show all</button>
+                            <button id="show_all_mirna" class="secondaryButton" onclick="showMeta('mirna','all')" disabled>Show all</button>
 							</td><td class="buttonCell">
-							<button id="clear_all_mirna" class="secondaryButton" onclick="" disabled>Clear all</button>
+							<button id="clear_all_mirna" class="secondaryButton" onclick="clearMeta('mirna','all','')" disabled>Clear all</button>
 							</td></tr>
 						</table>
 	    				</fieldset>
