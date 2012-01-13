@@ -24,7 +24,7 @@ $dataset_id_2 = ' UNION '.
 
 /* Fill the disease drop-down using the intermediate result */
 $init_disease = 'SELECT DISTINCT `disease_0`,`disease_1` '.
-				'FROM `datasets` '.
+			    'FROM `datasets` '.
 				'WHERE `experiment_id` IN ';
 
 /* Fill the location drop-down using the intermediate result */
@@ -101,16 +101,28 @@ $update_disdata_location_6 = '\')';
 /*WHERE biomaterial_0 LIKE '%kidney%' OR biomaterial_1 LIKE '%kidney%'*/
 
 /* Select the gene regulation for a selected dataset for both cases */
-$regulation_1 = 'SELECT `entrez_gene_id`,`uniprot_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio,pvalue`,`fdr` '.
-				'FROM `data` '.
-				'WHERE `dataset_id`=';
-$regulation_2 = ' AND `entrez_gene_id` IN ';
-$regulation_3 = ' UNION '.
-				'SELECT `entrez_gene_id`,data.uniprot_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
-				'FROM `data` INNER JOIN `entrez_to_uniprot` '.
-				'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
-				'WHERE entrez_to_uniprot.entrez_id IN ';
-$regulation_4 = ' AND `dataset_id`=';
+$get_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`entrez_gene_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'FROM `data` INNER JOIN `datasets` '.
+				  'ON data.dataset_record_id = datasets.record_id '.
+				  'WHERE `entrez_gene_id` IN ';
+$get_coloring_2_1 = ' AND `dataset_id`=';
+$get_coloring_2_2 = ' AND (datasets.disease_0=';
+$get_coloring_2_3 = ' OR datasets.disease_1=';
+$get_coloring_2_4 = ') AND (datasets.biomaterial_0=';
+$get_coloring_2_5 = ' OR datasets.biomaterial_1=';
+$get_coloring_3 = ') UNION '.
+				  'SELECT datasets.record_id,`dataset_id`,entrez_to_uniprot.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'FROM `data` INNER JOIN `datasets` '.
+				  'ON data.dataset_record_id = datasets.record_id '.
+				  'INNER JOIN `entrez_to_uniprot` '.
+				  'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+				  'WHERE entrez_to_uniprot.entrez_id IN ';
+$get_coloring_4_1 = ' AND `dataset_id`=';
+$get_coloring_4_2 = ' AND (datasets.disease_0=';
+$get_coloring_4_3 = ' OR datasets.disease_1=';
+$get_coloring_4_4 = ') AND (datasets.biomaterial_0=';
+$get_coloring_4_5 = ' OR datasets.biomaterial_1=';
+$get_coloring_5 = ')';
 
 /* Autocomplete gene names */
 $auto_genes_1 = 'SELECT `gene_symbol`,`description`,species.name '.
@@ -157,4 +169,27 @@ $get_kegg_1 = 'SELECT CONCAT_WS("_to_",pathway_members.pathway_id,`ensembl_prote
               'ON pathway_members.pathway_id=kegg_pathways.pathway_id '.
               'WHERE `ensembl_protein` IN ';
 $get_kegg_2 = 'AND pathway_members.pathway_id IN ';
+
+/* Get gene data to display */
+$get_gene = 'SELECT `synonyms`, `dbXrefs`, `chromosome`, `description` '.
+			'FROM `genes` '.
+			'WHERE `entrez_id`=';
+
+/* Get the gene symbols connected by an edge based on node ids (ensembl protein) */
+$get_edge_1 = 'SELECT `gene_symbol` '.
+			  'FROM `genes` INNER JOIN `entrez_to_ensembl` '.
+			  'ON genes.entrez_id=entrez_to_ensembl.entrez_id '.
+			  'WHERE entrez_to_ensembl.ensembl_protein=';
+$get_edge_2 = ' OR entrez_to_ensembl.ensembl_protein=';
+
+# LEGACY
+/* Get data for coloring this is slower than the UNION below above but we are keeping it for legacy reasons */
+/*$get_coloring_1 = 'SELECT `dataset_id`,`entrez_gene_id`,`uniprot_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'FROM data '.
+				  'WHERE (`entrez_gene_id` IN ';
+$get_coloring_2 = 'OR `uniprot_id` IN ('.
+				  'SELECT `uniprot_id` '.
+				  'FROM `entrez_to_uniprot` '.
+				  'WHERE `entrez_id` IN ';
+$get_coloring_3 = ')) AND `dataset_id`=';*/
 ?>

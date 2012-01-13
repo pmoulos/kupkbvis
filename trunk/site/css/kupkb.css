@@ -16,6 +16,16 @@ body
     margin: 0px;
 }
 
+h1 
+{
+	padding-top:40px;
+	font-size: 2em;
+	font-weight: bold;
+	font-style: italic ;
+	color: #434041;
+	text-align: left;
+}
+
 table
 {
     border: solid;
@@ -54,9 +64,28 @@ textarea
     resize: none;
 }
 
+textarea.info
+{
+	font-family: Arial Unicode MS, Arial, sans-serif;
+    font-size: 0.5em;
+    color: #000000;
+    background-color: #E0E0E0;
+    width: 95%;
+    height: 100%;
+    margin: 0px;
+    resize: none;
+}
+
 select
 {
     width: 100%;
+}
+
+input, text
+{
+	border-radius: 5px;
+	-webkit-border-radius: 5px;
+	-moz-border-radius: 5px;
 }
 
 .boldText
@@ -86,6 +115,13 @@ select
     vertical-align: top;
     /*border-width: 1px;
     border-style: dashed;*/
+}
+
+.layoptCell
+{
+	padding: 2px;
+    vertical-align: middle;
+    text-align: left;
 }
 
 .buttonCell
@@ -185,6 +221,41 @@ select
 	line-height: 2em;
 }
 
+#infoContainer
+{
+	display: fixed;
+	margin-left: 5px;
+	margin-right: 5px;
+	height: 180px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	padding-left: 5px;
+	padding-right: 5px;
+	color: #0000FF;
+	background-color: #EDEDED;
+	border-width: 2px;
+	border-style: ridge;
+	border-color: #BBBBBB;
+	font-size: 0.9em;
+	line-height: 1.2em;
+	text-align: left;
+	overflow: auto;
+}
+
+#layoutOptionContainer
+{
+	font-size: 0.8em;
+}
+
+#executeLayoutButton
+{
+	
+	border-radius: 3px;
+	-webkit-border-radius: 3px;
+	-moz-border-radius: 3px;
+	width: 10em;
+}
+
 #cytoscapeweb 
 { 
 	width: 100%;
@@ -216,16 +287,6 @@ select
 	display: none;
 }
 
-h1 
-{
-	padding-top:40px;
-	font-size: 2em;
-	font-weight: bold;
-	font-style: italic ;
-	color: #434041;
-	text-align: left;
-}
-
 .primaryButton 
 {
 	font-size: 1.2em;
@@ -245,6 +306,20 @@ h1
     padding-right: 3px;
     padding-bottom: 0px;
     padding-top: 0px;
+	float: left;
+    overflow: visible;
+}
+
+.exportButton 
+{
+    padding-left: 3px;
+    padding-right: 3px;
+    padding-bottom: 0px;
+    padding-top: 0px;
+    border-style: ridge;
+    border-width: 1px;
+    width: 64px;
+    height: 32px;
 	float: left;
     overflow: visible;
 }
@@ -283,23 +358,6 @@ h1
 	height:45px;
 }
 
-tr.odd 
-{
-	background-color: #ECECEC;
-}
-
-.navtext 
-{
-	width:250px;
-	font-size:8pt;
-	border-width:2px;
-	border-style:outset;
-	border-color:darkgray;
-	layer-background-color:lightyellow;
-	background-color:lightyellow;
-	color:black;
-}
-
 #note 
 { 
 	width: 100%;
@@ -307,10 +365,10 @@ tr.odd
 	padding-top: 1em; 
 }
 
-.link 
+.infolink 
 { 
 	text-decoration: underline; 
-	color: #0b94b1; 
+	color: #FF0000; 
 	cursor: pointer; 
 }
 
@@ -326,5 +384,14 @@ tr.odd
 	font-family: Arial Unicode MS, Arial, sans-serif;
     font-size: 0.9em;
 }
+
+.attention { font-size: small; }
+
+.modalsif
+{
+	color: #AE0000;
+	font-size: 0.7em;
+}
+	
 
 /*html .ui-autocomplete { height: 200px; }*/
