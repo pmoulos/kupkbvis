@@ -59,6 +59,246 @@ function bindAutoComplete(id)
 		});
 }
 
+function initValidators(opt)
+{
+	var validator = new Validator("layout_form");
+
+	switch(opt)
+	{
+		case 'ForceDirected':
+			validator.addValidation("force_gravitation","gt=-1001","Node gravitation should be between -1000 and 1000");
+			validator.addValidation("force_gravitation","lt=1001","Node gravitation should be between -1000 and 1000");
+			validator.addValidation("force_gravitation","numeric","Node gravitation must be numeric");
+			validator.addValidation("force_node_mass","gt=0","Node gravitation should be between 1 and 100");
+			validator.addValidation("force_node_mass","lt=101","Node gravitation should be between 1 and 100");
+			validator.addValidation("force_node_mass","numeric","Node mass must be numeric");
+			validator.addValidation("force_edge_tension","gt=0","Edge tension should be between 0 and 1");
+			validator.addValidation("force_edge_tension","lt=1","Edge tension should be between 0 and 1");
+			validator.addValidation("force_edge_tension","numeric","Edge tension must be numeric");
+			break;
+		case 'Circle':
+			break;
+		case 'Radial':
+			break;
+		case 'Tree':
+			break;
+		}
+}
+
+
+function bindExport()
+{
+	$("#export_sif")
+	.data("clicked",false)
+	.hover(
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#A3A3A3");
+				if ($(this).data("clicked"))
+				{
+					$(this).css("background","url('images/export_buttons/sif_pressed.png')");
+				}
+			}
+		},
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#E0E0E0");
+				$(this).css("background","url('images/export_buttons/sif_unpressed.png')");
+			}
+		})
+	.mousedown(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/sif_pressed.png')");
+			$(this).data("clicked",true);
+		})
+	.mouseup(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/sif_unpressed.png')");
+			$(this).data("clicked",false);
+		});
+
+	$("#export_graphml")
+	.data("clicked",false)
+	.hover(
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#A3A3A3");
+				if ($(this).data("clicked"))
+				{
+					$(this).css("background","url('images/export_buttons/gml_pressed.png')");
+				}
+			}
+		},
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#E0E0E0");
+				$(this).css("background","url('images/export_buttons/gml_unpressed.png')");
+			}
+		})
+	.mousedown(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/gml_pressed.png')");
+			$(this).data("clicked",true);
+		})
+	.mouseup(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/gml_unpressed.png')");
+			$(this).data("clicked",false);
+		});
+
+	$("#export_xgmml")
+	.data("clicked",false)
+	.hover(
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#A3A3A3");
+				if ($(this).data("clicked"))
+				{
+					$(this).css("background","url('images/export_buttons/xml_pressed.png')");
+				}
+			}
+		},
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#E0E0E0");
+				$(this).css("background","url('images/export_buttons/xml_unpressed.png')");
+			}
+		})
+	.mousedown(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/xml_pressed.png')");
+			$(this).data("clicked",true);
+		})
+	.mouseup(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/xml_unpressed.png')");
+			$(this).data("clicked",false);
+		});
+		
+	$("#export_png")
+	.data("clicked",true)
+	.hover(
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#A3A3A3");
+				if ($(this).data("clicked"))
+				{
+					$(this).css("background","url('images/export_buttons/png_pressed.png')");
+				}
+			}
+		},
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#E0E0E0");
+				$(this).css("background","url('images/export_buttons/png_unpressed.png')");
+			}
+		})
+	.mousedown(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/png_pressed.png')");
+			$(this).data("clicked",true);
+		})
+	.mouseup(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/png_unpressed.png')");
+			$(this).data("clicked",false);
+		});
+		
+	$("#export_pdf")
+	.data("clicked",false)
+	.hover(
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#A3A3A3");
+				if ($(this).data("clicked"))
+				{
+					$(this).css("background","url('images/export_buttons/pdf_pressed.png')");
+				}
+			}
+		},
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#E0E0E0");
+				$(this).css("background","url('images/export_buttons/pdf_unpressed.png')");
+			}
+		})
+	.mousedown(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/pdf_pressed.png')");
+			$(this).data("clicked",true);
+		})
+	.mouseup(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/pdf_unpressed.png')");
+			$(this).data("clicked",false);
+		});
+		
+	$("#export_svg")
+	.data("clicked",false)
+	.hover(
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#A3A3A3");
+				if ($(this).data("clicked"))
+				{
+					$(this).css("background","url('images/export_buttons/svg_pressed.png')");
+				}
+			}
+		},
+		function()
+		{
+			if (!$(this).is(":disabled"))
+			{
+				$(this).css("border-color","#E0E0E0");
+				$(this).css("background","url('images/export_buttons/svg_unpressed.png')");
+			}
+		})
+	.mousedown(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/svg_pressed.png')");
+			$(this).data("clicked",true);
+		})
+	.mouseup(
+		function()
+		{
+			$(this).css("background","url('images/export_buttons/svg_unpressed.png')");
+			$(this).data("clicked",false);
+		});
+}
+
 /* In the first search we use jQuery .data function to store the initial search results in order to
    be able to use a reset button later, the same applies also to the update function with species */
 function search()
@@ -73,7 +313,15 @@ function search()
 	}
 	if ($("#enter_genes").val() !== '')
 	{
-		var searchJSON = $.toJSON($("#enter_genes").val().split(/\n|\r/));
+		var enteredTerms = $("#enter_genes").val().split(/\n|\r/);
+		
+		if (!allowedNumberOfTerms(enteredTerms,500))
+		{
+			modalAlert("Please restrict your search terms to 500!","Attention!");
+			return;
+		}
+		
+		var searchJSON = $.toJSON(enteredTerms);
 		$.ajax(
 		{
 			type: 'POST',
@@ -89,6 +337,7 @@ function search()
 				}
 				else //Enable and fill the rest of the lists
 				{																						
+					$("#metadata").show("slow");
 					var outerkey,innerkey,innermost;					
 					for (outerkey in data)
 					{										
@@ -171,6 +420,9 @@ function search()
 									}
 								}
 								break;
+							case 'mirna':
+								//$("#mirna_list").empty();
+								break;
 						}
 					}
 				}
@@ -193,7 +445,15 @@ function update(id)
 	var selSpecies,selDisease,selLocation,selDataset,selVal;
 	var outerkey,innerkey,innermost;
 	var genesQuery = $("#enter_genes").val();
-	var searchJSON = $.toJSON($("#enter_genes").val().split(/\n|\r/));
+	var enteredTerms = $("#enter_genes").val().split(/\n|\r/);
+
+	if (!allowedNumberOfTerms(enteredTerms,500))
+	{
+		modalAlert("Please restrict your search terms to 500!","Attention!");
+		return;
+	}
+
+	var searchJSON = $.toJSON(enteredTerms);
 	
 	switch(id)
 	{
@@ -224,6 +484,7 @@ function update(id)
 						}
 						else //Enable and fill the rest of the lists
 						{																									
+							$("#metadata").show("slow");
 							for (outerkey in data)
 							{										
 								switch(outerkey)
@@ -304,6 +565,9 @@ function update(id)
 											$("#kegg_list").data("values",data[outerkey]);
 										}
 										break;
+									case 'mirna':
+										//$("#mirna_list").empty();
+										break;
 								}
 							}
 						}
@@ -321,7 +585,7 @@ function update(id)
 			
 		case 'disease_list':
 			selVal = $('#disease_list').val();
-			selDisease = $("#disease_list option[value="+selVal+"]").text();
+			selDisease = $("#disease_list option:selected").text();
 			$.ajax(
 			{
 				type: 'POST',
@@ -388,7 +652,7 @@ function update(id)
 			
 		case 'location_list':
 			selVal = $('#location_list').val();
-			selLocation = $("#location_list option[value="+selVal+"]").text();
+			selLocation = $("#location_list option:selected").text();
 			$.ajax(
 			{
 				type: 'POST',
@@ -452,7 +716,6 @@ function update(id)
 			});
 			enable(['reset_data_button']);
 			break;
-
 	}
 }
 
@@ -499,6 +762,40 @@ function changeGOCategory(category)
 				break;
 		}
 	}
+}
+
+function colorNodes()
+{
+	var urlBase = initMe();
+	var selDisease = $("#disease_list option:selected").text();
+	var selLocation = $("#location_list option:selected").text();
+	var selDataset = $("#dataset_list").val();
+	
+	$.ajax(
+	{
+		type: 'POST',
+		url: urlBase+'php/control.php',
+		data: { dataset: selDataset, location_data: selLocation, disease_data: selDisease },
+		beforeSend: function() { $('#loadingCircle').show(); },
+		complete: function() { $('#loadingCircle').hide(); },
+		success: function(data)
+		{						
+			if ($.isEmptyObject(data))
+			{
+				displayError('Sorry, no epxression data found for the genes in the network :-(');
+			}
+			else
+			{
+				//alert("Something cam back after all...");
+				bypassNodeColors(data);
+			}
+		},
+		error: function(data,error)
+		{												
+			displayError('Ooops! ' + error + ' ' + data.responseText);						
+		},
+		dataType: "json"
+	});
 }
 
 /* what: go, kegg, mirna
@@ -628,6 +925,99 @@ function clearMeta(what,howmany,flag)
     }
 }
 
+function updateLayoutOpts()
+{
+	var html = {};
+	var layout = $("#layout_list").val();
+
+	html.force =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"force_gravitation\">Gravitation:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"2\" value=\"-500\"/></td>" +
+		"<td class=\"layoptCell\"><label for=\"force_node_mass\">Node mass:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"2\" value=\"5\"/></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"force_edge_tension\">Edge tension:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_edge_tension\" size=\"2\" value=\"0.5\"/></td>" +
+		"<td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
+		"</tr>" +
+		"</table>";
+	html.circle =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"circle_angle\">Angle width:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"circle_angle\" size=\"5\" value=\"360\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"circle_tree_struct\">Tree structure:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"checkbox\" id=\"circle_tree_struct\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
+		"</tr>" +
+		"</table>";
+	html.radial =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"radial_radius\">Radius:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"radial_radius\" size=\"5\" value=\"auto\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"radial_angle\">Angle width:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"radial_angle\" size=\"5\" value=\"360\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
+		"</tr>" +
+		"</table>";
+	html.tree =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"tree_orientation\">Orientation:</label></td>" +
+		"<td colspan=3 class=\"layoptCell\"><select id=\"tree_orientation\">" +
+		"<option value=\"topToBottom\">Top to Bottom</option>" +
+		"<option value=\"bottomToTop\">Bottom to Top</option>" +
+		"<option value=\"leftToRight\">Left to Right</option>" +
+		"<option value=\"rightToLeft\">Right to Left</option>" +
+		"</select></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"tree_depth\">Depth:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"tree_depth\" size=\"2\" value=\"50\"/></td>" +
+		"<td class=\"layoptCell\"><label for=\"tree_breadth\">Breadth:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"tree_breadth\" size=\"2\" value=\"30\"/></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
+		"</tr>" +
+		"</table>";
+
+	switch(layout)
+	{
+		case 'ForceDirected':
+			$("#layoutOptionContainer").html(html.force);
+			break;
+		case 'Circle':
+			$("#layoutOptionContainer").html(html.circle);
+			break;
+		case 'Radial':
+			$("#layoutOptionContainer").html(html.radial);
+			break;
+		case 'Tree':
+			$("#layoutOptionContainer").html(html.tree);
+			break;
+	}
+}
+
 function fetchNetwork()
 {
 	var urlBase = initMe();
@@ -678,142 +1068,6 @@ function fetchNetwork()
 
 function initNetwork(networkJSON)
 {
-	/*networkJSON =
-	{
-		"dataSchema":
-		{
-			"nodes":[
-						{"name":"label","type":"string"},
-						{"name":"entrez_id","type":"int"}
-					],
-			"edges":[{"name":"interaction","type":"string"}]
-		},
-		"data":
-		{
-			"nodes":
-			[
-				{"id":"ENSP00000221930","label":"TGFB1","entrez_id":7040},
-				{"id":"ENSP00000262158","label":"SMAD7","entrez_id":4092},
-				{"id":"ENSP00000262160","label":"SMAD2","entrez_id":4087},
-				{"id":"ENSP00000273430","label":"AGTR1","entrez_id":185},
-				{"id":"ENSP00000290866","label":"ACE","entrez_id":1636},
-				{"id":"ENSP00000332973","label":"SMAD3","entrez_id":4088},
-				{"id":"ENSP00000341551","label":"SMAD4","entrez_id":4089},
-				{"id":"ENSP00000356954","label":"CTGF","entrez_id":1490},
-				{"id":"ENSP00000364133","label":"TGFBR1","entrez_id":7046},
-				{"id":"ENSP00000379204","label":"BMP7","entrez_id":655}
-			],
-			"edges":
-			[
-				{"id":"ENSP00000221930_to_ENSP00000262160","target":"ENSP00000262160","source":"ENSP00000221930","interaction":"ptmod"},
-				{"id":"ENSP00000221930_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000221930","interaction":"activation"},
-				{"id":"ENSP00000221930_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000221930","interaction":"binding"},
-				{"id":"ENSP00000262158_to_ENSP00000262158","target":"ENSP00000262158","source":"ENSP00000262158","interaction":"expression"},
-				{"id":"ENSP00000262158_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262158","interaction":"activation"},
-				{"id":"ENSP00000262158_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262158","interaction":"binding"},
-				{"id":"ENSP00000262158_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262158","interaction":"expression"},
-				{"id":"ENSP00000262158_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262158","interaction":"binding"},
-				{"id":"ENSP00000262158_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262158","interaction":"expression"},
-				{"id":"ENSP00000262158_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000262158","interaction":"expression"},
-				{"id":"ENSP00000262158_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262158","interaction":"binding"},
-				{"id":"ENSP00000262158_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262158","interaction":"ptmod"},
-				{"id":"ENSP00000262160_to_ENSP00000221930","target":"ENSP00000221930","source":"ENSP00000262160","interaction":"ptmod"},
-				{"id":"ENSP00000262160_to_ENSP00000332973","target":"ENSP00000332973","source":"ENSP00000262160","interaction":"binding"},
-				{"id":"ENSP00000262160_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262160","interaction":"activation"},
-				{"id":"ENSP00000262160_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262160","interaction":"binding"},
-				{"id":"ENSP00000262160_to_ENSP00000341551","target":"ENSP00000341551","source":"ENSP00000262160","interaction":"expression"},
-				{"id":"ENSP00000262160_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000262160","interaction":"activation"},
-				{"id":"ENSP00000262160_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262160","interaction":"binding"},
-				{"id":"ENSP00000262160_to_ENSP00000364133","target":"ENSP00000364133","source":"ENSP00000262160","interaction":"ptmod"},
-				{"id":"ENSP00000273430_to_ENSP00000290866","target":"ENSP00000290866","source":"ENSP00000273430","interaction":"activation"},
-				{"id":"ENSP00000273430_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000273430","interaction":"activation"},
-				{"id":"ENSP00000273430_to_ENSP00000356954","target":"ENSP00000356954","source":"ENSP00000273430","interaction":"expression"},
-				{"id":"ENSP00000290866_to_ENSP00000273430","target":"ENSP00000273430","source":"ENSP00000290866","interaction":"activation"},
-				{"id":"ENSP00000332973_to_ENSP00000262158","target":"ENSP00000262158","source":"ENSP00000332973","interaction":"activation"},
-				{"id":"ENSP00000332973_to_ENSP00000262158","target":"ENSP00000262158","source":"ENSP00000332973","interaction":"binding"}
-			]
-		}
-	};
-
-	var visual_style =
-	{
-		"global":
-		{
-			"backgroundColor":"#FFFFFF",
-			"selectionFillColor":"#9A9AFF"
-		},
-		"nodes":
-		{
-			"shape":
-			{
-				"defaultValue":"ELLIPSE",
-				"discreteMapper":
-				{
-					"attrName":"object_type",
-					"entries":
-					[
-						{"attrValue":"gene","value":"ELLIPSE"},
-						{"attrValue":"goterm","value":"ROUNDRECT"},
-						{"attrValue":"pathway","value":"PARALLELOGRAM"},
-						{"attrValue":"mirna","value":"DIAMOND"}
-					]
-				}
-			},
-			"borderWidth":1,
-			"borderColor":"#000000",
-			"size":
-			{
-				"defaultValue":"auto",
-				"continuousMapper":{"attrName":"pvalue","minValue":16,"maxValue":64}
-			},
-			"color":
-			{
-				"defaultValue":"#F7F7F7",
-				"continuousMapper":{"attrName":"ratio","minValue":"#00FF00","maxValue":"#FF0000"}
-			},
-			"labelHorizontalAnchor":"center",
-			"selectionColor":"#5FFFFB",
-			"selectionGlowColor":"#95FFFE",
-			"selectionGlowStrength":32,
-			"labelFontWeight":
-			{
-				"defaultValue":"normal",
-				"discreteMapper":
-				{
-					"attrName":"object_type",
-					"entries":
-					[
-						{"attrValue":"gene","value":"normal"},
-						{"attrValue":"goterm","value":"bold"},
-						{"attrValue":"pathway","value":"bold"},
-						{"attrValue":"mirna","value":"normal"}
-					]
-				}
-			}
-		},
-		"edges":
-		{
-			"color":
-			{
-				"defaultValue":"#999999",
-				"discreteMapper":
-				{
-					"attrName":"interaction",
-					"entries":
-					[
-						{"attrValue":"binding","value":"#028E9B"},
-						{"attrValue":"ptmod","value":"#133CAC"},
-						{"attrValue":"expression","value":"#FFAD00"},
-						{"attrValue":"activation","value":"#FF7800"},
-						{"attrValue":"go","value":"#FFC000"},
-						{"attrValue":"kegg","value":"#D30068"},
-						{"attrValue":"mirna","value":"#A67D00"}
-					]
-				}
-			},
-			"width":1
-		}
-	};*/
 	// Initialization options, visual style, initial controls, visualization
 	var options =
 	{
@@ -836,38 +1090,199 @@ function initNetwork(networkJSON)
 		vis
 		.addListener("click","nodes",function(event)
 		{
-			handle_click(event);
+			displaySingleInfo(event);
 		})
 		.addListener("click","edges",function(event)
 		{
-			handle_click(event);
+			displaySingleInfo(event);
+		})
+		.addListener("select",function(event)
+		{
+			displayMultiInfo(event);
 		})
 		// Add context menus
 		.addContextMenuItem("Show level 1 neighbors","nodes",function(event) {})
 		.addContextMenuItem("Show level 2 neighbors","nodes",function(event) {})
 		.addContextMenuItem("Show level 3 neighbors","nodes",function(event) {})
-		.addContextMenuItem("Hide","nodes",function(event) {})
-		.addContextMenuItem("Delete","nodes",function(event) {})
-		.addContextMenuItem("Properties","nodes",function(event) {})
-		;
-
-		function handle_click(event)
+		.addContextMenuItem("Hide node","nodes",function(event)
 		{
+			hideElements("nodes","hide");
+		})
+		.addContextMenuItem("Delete node","nodes",function(event)
+		{
+			hideElements("nodes","delete");
+		})
+		.addContextMenuItem("Hide edge","edges",function(event)
+		{
+			hideElements("edges","hide");
+		})
+		.addContextMenuItem("Delete edge","edges",function(event)
+		{
+			hideElements("edges","delete");
+		})
+		.addContextMenuItem("Restore network",function(event)
+		{
+			vis.removeFilter();
+			filterEdges();
+			updateInfo();
+		});
+		
+		function displaySingleInfo(event)
+		{
+			urlBase = initMe();
+
 			var target = event.target;
-			 
-			//$("#debugContainer").hide();
-			var msg = "event.group = " + event.group;
-			for (var i in target.data)
+			
+			if (event.group === "nodes")
 			{
-				var variable_name = i;
-				var variable_value = target.data[i];
-				msg = msg + "<br/>" + "event.target.data." + variable_name + " = " + variable_value;
+				switch(target.data['object_type'])
+				{
+					case 'gene':
+						$.ajax(
+						{
+							type: 'POST',
+							url: urlBase+'php/control.php',
+							data: { gene_data: target.data['entrez_id'] },
+							beforeSend: function() { $('#loadingCircle').show(); },
+							complete: function() { $('#loadingCircle').hide(); },
+							success: function(data)
+							{						
+								gimmeNodeData('gene',target.data,data);
+							},
+							error: function(data,error)
+							{												
+								displayError('Ooops! ' + error + ' ' + data.responseText);						
+							},
+							dataType: "json"
+						});
+						break;
+					case 'component':
+						gimmeNodeData('go',target.data,{});
+						break;
+					case 'function':
+						gimmeNodeData('go',target.data,{});
+						break;
+					case 'process':
+						gimmeNodeData('go',target.data,{});
+						break;
+					case 'pathway':
+						gimmeNodeData('pathway',target.data,{});
+						break;
+					case 'mirna':
+						gimmeNodeData('mirna',target.data,{});
+						break;
+				}
 			}
-			//debugMessage(msg);
+
+			if (event.group === "edges")
+			{
+				switch(target.data['interaction'])
+				{
+					case 'go':
+						gimmeEdgeData('go2gene',target.data,{});
+						break;
+					case 'kegg':
+						$.ajax(
+						{
+							type: 'POST',
+							url: urlBase+'php/control.php',
+							data: { target_data: target.data['target'] },
+							beforeSend: function() { $('#loadingCircle').show(); },
+							complete: function() { $('#loadingCircle').hide(); },
+							success: function(data)
+							{						
+								gimmeEdgeData('kegg2gene',target.data,data);
+							},
+							error: function(data,error)
+							{												
+								displayError('Ooops! ' + error + ' ' + data.responseText);						
+							},
+							dataType: "json"
+						});
+						break;
+					case 'mirna':
+						gimmeEdgeData('mirna2gene',target.data,{});
+						break;
+					default: // For any kind of PPI
+						$.ajax(
+						{
+							type: 'POST',
+							url: urlBase+'php/control.php',
+							data: { target_data: target.data['target'], source_data: target.data['source'] },
+							beforeSend: function() { $('#loadingCircle').show(); },
+							complete: function() { $('#loadingCircle').hide(); },
+							success: function(data)
+							{						
+								gimmeEdgeData('gene2gene',target.data,data);
+							},
+							error: function(data,error)
+							{												
+								displayError('Ooops! ' + error + ' ' + data.responseText);						
+							},
+							dataType: "json"
+						});
+				}
+			}
+		}
+
+		function displayMultiInfo(event)
+		{	
+			var elems = event.target;
+			var selNodes,selEdges,msg;
+			if (elems.length>1)
+			{
+				selNodes = vis.selected("nodes");
+				selEdges = vis.selected("edges");
+			}
+			msg = "<span style=\"color:#000000; font-weight:bold\">Multiple elements selected</span><br/>" +
+				  "Genes: <span style=\"color:#FF0000\">" + selNodes.length + "</span><br/>" +
+				  "Relationships: <span style=\"color:#FF0000\">" + selEdges.length + "</span><br/>";
+			showInfo(msg);
+		}
+
+		function hideElements(group,action)
+		{
+			var selElems = vis.selected(group);
+			var selElemIDs = [];
+			var toHide = [];
+			var i, allElems;
+
+			if (group === "nodes")
+			{
+				allElems = vis.nodes();
+			}
+			else
+			{
+				allElems = vis.edges();
+			}
+
+			for (i=0; i<selElems.length; i++)
+			{
+				selElemIDs.push(selElems[i].data.id);
+			}
+			
+			for (i=0; i<allElems.length; i++)
+			{
+				if ($.inArray(allElems[i].data.id,selElemIDs) === -1)
+				{
+					toHide.push(allElems[i].data.id);
+				}
+			}
+
+			if (action === "hide")
+			{
+				vis.filter(group,toHide);
+				if (group === "edges") { filterEdges(); }
+			}
+			else if (action === "delete")
+			{
+				vis.removeElements(selElems);
+			}
+			updateInfo();
 		}
 	});
 
-		// draw options
+	// draw options
 	var draw_options =
 	{
 		network: networkJSON,
@@ -878,22 +1293,163 @@ function initNetwork(networkJSON)
 	vis.draw(draw_options);
 }
 
+function modalAlert(msg,tit)
+{
+	if (tit === '') { tit = "Alert!"; }
+
+	var icon = "<span class=\"ui-icon ui-icon-alert\" style=\"float:left; margin:0px 5px 5px 0px;\"></span>";
+
+	$("#dialog")
+	.html(icon+msg)
+	.dialog(
+	{
+		modal: true,
+		autoOpen: false,
+		title: tit,
+		dialogClass: "attention",
+		resizable: false,
+		buttons:
+		{
+			OK: function()
+			{
+				$(this).dialog("close");
+			}
+		}
+	});
+	$("#dialog").dialog("open");
+
+	return(false);
+}
+
+function modalSifForm(tit)
+{
+	var urlBase = initMe();
+
+	var visObject = getVisData('cytoscapeweb');
+	var response;
+
+	$("#dialog")
+	.html(
+		"<fieldset><legend>SIF nodes</legend>" +
+		"<input type=\"radio\" name=\"sif_node\" id=\"radio_ensembl\" onclick=\"infoSifDiv()\"/> Ensembl protein ID<br/>" +
+		"<input type=\"radio\" name=\"sif_node\" id=\"radio_entrez\" onclick=\"infoSifDiv()\"/> Entrez gene ID<br/>" +
+		"<input type=\"radio\" name=\"sif_node\" id=\"radio_symbol\" onclick=\"infoSifDiv()\"/> Gene symbol<br/></fieldset><br/>" +
+		"<div class=\"modalsif\" id=\"what_go_with_sif\">Gene Ontology nodes will be exported with their GO ID.</div>" +
+		"<div class=\"modalsif\" id=\"what_kegg_with_sif\">KEGG pathway nodes will be exported with their KEGG ID.</div>" +
+		"<div class=\"modalsif\" id=\"what_mirna_with_sif\">miRNA nodes are not yet implemented.</div>"
+	)
+	.dialog(
+	{
+		modal: true,
+		autoOpen: false,
+		title: tit,
+		dialogClass: "attention",
+		resizable: false,
+		width: 400,
+		buttons:
+		{
+			OK: function()
+			{
+				if ($("#radio_ensembl").is(":checked") || $("#radio_entrez").is(":checked"))
+				{
+					response = visObject.sif({ nodeAttr: "id", interactionAttr: "interaction" });
+					visObject.exportNetwork("sif",urlBase + "php/control.php?export=sif",{ window: "_self", nodeAttr: "id", interactionAttr: "interaction" });
+				}
+				else if ($("#radio_symbol").is(":checked"))
+				{
+					response = visObject.sif({ nodeAttr: "label", interactionAttr: "interaction" });
+					visObject.exportNetwork("sif",urlBase + "php/control.php?export=sif",{ window: "_self", nodeAttr: "label", interactionAttr: "interaction" });
+				}
+				$(this).dialog("close");
+				showInfo(response);
+			},
+			Cancel: function()
+			{
+				$(this).dialog("close");
+				$(this).removeData();
+			}
+		}
+	});
+	$("#dialog").dialog("open");
+
+	return(false);
+}
+
+function infoSifDiv()
+{
+	if ($("#radio_ensembl").is(":checked"))
+	{
+		$("#what_go_with_sif").html("Gene Ontology nodes will be exported with their GO term ID.");
+		$("#what_kegg_with_sif").html("KEGG pathway nodes will be exported with their KEGG pathway ID.");
+		$("#what_mirna_with_sif").html("miRNA nodes are not yet implemented.");
+	}
+	else if ($("#radio_entrez").is(":checked"))
+	{
+		$("#what_go_with_sif").html("Gene Ontology nodes will be exported with their GO term description.");
+		$("#what_kegg_with_sif").html("KEGG pathway nodes will be exported with their KEGG pathway name.");
+		$("#what_mirna_with_sif").html("miRNA nodes are not yet implemented.");
+	}
+	else if ($("#radio_symbol").is(":checked"))
+	{
+		$("#what_go_with_sif").html("Gene Ontology nodes will be exported with their GO term ID.");
+		$("#what_kegg_with_sif").html("KEGG pathway nodes will be exported with their KEGG pathway ID.");
+		$("#what_mirna_with_sif").html("miRNA nodes are not yet implemented.");
+	}
+}
+
+function showInfo(msg)
+{
+	$("#infoContainer").html(msg);
+}
+
+function allowedNumberOfTerms(terms,x)
+{
+	outcome = terms.length>x ? false : true;
+	return(outcome);
+}
+
 function loadingSmall()
 {
 	$('#loadingCircle').show();
-	disable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
+	disable(['search_button','clear_button','disease_list','location_list','dataset_list',
+			 'reset_data_button','color_network_button',
 			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
-			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
+			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
+			 'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
+			 'binding_check','ptmod_check','expression_check','activation_check',
+			 'go_check','kegg_check','mirna_check',
+			 'sig_size_check','node_labels_check','edge_labels_check',
+			 'layout_list']);
+	$("#export_sif").css("background","url(images/export_buttons/sif_fade.png)");
+	$("#export_graphml").css("background","url(images/export_buttons/gml_fade.png)");
+	$("#export_xgmml").css("background","url(images/export_buttons/xml_fade.png)");
+	$("#export_png").css("background","url(images/export_buttons/png_fade.png)");
+	$("#export_pdf").css("background","url(images/export_buttons/pdf_fade.png)");
+	$("#export_svg").css("background","url(images/export_buttons/svg_fade.png)");
+	$("#layoutOptionContainer").find("input, button, select").attr("disabled","disabled");
 }
 
 function unloadingSmall()
 {
 	$('#loadingCircle').hide();
-	enable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
+	enable(['search_button','clear_button','disease_list','location_list','dataset_list',
+			'reset_data_button','color_network_button',
 			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
-			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
+			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
+			'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
+			'binding_check','ptmod_check','expression_check','activation_check',
+			'go_check','kegg_check','mirna_check',
+			'sig_size_check','node_labels_check','edge_labels_check',
+			'layout_list']);
+	$("#export_sif").css("background","url(images/export_buttons/sif_unpressed.png)");
+	$("#export_graphml").css("background","url(images/export_buttons/gml_unpressed.png)");
+	$("#export_xgmml").css("background","url(images/export_buttons/xml_unpressed.png)");
+	$("#export_png").css("background","url(images/export_buttons/png_unpressed.png)");
+	$("#export_pdf").css("background","url(images/export_buttons/pdf_unpressed.png)");
+	$("#export_svg").css("background","url(images/export_buttons/svg_unpressed.png)");
+	$("#layoutOptionContainer").find("input, button, select").removeAttr("disabled");
 }
 
 function searchAllow()
@@ -929,6 +1485,22 @@ function enable(id)
 	}
 }
 
+function removeData(id)
+{
+	for (var item in id)
+	{
+		$("#"+id[item]).removeData();
+	}
+}
+
+function empty(id)
+{
+	for (var item in id)
+	{
+		$("#"+id[item]).empty();
+	}
+}
+
 function clearNetwork()
 {
 	var vis = $("#cytoscapeweb").data("network");
@@ -946,31 +1518,31 @@ function resetSearch()
 							"<div id=\"loading_big\" style=\"display:none;\"><img src=\"images/loading.gif\"/></div>" +
 							"</td></tr></table>");
 	$("#enter_genes").val('');
-	$("#disease_list").empty();
-	$("#location_list").empty();
-	$("#dataset_list").empty();
-	$("#go_list").empty();
-	$("#kegg_list").empty();
+	empty(['disease_list','location_list','dataset_list','go_list','kegg_list'])
 	//$("#mirna_list").empty();
+	removeData(['disease_list','location_list','dataset_list','go_list','kegg_list',
+				'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg'])
+	//$("#mirna_list").removeData();
 	$("#disease_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#location_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#dataset_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#go_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#kegg_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	//$("#mirna_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
-	$("#disease_list").removeData();
-	$("#location_list").removeData();
-	$("#dataset_list").removeData();
-	$("#go_list").removeData();
-	$("#kegg_list").removeData();
-	//$("#mirna_list").removeData();
-	$("#go_component").css("background-color","#FFE5E0");
+	$("#go_component").css("background-color","#FFFFFF");
 	$("#go_function").css("background-color","#FFFFFF");
 	$("#go_process").css("background-color","#FFFFFF");
-	disable(['search_button','clear_button','disease_list','location_list','dataset_list','reset_data_button',
+	disable(['search_button','clear_button','disease_list','location_list','dataset_list',
+			 'reset_data_button','color_network_button',
 			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
-			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
+			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
+			 'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
+			 'binding_check','ptmod_check','expression_check','activation_check',
+			 'go_check','kegg_check','mirna_check',
+			 'sig_size_check','node_labels_check','edge_labels_check',
+			 'layout_list']);
+	$("#metadata").hide("fast");
 }
 
 function resetData() 
@@ -995,6 +1567,8 @@ function resetData()
 	{
 		$("#dataset_list").append("<option value=" + key + ">" + datasetData[key] + "</option>");
 	}
+
+	enable(['disease_list','location_list','dataset_list']);
 }
 
 function split(val) { return val.split(/\n/); }
@@ -1033,15 +1607,109 @@ function clearCache()
 
 function initMe()
 {
-	//var urlBase = 'http://kupkbvis-dev:81/';
-    var urlBase = 'http://localhost/kupkbvis/site/'
+	var urlBase = 'http://kupkbvis-dev:81/';
+    //var urlBase = 'http://localhost/kupkbvis/site/'
 	hideError(); //Hide previous errors
 	return(urlBase);
+}
+
+// Only for the numbers required for the graph layout execution
+function mySimpleValidation(ids)
+{
+	var msg = new Array();
+	var isvalid = true;
+	var cont;
+
+	for (id in ids)
+	{
+		cont = $("#"+ids[id]).val();
+		switch(ids[id])
+		{
+			case 'force_gravitation':
+				if (!isNumber(cont) || cont<-1000 || cont>1000)
+				{
+					msg.push("Gravitation must be a number between -1000 and 1000");
+					isvalid = false;
+				}
+				break;
+			case 'force_node_mass':
+				if (!isNumber(cont) || cont<1 || cont>10)
+				{
+					msg.push("Node mass must be a number between 1 and 10");
+					isvalid = false;
+				}
+				break;
+			case 'force_edge_tension':
+				if (!isNumber(cont) || cont<=0 || cont>1)
+				{
+					msg.push("Force gravitation must be a number between 0 and 1 (not equal to 0)");
+					isvalid = false;
+				}
+				break;
+			case 'force_edge_tension':
+				if (!isNumber(cont) || cont<=0 || cont>1)
+				{
+					msg.push("Force gravitation must be a number between 0 and 1 (not equal to 0)");
+					isvalid = false;
+				}
+				break;
+			case 'circle_angle':
+				if (!isNumber(cont) || cont<=0 || cont>360)
+				{
+					msg.push("Angle width must be a number between 0 and 360 (not equal to 0)");
+					isvalid = false;
+				}
+				break;
+			case 'radial_radius':
+				if ((!isNumber(cont) && cont !== "auto") || cont<50 || cont>500)
+				{
+					msg.push("Radius must be a number between 50 and 500 or auto");
+					isvalid = false;
+				}
+				break;
+			case 'radial_angle':
+				if (!isNumber(cont) || cont<=0 || cont>360)
+				{
+					msg.push("Angle width must be a number between 0 and 360 (not equal to 0)");
+					isvalid = false;
+				}
+				break;
+			case 'tree_depth':
+				if (!isNumber(cont) || cont<=0)
+				{
+					msg.push("Depth space a positive number");
+					isvalid = false;
+				}
+				break;
+			case 'tree_breadth':
+				if (!isNumber(cont) || cont<=0)
+				{
+					msg.push("Breadth space a positive number");
+					isvalid = false;
+				}
+				break;
+			case 'tree_angle':
+				if (!isNumber(cont) || cont<=0 || cont>360)
+				{
+					msg.push("Angle width must be a number between 0 and 360 (not equal to 0)");
+					isvalid = false;
+				}
+				break;
+		}
+	}
+
+	if (!isvalid) { modalAlert(msg.join("<br/>"),"Alert!") };
+	return(isvalid);
 }
 
 function randomFromTo(from,to)
 {
 	return(Math.floor(Math.random()*(to-from+1)+from));
+}
+
+function isNumber(n)
+{
+	return(!isNaN(parseFloat(n)) && isFinite(n));
 }
 
 function debugMessage(msg)

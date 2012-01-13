@@ -53,8 +53,8 @@ if ($paramfile)
 }
 else { $phref = &loadDefaultParams(); } # Not given
 
-my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$dataOK,$keggOK);
-$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $dataOK = $keggOK = -1;
+my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$keggOK);
+$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $keggOK = -1;
 
 # Do the job... -create the schema first
 $schemaOK = system("perl createSchema.pl --dbdata $dbdata[0] $dbdata[1]");
@@ -81,19 +81,14 @@ if ($descriptionOK==0)
 	$datasetOK = system("perl data2table.pl --input $phref->{\"DATA\"} --mode dataset --dbdata $dbdata[0] $dbdata[1] --type excel");
 	disp("================================================================================\n");
 }
-if ($datasetOK==0)
-{
-	$dataOK = system("perl data2table.pl --input $phref->{\"DATA\"} --mode data --dbdata $dbdata[0] $dbdata[1] --type excel");
-	disp("================================================================================\n");
-}
 # Build the KEGG tables
-if ($dataOK==0)
+if ($datasetOK==0)
 {
 	$keggOK = system("perl kegg2table.pl --param $paramfile --dbdata $dbdata[0] $dbdata[1]");
 	disp("================================================================================\n");
 }
 $date = &now;
-($dataOK==0) ? (disp("$date - Finished!\n\n")) : (disp("$date - Error occurred!\n\n")) ;
+($datasetOK==0) ? (disp("$date - Finished!\n\n")) : (disp("$date - Error occurred!\n\n")) ;
 
 
 # Process inputs

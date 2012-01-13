@@ -80,7 +80,15 @@ if ($_REQUEST['location'])
 	}
 }
 
-if ($_REQUEST['dataset']) {}
+if ($_REQUEST['dataset'])
+{
+	$dataset = $_REQUEST['dataset'];
+	$location = $_REQUEST['location_data'];
+	$disease = $_REQUEST['disease_data'];
+	$genes = $_SESSION['entrez'];
+	$result = getRegulation($genes,$dataset,$disease,$location);
+	echo json_encode($result);
+}
 
 # Response to AJAX network construction
 if ($_REQUEST['network']) // The network!
@@ -92,7 +100,8 @@ if ($_REQUEST['network']) // The network!
 	$edges = initEdges($proteins);
 	$resultNetwork = array("dataSchema" => $schema, "data" => array("nodes" => $nodes, "edges" => $edges));
 	#echo json_encode($resultNetwork,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
-	echo json_encode($resultNetwork,JSON_NUMERIC_CHECK);
+	#echo json_encode($resultNetwork,JSON_NUMERIC_CHECK);
+	echo json_encode($resultNetwork);
 
 	$_SESSION['proteins'] = $proteins;
 }
@@ -111,11 +120,29 @@ if ($_REQUEST['go'])
 if ($_REQUEST['kegg'])
 {
     $proteins = $_SESSION['proteins'];
-    //$proteins = $_REQUEST['proteins'];
     $keggs = $_REQUEST['kegg'];
     $keggs = json_decode($keggs,$assoc=TRUE);
     $elements = getKEGGElements($keggs,$proteins);
     echo json_encode($elements,JSON_NUMERIC_CHECK);
+}
+
+# Response to gene node selection
+if ($_REQUEST['gene_data'])
+{
+    $the_gene = $_REQUEST['gene_data'];
+    $gene_data = getGeneData($the_gene,$_SESSION['species']);
+    echo json_encode($gene_data,JSON_NUMERIC_CHECK);
+    //print_r($gene_data);
+}
+
+# Response to gene to gene or pathway to gene edge selection
+if ($_REQUEST['target_data'])
+{
+	$the_target = $_REQUEST['target_data'];
+    $the_source = $_REQUEST['source_data'];
+    $the_data = is_null($the_source) ? getPathway2GeneData($the_target) :
+		getGene2GeneData($the_source,$the_target);
+    echo json_encode($the_data,JSON_NUMERIC_CHECK);
 }
 
 if ($_REQUEST['suggest_term'])
@@ -124,6 +151,39 @@ if ($_REQUEST['suggest_term'])
 	$species = (int)$_REQUEST['suggest_species'];
 	$result = getAutocompGenes($term,$species);
 	echo json_encode($result,JSON_FORCE_OBJECT);
+}
+
+if ($_GET['export'])
+{
+	$type = $_GET['export'];
+	$data = file_get_contents("php://input");
+	switch($type)
+	{
+		case "png":
+			header('Content-type: image/png');
+			break;
+		case "pdf":
+			header('Content-type: application/pdf');
+			break;
+		case "svg":
+			header('Content-type: image/svg+xml');
+			break;
+		case "xgmml":
+			header('Content-type: text/xml');
+			break;
+		case "graphml":
+			header('Content-type: text/xml');
+			break;
+		case "sif":
+			header('Content-type: text/plain');
+			break;
+    }
+    # Force the browser to download the file
+    $suff = date('YmdHis');
+    header('Content-disposition: attachment; filename="network'.$suff.'.'.$type .'"');
+    # Send the data to the browser:
+    print $data;
+    //echo $data;
 }
 
 #################################### DEBUG ###########################################
@@ -206,6 +266,110 @@ function getDatasetID($entrez)
 	return($dataset);
 }
 
+function updateLocDataDisease($genes,$disease) 
+{
+	global $update_locdata_disease_1,$update_locdata_disease_2_1,$update_locdata_disease_2_2,$update_locdata_disease_3;
+	global $update_locdata_disease_4,$update_locdata_disease_5_1,$update_locdata_disease_5_2,$update_locdata_disease_6;
+	
+	if(is_array($genes) && !empty($genes))
+	{
+		$conn = open_connection();
+		#$gene_list = '(\''.implode("', '",$genes).'\')';
+		$gene_list = '('.implode(", ",$genes).')';
+		$query = $update_locdata_disease_1.$gene_list.$update_locdata_disease_2_1.$disease.$update_locdata_disease_2_2.$disease.
+				 $update_locdata_disease_3.$update_locdata_disease_4.$gene_list.
+				 $update_locdata_disease_5_1.$disease.$update_locdata_disease_5_2.$disease.$update_locdata_disease_6;
+		$result = mysql_query($query,$conn);
+		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
+		{
+			$dataset_name[$id] = utf8_encode($name);
+			$loc_0[$b_0] = $b_0;
+			$loc_1[$b_1] = $b_1;
+		}
+		close_connection($conn);
+	}
+		
+	# Remove empty rows for each of $loc_0, $loc_1 and merge
+	$location = array_merge(array_filter($loc_0),array_filter($loc_1));
+	return(array("dataset" => $dataset_name, "location" => $location)); 
+}
+
+function updateDisDataLocation($genes,$location)
+{
+	global $update_disdata_location_1,$update_disdata_location_2_1,$update_disdata_location_2_2,$update_disdata_location_3;
+	global $update_disdata_location_4,$update_disdata_location_5_1,$update_disdata_location_5_2,$update_disdata_location_6;
+	
+	if(is_array($genes) && !empty($genes))
+	{
+		$conn = open_connection();
+		#$gene_list = '(\''.implode("', '",$genes).'\')';
+		$gene_list = '('.implode(", ",$genes).')';
+		$query = $update_disdata_location_1.$gene_list.$update_disdata_location_2_1.$location.$update_disdata_location_2_2.$location.
+				 $update_disdata_location_3.$update_disdata_location_4.$gene_list.
+				 $update_disdata_location_5_1.$location.$update_disdata_location_5_2.$location.$update_disdata_location_6;
+		$result = mysql_query($query,$conn);
+		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
+		{
+			$dataset_name[$id] = utf8_encode($name);
+			$dis_0[$d_0] = $d_0;
+			$dis_1[$d_1] = $d_1;
+		}
+		close_connection($conn);
+	}
+		
+	# Remove empty rows for each of $dis_0, $dis_1 and merge
+	$disease = array_merge(array_filter($dis_0),array_filter($dis_1));
+	return(array("dataset" => $dataset_name, "disease" => $disease));
+}
+
+function getRegulation($genes,$dataset,$disease,$location)
+{
+	global $get_coloring_1,$get_coloring_3,$get_coloring_5;
+	global $get_coloring_2_1,$get_coloring_2_2,$get_coloring_2_3,$get_coloring_2_4,$get_coloring_2_5;
+	global $get_coloring_4_1,$get_coloring_4_2,$get_coloring_4_3,$get_coloring_4_4,$get_coloring_4_5;
+	$color_data = array();
+	
+	if(!empty($genes) && !empty($dataset))
+	{
+		$conn = open_connection();
+		$gene_list = is_array($genes) ? implode(", ",$genes) : $genes;
+		$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+				 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
+				 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
+				 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
+				 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
+				 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
+				 $get_coloring_5;
+		$result = mysql_query($query,$conn);
+		while (list($record_id,$dataset_id,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
+		{
+			$color_data[] = array("entrez_id" => $entrez_id, "strength" => $expr_strength, "expression" => $expr_de,
+								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr);
+		}
+		close_connection($conn);
+	}
+
+	return($color_data);
+}
+
+function getAutocompGenes($term,$species)
+{		
+	global $auto_genes_1,$auto_genes_2;
+	$conn = open_connection();
+	if ($species==999999 || empty($species) || $species=="")
+	{
+		$query = $auto_genes_1.'\'%'.$term.'%\'';
+	}
+	else { $query = $auto_genes_1.'\'%'.$term.'%\''.$auto_genes_2.$species; }
+	$result = mysql_query($query,$conn);
+	while (list($g,$d,$n) = mysql_fetch_array($result))
+	{
+		$opts[] = $g." - ".$d." - ".$n;
+	}		
+	close_connection($conn);
+	return($opts);
+}
+
 function getGOElements($gots,$ensembl)
 {
 	global $get_go_1,$get_go_2;
@@ -225,7 +389,7 @@ function getGOElements($gots,$ensembl)
 			if ($visited_go[$go_id] != 1)
 			{
 				$go_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
-									"data" => array("id" => $go_id, "label" => $go_term, "entrez_id" => 0,
+									"data" => array("id" => $go_id, "label" => $go_term, "entrez_id" => $go_id,
 													"strength" => "", "expression" => "",
 													"ratio" => 999, "pvalue" => 999, "fdr" => 999,
 													"object_type" => strtolower($category)));
@@ -254,7 +418,7 @@ function getKEGGElements($keggs,$ensembl)
     $visited_rel = array();
     if(!empty($ensembl) && !empty($keggs))
     {
-        $conn = open_connection();            
+        $conn = open_connection();
         $protein_list = is_array($ensembl) ? implode("', '",$ensembl) : $ensembl;
         $kegg_list = is_array($keggs) ? implode("', '",$keggs) : $keggs;    
         $query = $get_kegg_1.'(\''.$protein_list.'\')'.$get_kegg_2.'(\''.$kegg_list.'\')';
@@ -263,9 +427,11 @@ function getKEGGElements($keggs,$ensembl)
         {
             if ($visited_kegg[$kegg_id] != 1)
             {
+				// OK, I am exploiting the text type of "strength" to avoid an AJAX call just to get
+				// the KEGG class for displaying KEGG node properties
                 $kegg_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
-                                      "data" => array("id" => $kegg_id, "label" => $kegg_name, "entrez_id" => 0,
-                                                      "strength" => "", "expression" => "",
+                                      "data" => array("id" => $kegg_id, "label" => $kegg_name, "entrez_id" => $kegg_id,
+                                                      "strength" => $kegg_class, "expression" => "",
                                                       "ratio" => 999, "pvalue" => 999, "fdr" => 999,
                                                       "object_type" => "pathway"));
                 $visited_kegg[$kegg_id] = 1;
@@ -274,7 +440,7 @@ function getKEGGElements($keggs,$ensembl)
             {
                 $kegg_edges[] = array("group" => "edges",
                                       "data" => array("id" => $edge_id, "target" => $protein, "source" => $kegg_id,
-                                                    "interaction" => "kegg", "custom" => $kegg_class));
+                                                    "interaction" => "kegg", "custom" => $kegg_name));
                 $visited_rel[$edge_id] = 1;
             }
         }
@@ -282,7 +448,116 @@ function getKEGGElements($keggs,$ensembl)
     }
     return(array_merge($kegg_nodes,$kegg_edges));
 }
-	
+
+function getmirnaElements() {}
+
+function getGeneData($gene,$species_id)
+{
+	global $get_gene;
+
+	// Get the species text from the DB
+	$conn = open_connection();
+	$query = 'SELECT `name` FROM `species` WHERE `tax_id`='.$species_id;
+	$result = mysql_query($query,$conn);
+	while ($row = mysql_fetch_array($result,MYSQL_NUM))
+	{
+		$species = $row[0];
+	}		
+	close_connection($conn);
+	$species = ucfirst(implode("_",explode(" ",$species)));
+
+	// Go on...
+	$gene_data = array();
+	if(!empty($gene))
+    {
+		$conn = open_connection();
+		$query = $get_gene.$gene;
+		$result = mysql_query($query,$conn);
+		while(list($synonym,$dbXref,$chrom,$desc) = mysql_fetch_array($result))
+		{
+			$external = array();
+			$synonyms = implode(", ",explode("|",$synonym));
+			$dbXrefs = explode("|",$dbXref);
+			foreach ($dbXrefs as $key => $val)
+			{
+				$refs = explode(":",$val);
+				switch($refs[0])
+				{
+					case "HGNC":
+						$external[$refs[0]][] = "<a class=\"infolink\" href=\"http://www.genenames.org/data/hgnc_data.php?hgnc_id=".$refs[1]."\" target=\"_blank\">".$refs[1]."</a>";
+						break;
+					case "MIM":
+						$external[$refs[0]][] = "<a class=\"infolink\" href=\"http://www.omim.org/entry/".$refs[1]."\" target=\"_blank\">".$refs[1]."</a>";
+						break;
+					case "Ensembl":
+						$external[$refs[0]][] = "<a class=\"infolink\" href=\"http://www.ensembl.org/".$species."/Gene/Summary?g=".$refs[1]."\" target=\"_blank\">".$refs[1]."</a>";
+						break;
+					case "HPRD":
+						$external[$refs[0]][] = "<a class=\"infolink\" href=\"http://www.hprd.org/summary?hprd_id=".$refs[1]."&isoform_id=".$refs[1]."_1&isoform_name=Isoform_1\" target=\"_blank\">".$refs[1]."</a>";
+						break;
+					case "Vega":
+						$external[$refs[0]][] = "<a class=\"infolink\" href=\"http://vega.sanger.ac.uk/".$species."/Gene/Summary?g=".$refs[1]."\" target=\"_blank\">".$refs[1]."</a>";
+						break;
+					case "MGI":
+						$external[$refs[0]][] = "<a class=\"infolink\" href=\"http://www.informatics.jax.org/searches/accession_report.cgi?id=mgi:".$refs[1]."\" target=\"_blank\">".$refs[1]."</a>";
+						break;
+					case "RGD":
+						$external[$refs[0]][] = "<a class=\"infolink\" href=\"http://rgd.mcw.edu/rgdweb/report/gene/main.html?id=".$refs[1]."\" target=\"_blank\">".$refs[1]."</a>";
+						break;
+				}
+			}
+
+			foreach ($external as $key => $val)
+			{
+				$external[$key] = implode(", ",$val)."<br/>";
+			}
+
+			$chromosome = $chrom;
+			$description = $desc;
+		}
+		// We expect only one result because of Entrez ID, so outside the loop
+		$gene_data = array("synonyms" => $synonyms, "external" => $external, "chromosome" => $chromosome, "description" => $description);
+		close_connection($conn);
+		
+		return($gene_data);
+	}		
+}
+
+function getGene2GeneData($source,$target)
+{
+	global $get_edge_1,$get_edge_2;
+	$response = array();
+	if (!empty($source) && !empty($target))
+	{	
+		$conn = open_connection();
+		$query = $get_edge_1.'\''.$source.'\''.$get_edge_2.'\''.$target.'\'';
+		$result = mysql_query($query,$conn);
+		while ($row = mysql_fetch_array($result,MYSQL_NUM))
+		{
+			$response[] = $row[0];
+		}		
+		close_connection($conn);
+	}
+	return(array("source" => $response[0], "target" => $response[1]));
+}
+
+function getPathway2GeneData($ensembl_node)
+{
+	global $get_edge_1;
+	if (!empty($ensembl_node))
+	{	
+		$conn = open_connection();
+		$query = $get_edge_1.'\''.$ensembl_node.'\'';
+		$result = mysql_query($query,$conn);
+		while ($row = mysql_fetch_array($result,MYSQL_NUM))
+		{
+			$response = $row[0];
+		}		
+		close_connection($conn);
+	}
+	return(array("target" => $response));
+}
+
 function initLocation($dataset) 
 {
 	global $init_location;
@@ -295,8 +570,8 @@ function initLocation($dataset)
 		$result = mysql_query($query,$conn);
 		while (list($r_0,$r_1) = mysql_fetch_array($result))
 		{
-			$b_0[] = $r_0;
-			$b_1[] = $r_1;
+			$b_0[$r_0] = $r_0;
+			$b_1[$r_1] = $r_1;
 		}
 		close_connection($conn);
 		
@@ -310,16 +585,16 @@ function initDisease($dataset)
 {
 	global $init_disease;
 	$disease = array();
-	if(is_array($dataset) && !empty($dataset))
+	if(!empty($dataset))
 	{	
 		$conn = open_connection();			
-		$tmp_list = '(\''.implode("', '",$dataset).'\')';			
-		$query = $init_disease.$tmp_list;
+		$dataset_list = is_array($dataset) ? '(\''.implode("', '",$dataset).'\')' : '\''.$dataset.'\'';
+		$query = $init_disease.$dataset_list;
 		$result = mysql_query($query,$conn);
 		while (list($r_0,$r_1) = mysql_fetch_array($result))
 		{
-			$d_0[] = $r_0;
-			$d_1[] = $r_1;
+			$d_0[$r_0] = $r_0;
+			$d_1[$r_1] = $r_1;
 		}
 		close_connection($conn);
 		
@@ -386,82 +661,6 @@ function initKEGG($entrez)
 	return($keggs);
 }
 
-function updateLocDataDisease($genes,$disease) 
-{
-	global $update_locdata_disease_1,$update_locdata_disease_2_1,$update_locdata_disease_2_2,$update_locdata_disease_3;
-	global $update_locdata_disease_4,$update_locdata_disease_5_1,$update_locdata_disease_5_2,$update_locdata_disease_6;
-	
-	if(is_array($genes) && !empty($genes))
-	{
-		$conn = open_connection();
-		#$gene_list = '(\''.implode("', '",$genes).'\')';
-		$gene_list = '('.implode(", ",$genes).')';
-		$query = $update_locdata_disease_1.$gene_list.$update_locdata_disease_2_1.$disease.$update_locdata_disease_2_2.$disease.
-				 $update_locdata_disease_3.$update_locdata_disease_4.$gene_list.
-				 $update_locdata_disease_5_1.$disease.$update_locdata_disease_5_2.$disease.$update_locdata_disease_6;
-		$result = mysql_query($query,$conn);
-		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
-		{
-			$dataset_name[$id] = utf8_encode($name);
-			$loc_0[] = $b_0;
-			$loc_1[] = $b_1;
-		}
-		close_connection($conn);
-	}
-		
-	# Remove empty rows for each of $loc_0, $loc_1 and merge
-	$location = array_merge(array_filter($loc_0),array_filter($loc_1));
-	return(array("dataset" => $dataset_name, "location" => $location)); 
-}
-
-function updateDisDataLocation($genes,$location)
-{
-	global $update_disdata_location_1,$update_disdata_location_2_1,$update_disdata_location_2_2,$update_disdata_location_3;
-	global $update_disdata_location_4,$update_disdata_location_5_1,$update_disdata_location_5_2,$update_disdata_location_6;
-	
-	if(is_array($genes) && !empty($genes))
-	{
-		$conn = open_connection();
-		#$gene_list = '(\''.implode("', '",$genes).'\')';
-		$gene_list = '('.implode(", ",$genes).')';
-		$query = $update_disdata_location_1.$gene_list.$update_disdata_location_2_1.$location.$update_disdata_location_2_2.$location.
-				 $update_disdata_location_3.$update_disdata_location_4.$gene_list.
-				 $update_disdata_location_5_1.$location.$update_disdata_location_5_2.$location.$update_disdata_location_6;
-		$result = mysql_query($query,$conn);
-		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
-		{
-			$dataset_name[$id] = utf8_encode($name);
-			$dis_0[] = $d_0;
-			$dis_1[] = $d_1;
-		}
-		close_connection($conn);
-	}
-		
-	# Remove empty rows for each of $dis_0, $dis_1 and merge
-	$disease = array_merge(array_filter($dis_0),array_filter($dis_1));
-	return(array("dataset" => $dataset_name, "disease" => $disease));
-}
-
-function getRegulation() {}
-
-function getAutocompGenes($term,$species)
-{		
-	global $auto_genes_1,$auto_genes_2;
-	$conn = open_connection();
-	if ($species==999999 || empty($species) || $species=="")
-	{
-		$query = $auto_genes_1.'\'%'.$term.'%\'';
-	}
-	else { $query = $auto_genes_1.'\'%'.$term.'%\''.$auto_genes_2.$species; }
-	$result = mysql_query($query,$conn);
-	while (list($g,$d,$n) = mysql_fetch_array($result))
-	{
-		$opts[] = $g." - ".$d." - ".$n;
-	}		
-	close_connection($conn);
-	return($opts);
-}
-
 function initNodes($entrez)
 {
 	global $init_nodes;
@@ -486,6 +685,8 @@ function initEdges($ensembl)
 	global $init_edges_1,$init_edges_2;
 	$edges = array();
 	$seen = array();
+	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
+							  "expression" => "expression", "activation" => "activation");
 	if(is_array($ensembl) && !empty($ensembl))
 	{
 		$conn = open_connection();
@@ -495,6 +696,7 @@ function initEdges($ensembl)
 		while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
 		{
 			$current_edge = array("id" => $id, "target" => $target, "source" => $source,
+								  "label" => $interaction_hash[$interaction],
 								  "interaction" => $interaction, "custom" => "");
 			// Little hack to eliminate directionality
 			$current_edge_tid = implode("_",array($source,$target,$interaction));
@@ -518,7 +720,7 @@ function initDataSchema()
 {
 	$node_schema = array();
 	$node_schema[] = array("name" => "label", "type" => "string");
-	$node_schema[] = array("name" => "entrez_id", "type" => "int");
+	$node_schema[] = array("name" => "entrez_id", "type" => "string");
 	$node_schema[] = array("name" => "strength", "type" => "string");
 	$node_schema[] = array("name" => "expression", "type" => "string");
 	$node_schema[] = array("name" => "ratio", "type" => "number");
@@ -527,10 +729,18 @@ function initDataSchema()
 	$node_schema[] = array("name" => "object_type", "type" => "string");
 
 	$edge_schema = array();
+	$edge_schema[] = array("name" => "label", "type" => "string");
 	$edge_schema[] = array("name" => "interaction", "type" => "string");
 	$edge_schema[] = array("name" => "custom", "type" => "string");
 
 	return(array("nodes" => $node_schema, "edges" => $edge_schema));
+}
+
+function initLayoutOpts()
+{
+	$layout_opts = array("ForceDirected" => "Force Directed", "Circle" => "Circle",
+						 "Radial" => "Radial", "Tree" => "Tree");
+	return($layout_opts);
 }
 
 ?>

@@ -118,6 +118,7 @@ sub createDB
 				) ENGINE = INNODB;";
 
 	my $ds_cq = "CREATE TABLE `datasets` (
+				`record_id` VARCHAR(15) NOT NULL,
 				`experiment_id` VARCHAR(200) NOT NULL,
 				`compound_list` VARCHAR(32) NOT NULL,
 				`experiment_assay` VARCHAR(200) NULL,
@@ -143,7 +144,7 @@ sub createDB
 				`laterality_1` VARCHAR(64) NULL,
 				`severity_1` VARCHAR(64) NULL,
 				`experiment_description` TEXT NULL,
-				PRIMARY KEY (`experiment_id`)
+				PRIMARY KEY (`record_id`)
 				) ENGINE = INNODB;";
 
 	my $dt_cq = "CREATE TABLE `data` (
@@ -159,8 +160,11 @@ sub createDB
 				`ratio` DOUBLE(16,5) NULL,
 				`pvalue` DOUBLE(12,8) NULL,
 				`fdr` DOUBLE NULL,
+				`dataset_record_id` VARCHAR(15) NOT NULL,
 				PRIMARY KEY (`record_id`),
-				FOREIGN KEY (`dataset_id`) REFERENCES datasets(`experiment_id`)
+				INDEX `entrez_gene_id` (`entrez_gene_id`),
+				INDEX `uniprot_id` (`uniprot_id`),
+				FOREIGN KEY (`dataset_record_id`) REFERENCES datasets(`record_id`)
 				ON DELETE RESTRICT ON UPDATE RESTRICT
 				) ENGINE = INNODB;";
 				
@@ -304,3 +308,21 @@ END
 	print $usagetext;
 	exit;
 }
+
+#my $dt_cq = "CREATE TABLE `data` (
+#				`record_id` VARCHAR(21) NOT NULL,
+#				`dataset_id` VARCHAR(200) NOT NULL,
+#				`gene_symbol` VARCHAR(32) NULL,
+#				`entrez_gene_id` INT(16) NULL,
+#				`uniprot_id` VARCHAR(16) NULL,
+#				`hmdb_id` VARCHAR(9) NULL,
+#				`microcosm_id` VARCHAR(32) NULL,
+#				`expression_strength` VARCHAR(16) NULL,
+#				`differential_expression_analyte_control` VARCHAR(16) NULL,
+#				`ratio` DOUBLE(16,5) NULL,
+#				`pvalue` DOUBLE(12,8) NULL,
+#				`fdr` DOUBLE NULL,
+#				PRIMARY KEY (`record_id`),
+#				FOREIGN KEY (`dataset_id`) REFERENCES datasets(`experiment_id`)
+#				ON DELETE RESTRICT ON UPDATE RESTRICT
+#				) ENGINE = INNODB;";

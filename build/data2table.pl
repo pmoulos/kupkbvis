@@ -5,8 +5,8 @@
 #
 # Author      : Panagiotis Moulos (pmoulos@eie.gr)
 # Created     : 09 - 11 - 2011 (dd - mm - yyyy)
-# Last Update : 16 - 11 - 2011 (dd - mm - yyyy)
-# Version     : 1.0
+# Last Update : 09 - 01 - 2012 (dd - mm - yyyy)
+# Version     : 1.1
 
 use strict;
 use File::Basename;
@@ -18,14 +18,14 @@ select(STDOUT);
 $|=1;
 
 # Set defaults
-our $scriptname = "desc2html.pl";
+our $scriptname = "data2table.pl";
 our @input;	         # Input files (must be of same type)
 our $type="";        # Excel or delimited text?
 our $mode;		     # Convert experiment sheet, dataset description
 our $outpath = "";   # Path to write the output file in case of not direct insertion
 our $curators = "";  # File with the list of curators and their mails
 our @dbdata;	     # Username and password for the DB to avoid hardcoding
-our $updatedb;		 # Update the local DB with new datasets?
+#our $updatedb;		 # Update the local DB with new datasets?
 our $silent = 0;     # Display verbose messages
 our $help = 0;       # Help?
 
@@ -37,8 +37,9 @@ if ($mode eq "data") { &tryModule("Regexp::Common"); }
 
 # Database connection
 our $conn;
-# A universal counter for the fill of the table data in function parse(Excel|Test)Data
-our $UNIVERSAL_COUNTER = 0;
+# Universal counters filling the tables data/datasets in functions parse(Excel|Text)Data
+our $UNIVERSAL_COUNTER_DATA = 0;
+our $UNIVERSAL_COUNTER_DATASET = 0;
 
 if ($type eq "excel")
 {
@@ -70,41 +71,14 @@ if ($type eq "excel")
 					}
 					for (my $j=0; $j<@files; $j++)
 					{
-						disp("Inserting dataset attributes from Excel file $files[$j] to database...");
+						disp("Inserting dataset attributes and data from Excel file $files[$j] to database...");
 						&parseExcelDataset($files[$j]);
 					}
 				}
 				else
 				{
-					disp("Inserting dataset attributes from Excel file $input[$i] to database...");
+					disp("Inserting dataset attributes and data from Excel file $input[$i] to database...");
 					&parseExcelDataset($input[$i]);
-				}
-			}
-			case /data/i
-			{
-				if (-d $input[$i])
-				{
-					my @files;
-					eval
-					{
-						require File::List;
-						my $search = new File::List($input[$i]);
-						@files  = @{$search->find("\.xls\$")};
-					};
-					if ($@)
-					{
-						@files = &listRecurse($input[$i]);
-					}
-					for (my $j=0; $j<@files; $j++)
-					{
-						disp("Inserting data from Excel file $files[$j] to database...");
-						&parseExcelData($files[$j]);
-					}
-				}
-				else
-				{
-					disp("Inserting data from Excel file $input[$i] to database...");
-					&parseExcelData($input[$i]);
 				}
 			}
 		}
@@ -138,41 +112,14 @@ elsif ($type eq "text")
 					}
 					for (my $j=0; $j<@files; $j++)
 					{
-						disp("Inserting dataset attributes from text file $files[$j] to database...");
+						disp("Inserting dataset attributes and data from text file $files[$j] to database...");
 						&parseTextDataset($files[$j]);
 					}
 				}
 				else
 				{
-					disp("Inserting dataset attributes from text file $input[$i] to database...");
+					disp("Inserting dataset attributes and data from text file $input[$i] to database...");
 					&parseTextDataset($input[$i]);
-				}
-			}
-			case /data/i
-			{
-				if (-d $input[$i])
-				{
-					my @files;
-					eval
-					{
-						require File::List;
-						my $search = new File::List($input[$i]);
-						@files  = @{$search->find("\.xls\$")};
-					};
-					if ($@)
-					{
-						@files = &listRecurse($input[$i]);
-					}
-					for (my $j=0; $j<@files; $j++)
-					{
-						disp("Inserting data from text file $files[$j] to database...");
-						&parseTextData($files[$j]);
-					}
-				}
-				else
-				{
-					disp("Inserting data from text file $input[$i] to database...");
-					&parseTextData($input[$i]);
 				}
 			}
 		}
@@ -317,7 +264,8 @@ sub parseExcelDataset
 				   "laterality" => 0,
 				   "severity" => 0,
 				   "experiment_description" => 0);
-	my %fields = ("experiment_id" => "",
+	my %fields = ("record_id" => "",
+				  "experiment_id" => "",
 				  "compound_list" => "",
 				  "experiment_assay" => "",
 				  "preanalytical_technique" => "",
@@ -383,9 +331,16 @@ sub parseExcelDataset
 		}
 		$rc++;
 	}
+
+	# Increase the universal counter for the datasets
+	$UNIVERSAL_COUNTER_DATASET++;
+	# Determine the current record ID
+	$fields{"record_id"} = "KUPKBVis_".&zeroFill($UNIVERSAL_COUNTER_DATASET,6);
 	&insertAttributes(\%fields);
 	
 	disp("Done! Dataset $in properties inserted to database!");
+
+	&parseExcelData($in,$fields{"record_id"});
 }
 
 sub parseExcelData
@@ -393,6 +348,7 @@ sub parseExcelData
 	use Spreadsheet::ParseExcel;
 
 	my $in = shift @_;
+	my $rec = shift @_;
 	
 	my $eobj = new Spreadsheet::ParseExcel;
 	my $wbook = $eobj->Parse($in);
@@ -459,14 +415,15 @@ sub parseExcelData
 	# Deal with the actual data
 	for ($i=$rowstart+1; $i<=$rowmax; $i++)
 	{
-		# Increase the universal counter
-		$UNIVERSAL_COUNTER++;
+		# Increase the universal counter for the data
+		$UNIVERSAL_COUNTER_DATA++;
 
 		# Clear the hash for each line
 		my %fields = &initDataFields();
 
-		$fields{"record_id"} = "KUPKBVis_".&zeroFill($UNIVERSAL_COUNTER,12);
+		$fields{"record_id"} = "KUPKBVis_".&zeroFill($UNIVERSAL_COUNTER_DATA,12);
 		$fields{"dataset_id"} = $foreign;
+		$fields{"dataset_record_id"} = $rec;
 
 		# gene_symbol
 		$value = undef;
@@ -531,7 +488,7 @@ sub parseExcelData
 		&insertData(\%fields);
 	}
 	
-	disp("Done! Data inserted to database!");
+	disp("Done! Data from file $in inserted to database!");
 }
 
 sub parseTextDescription	
@@ -661,7 +618,8 @@ sub parseTextDataset
 				   "laterality" => 0,
 				   "severity" => 0,
 				   "experiment_description" => 0);
-	my %fields = ("experiment_id" => "",
+	my %fields = ("record_id" => "",
+				  "experiment_id" => "",
 				  "compound_list" => "",
 				  "experiment_assay" => "",
 				  "preanalytical_technique" => "",
@@ -727,14 +685,23 @@ sub parseTextDataset
 		}
 		$rc++;
 	}
+
+	# Increase the universal counter for the datasets
+	$UNIVERSAL_COUNTER_DATASET++;
+	# Determine the current record ID
+	$fields{"record_id"} = "KUPKBVis_".&zeroFill($UNIVERSAL_COUNTER_DATASET,6);
 	&insertAttributes(\%fields);
 	
 	disp("Done! Dataset $in properties inserted to database!");
+
+	# Now insert the data and their foreign key
+	&parseTextData($in,$fields{"record_id"});
 }
 
 sub parseTextData
 {
 	my $in = shift @_;
+	my $rec = shift @_;
 	
 	#open(INPUT,"<:encoding(utf8)",$in) or die "\nThe file $in does not exist!\n";
 	open(INPUT,$in) or die "\nThe file $in does not exist!\n";
@@ -812,13 +779,14 @@ sub parseTextData
 		@columns = split(/\t/,$line);
 		
 		# Increase the universal counter
-		$UNIVERSAL_COUNTER++;
+		$UNIVERSAL_COUNTER_DATA++;
 
 		# Clear the hash for each line
 		my %fields = &initDataFields();
 		
-		$fields{"record_id"} = "KUPKBVis_".&zeroFill($UNIVERSAL_COUNTER,12);
+		$fields{"record_id"} = "KUPKBVis_".&zeroFill($UNIVERSAL_COUNTER_DATA,12);
 		$fields{"dataset_id"} = $foreign;
+		$fields{"dataset_record_id"} = $rec;
 		$fields{"gene_symbol"} = &stripQuotes($columns[1]) if ($columns[1]); # gene_symbol
 		$fields{"entrez_gene_id"} = &trim(&stripQuotes($columns[2])) if ($columns[2]); # entrez_gene_id
 		$fields{"uniprot_id"} = &stripQuotes($columns[3]) if ($columns[3]); # uniprot_id
@@ -833,7 +801,7 @@ sub parseTextData
 		&insertData(\%fields);
 	}
 	
-	disp("Done! Data inserted to database!");
+	disp("Done! Data from file $in inserted to database!");
 }
 
 # Process inputs
@@ -855,9 +823,9 @@ sub checkInputs
     }
     $stop .= "--- Please specify input(s) ---\n" if (!@input);
     # Check conversion mode
-	if ($mode ne "description" && $mode ne "dataset" &&$mode ne "data")
+	if ($mode ne "description" && $mode ne "dataset")
 	{
-		disp("--mode should be one of \"description\", \"dataset\" or \"data\"!");
+		disp("--mode should be one of \"description\" or \"dataset\"!");
 		print "Type perl $scriptname --help for help in usage.\n\n";
 		exit;
 	}
@@ -958,7 +926,8 @@ sub initDataFields
 			   "differential_expression_analyte_control" => "",
 			   "ratio" => "NULL",
 			   "pvalue" => "NULL",
-			   "fdr" => "NULL");
+			   "fdr" => "NULL",
+			   "dataset_record_id" => "");
 	return(%out);
 }
 
@@ -1090,6 +1059,7 @@ sub insertData
 	$fields{"microcosm_id"} = $conn->quote($fields{"microcosm_id"});
 	$fields{"expression_strength"} = $conn->quote($fields{"expression_strength"});
 	$fields{"differential_expression_analyte_control"} = $conn->quote($fields{"differential_expression_analyte_control"});
+	$fields{"dataset_record_id"} = $conn->quote($fields{"dataset_record_id"});
 	
 	foreach my $key (keys(%fields))
 	{
@@ -1217,3 +1187,32 @@ sub printHash
 	}
 	print "-------------------- End hash contents --------------------\n";
 }
+
+# LEGACY
+#case /data/i
+#{
+#	if (-d $input[$i])
+#	{
+#		my @files;
+#		eval
+#		{
+#			require File::List;
+#			my $search = new File::List($input[$i]);
+#			@files  = @{$search->find("\.xls\$")};
+#		};
+#		if ($@)
+#		{
+#			@files = &listRecurse($input[$i]);
+#		}
+#		for (my $j=0; $j<@files; $j++)
+#		{
+#			disp("Inserting data from Excel file $files[$j] to database...");
+#			&parseExcelData($files[$j]);
+#		}
+#	}
+#	else
+#	{
+#		disp("Inserting data from Excel file $input[$i] to database...");
+#		&parseExcelData($input[$i]);
+#	}
+#}
