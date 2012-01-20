@@ -3,7 +3,8 @@
 session_start();
 
 include('connection.php');
-include('queries.php');	
+include('queries.php');
+include('sphinxapi.php');
 
 //include('test.php'); # Test
 
@@ -150,6 +151,7 @@ if ($_REQUEST['suggest_term'])
 	$term = $_REQUEST['suggest_term'];
 	$species = (int)$_REQUEST['suggest_species'];
 	$result = getAutocompGenes($term,$species);
+	//$result = getIndexedGenes($term,$species);
 	echo json_encode($result,JSON_FORCE_OBJECT);
 }
 
@@ -365,7 +367,7 @@ function getAutocompGenes($term,$species)
 	while (list($g,$d,$n) = mysql_fetch_array($result))
 	{
 		$opts[] = $g." - ".$d." - ".$n;
-	}		
+	}
 	close_connection($conn);
 	return($opts);
 }
@@ -741,6 +743,87 @@ function initLayoutOpts()
 	$layout_opts = array("ForceDirected" => "Force Directed", "Circle" => "Circle",
 						 "Radial" => "Radial", "Tree" => "Tree");
 	return($layout_opts);
+}
+
+function getIndexedGenes($term,$species)
+{
+	global $auto_genes,$auto_ensembl,$auto_uniprot;
+
+	$cl = new SphinxClient();
+	$cl->SetServer("localhost",60000);
+	$cl->SetLimits(0,100);
+	$cl->SetMatchMode(SPH_MATCH_ANY);
+	
+	$cl->SetFilter("species",array($species));
+	$cl->AddQuery($term,"kupkbvis_entrez");
+	$cl->AddQuery($term,"kupkbvis_ensembl");
+	$cl->ResetFilters();
+	$cl->AddQuery($term,"kupkbvis_uniprot");
+	$result = $cl->RunQueries();
+
+	if ( $result === false )
+	{
+		echo "Query failed: " . $cl->GetLastError() . ".\n";
+	}
+	else // 0 => Genes, 1 => Ensembl, 2 => Uniprot
+	{
+		$genes_arr = $result[0];
+		$entrez_to_ensembl_arr = $result[1];
+		$entrez_to_uniprot_arr = $result[2];
+		$gene_match = array();
+		$ensembl_match = array();
+		$uniprot_match = array();
+		$suggestions = array();
+
+		$conn = open_connection();
+		
+		if (!empty($genes_arr['matches']))
+		{
+			foreach ($genes_arr['matches'] as $doc => $docinfo)
+			{
+				$gene_match[] = $doc;
+			}
+			$gene_list = '('.implode(", ",$gene_match).')';
+			$query = $auto_genes.$gene_list;
+			$query_result = mysql_query($query,$conn);
+			while (list($e,$g,$d,$n) = mysql_fetch_array($query_result))
+			{
+				$suggestions[] = $e." - ".$g." - ".$d." - ".$n;
+			}
+		}
+		if (!empty($entrez_to_ensembl_arr['matches']))
+		{
+			foreach ($entrez_to_ensembl_arr['matches'] as $doc => $docinfo)
+			{
+				$ensembl_match[] = $doc;
+			}
+			$ensembl_list = '('.implode(", ",$ensembl_match).')';
+			$query = $auto_ensembl.$ensembl_list;
+			$query_result = mysql_query($query,$conn);
+			while (list($e,$eg,$ep,$d,$n) = mysql_fetch_array($query_result))
+			{
+				$suggestions[] = $e." - ".$eg." - ".$ep." - ".$d." - ".$n;
+			}
+		}
+		if (!empty($entrez_to_uniprot_arr['matches']))
+		{
+			foreach ($entrez_to_uniprot_arr['matches'] as $doc => $docinfo)
+			{
+				$uniprot_match[] = $doc;
+			}
+			$uniprot_list = '('.implode(", ",$uniprot_match).')';
+			$query = $auto_uniprot.$uniprot_list;
+			$query_result = mysql_query($query,$conn);
+			while (list($e,$u,$g,$d) = mysql_fetch_array($query_result))
+			{
+				$suggestions[] = $e." - ".$u." - ".$g." - ".$d;
+			}
+		}
+
+		close_connection($conn);
+	}
+	
+	return($suggestions);
 }
 
 ?>

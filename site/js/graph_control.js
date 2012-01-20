@@ -311,32 +311,53 @@ function filterEdges()
 		switch(edges[i].data.interaction)
 		{
 			case 'binding':
-				if (checked.binding && edges[i].visible) { toFilter.push(edges[i].data.id); }
+				if (checked.binding) { toFilter.push(edges[i].data.id); }
 				break;
 			case 'ptmod':
-				if (checked.ptmod && edges[i].visible) { toFilter.push(edges[i].data.id); }
+				if (checked.ptmod) { toFilter.push(edges[i].data.id); }
 				break;
 			case 'expression':
-				if (checked.expression && edges[i].visible) { toFilter.push(edges[i].data.id); }
+				if (checked.expression) { toFilter.push(edges[i].data.id); }
 				break;
 			case 'activation':
-				if(checked.activation && edges[i].visible) { toFilter.push(edges[i].data.id); }
+				if(checked.activation) { toFilter.push(edges[i].data.id); }
 				break;
 			case 'go':
-				if(checked.go && edges[i].visible) { toFilter.push(edges[i].data.id); }
+				if(checked.go) { toFilter.push(edges[i].data.id); }
 				break;
 			case 'kegg':
-				if(checked.kegg && edges[i].visible) { toFilter.push(edges[i].data.id); }
+				if(checked.kegg) { toFilter.push(edges[i].data.id); }
 				break;
 			case 'mirna':
-				if(checked.mirna && edges[i].visible) { toFilter.push(edges[i].data.id); }
+				if(checked.mirna) { toFilter.push(edges[i].data.id); }
 				break;
 		}
 	}
-
+	
     //visObject.removeFilter("edges");
 	visObject.filter("edges",toFilter,true);
 	// Update several info regarding edges
+	updateInfo();
+	showLabels("edges");
+}
+
+// Edge IDs only for now...
+function hideSomeEdges(someEdges)
+{
+    var visObject = getVisData('cytoscapeweb');
+	var edges = visObject.edges();
+	var toHide = [];
+	var i = 0;
+	var len = edges.length;
+	
+	for (i=0; i<len; i++)
+	{
+		if ($.inArray(edges[i].data.id,someEdges) === -1 && edges[i].visible)
+		{
+			toHide.push(edges[i].data.id);
+		}
+	}
+	visObject.filter("edges",toHide,true);
 	updateInfo();
 	showLabels("edges");
 }
@@ -368,18 +389,6 @@ function updateInfo()
 		showInfo(msg);
 	}
 }
-
-var elems = event.target;
-var selNodes,selEdges,msg;
-if (elems.length>1)
-{
-	selNodes = vis.selected("nodes");
-	selEdges = vis.selected("edges");
-}
-msg = "<span style=\"color:#000000; font-weight:bold\">Multiple elements selected</span><br/>" +
-	  "Genes: <span style=\"color:#FF0000\">" + selNodes.length + "</span><br/>" +
-	  "Relationships: <span style=\"color:#FF0000\">" + selEdges.length + "</span><br/>";
-showInfo(msg);
 
 function removeMeta(what,howmany,cat)
 {

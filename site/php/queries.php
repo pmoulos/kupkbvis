@@ -5,6 +5,20 @@ $init_species = 'SELECT `tax_id`,`name` '.
 				'ORDER BY `name`';
 
 # Convert ANY input to entrez IDs to reduce subsequent burden */
+$entrez_from_any_1 = 'SELECT genes.entrez_id '.
+					 'FROM `genes` INNER JOIN `entrez_to_uniprot` '.
+					 'ON genes.entrez_id=entrez_to_uniprot.entrez_id '.
+					 'INNER JOIN `entrez_to_ensembl` '.
+					 'ON genes.entrez_id=entrez_to_ensembl.entrez_id '.
+					 'INNER JOIN `species` '.
+					 'ON genes.species=species.tax_id '.
+					 'WHERE (';
+$entrez_from_any_2_1 = 'genes.gene_symbol IN ';
+$entrez_from_any_2_2 = ' OR genes.entrez_id IN ';
+$entrez_from_any_2_3 = ' OR entrez_to_uniprot.uniprot_id IN ';
+$entrez_from_any_2_4 = ' OR entrez_to_ensembl.ensembl_gene IN ';
+$entrez_from_any_2_5 = ' OR entrez_to_ensembl.ensembl_protein IN ';
+
 $entrez_from_symbol_1 = 'SELECT `entrez_id` '.
 						'FROM `genes` '.
 						'WHERE `gene_symbol` IN ';
@@ -130,6 +144,21 @@ $auto_genes_1 = 'SELECT `gene_symbol`,`description`,species.name '.
 				'ON genes.species=species.tax_id '.
 				'WHERE `gene_symbol` LIKE ';
 $auto_genes_2 = ' AND `species`=';
+
+$auto_genes = 'SELECT `entrez_id`,`gene_symbol`,`description`,species.name '.
+			  'FROM `genes` INNER JOIN `species` '.
+			  'ON genes.species=species.tax_id '.
+			  'WHERE `entrez_id` IN ';
+$auto_ensembl = 'SELECT entrez_to_ensembl.entrez_id,`ensembl_gene`,`ensembl_protein`,`description`,species.name '.
+				'FROM `entrez_to_ensembl` INNER JOIN `genes` '.
+				'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
+				'INNER JOIN `species` '.
+				'ON entrez_to_ensembl.species=species.tax_id '.
+				'WHERE entrez_to_ensembl.id IN ';
+$auto_uniprot = 'SELECT entrez_to_uniprot.entrez_id,`uniprot_id`,`gene_symbol`,`description` '.
+				'FROM `entrez_to_uniprot` INNER JOIN `genes` '.
+				'ON entrez_to_uniprot.entrez_id=genes.entrez_id '.
+				'WHERE entrez_to_uniprot.id IN ';
 
 /* Find Ensembl protein from set of entrez ids */
 $ensembl_from_entrez = 'SELECT DISTINCT `entrez_id`,`source` '.

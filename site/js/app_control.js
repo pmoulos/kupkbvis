@@ -1271,8 +1271,8 @@ function initNetwork(networkJSON)
 
 			if (action === "hide")
 			{
-				vis.filter(group,toHide);
-				if (group === "edges") { filterEdges(); }
+				if (group === "nodes") { vis.filter(group,toHide); }
+				if (group === "edges") { hideSomeEdges(selElemIDs); }
 			}
 			else if (action === "delete")
 			{
@@ -1607,7 +1607,8 @@ function clearCache()
 
 function initMe()
 {
-	var urlBase = 'http://kupkbvis-dev:81/';
+	var urlBase = 'http://kupkbserver:81/';
+	//var urlBase = 'http://kupkbvis-dev:81/';
     //var urlBase = 'http://localhost/kupkbvis/site/'
 	hideError(); //Hide previous errors
 	return(urlBase);
