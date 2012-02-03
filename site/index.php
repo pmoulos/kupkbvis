@@ -20,7 +20,7 @@
         <script type="text/javascript" src="js/jquery-1.7.min.js"></script>
         <script type="text/javascript" src="js/jquery-ui-1.8.16.custom.min.js"></script>
         <script type="text/javascript" src="js/jquery.json-2.3.min.js"></script>
-        <script type="text/javascript" src="js/gen_validatorv4.js"></script>
+        <script type="text/javascript" src="js/jquery.tools.min.js"></script>
         <script type="text/javascript" src="js/graph_control.js"></script>
 		<script type="text/javascript" src="js/app_control.js"></script>
     </head>
@@ -55,7 +55,9 @@
 						</div>
 					</td>
 					<td id="functionContainer">
-						<div><span class="boldText">Enter search terms</span></div>	
+						<div><span class="boldText">Enter search terms</span>
+						<img id="search_tip" src="images/questionmark.png" title="You can search by Gene Symbol, Entrez ID, Ensembl gene or protein ID, Uniprot ID or simply gene description like 'angiotensin II'"/></div>
+						<script type="text/javascript">initTooltip(['search_tip'])</script>
 						<div>						
 						<label for="enter_genes">
 							<textarea id="enter_genes" name="enter_genes" wrap="hard" onkeyup="searchAllow()" onclick="searchAllow()"></textarea>

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# prepareLocalHMDB.pl
+# ncbi2table.pl
 # A Perl script to download/parse specific data from NCBI to create the species and gene
 # tables in the KUPKB_Vis database
 #
@@ -490,7 +490,8 @@ sub loadDefaultParams
 			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
 			 "INTERACTION_PATH" => "download",
-			 "GENE_PATH" => "download"
+			 "GENE_PATH" => "download",
+			 "MIRNA_PATH" => "download"
 		);
 	return(\%h);
 }

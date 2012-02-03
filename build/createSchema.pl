@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 
-# prepareLocalHMDB.pl
+# createSchema.pl
 # A Perl script to create the MySQL schema for KUPKB_Vis
 #
 # Author      : Panagiotis Moulos (pmoulos@eie.gr)
@@ -226,6 +226,16 @@ sub createDB
 				FOREIGN KEY (`species`) REFERENCES species(`tax_id`)
 				ON DELETE RESTRICT ON UPDATE RESTRICT
 				) ENGINE = INNODB;";
+
+	my $mi_cq = "CREATE TABLE `mirna_2_ensembl` (
+				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				`mirna_id` VARCHAR(32) NULL,
+				`ensembl_gene` VARCHAR(32) NOT NULL,
+				`ensembl_protein` VARCHAR(32) NOT NULL,
+				`species` INT(10) UNSIGNED NOT NULL,
+				FOREIGN KEY (`species`) REFERENCES species(`tax_id`)
+				ON DELETE RESTRICT ON UPDATE RESTRICT
+				) ENGINE = INNODB;";
 			
 	$conn->do($st_cq);
 	$conn->do($dd_cq);
@@ -239,6 +249,7 @@ sub createDB
 	$conn->do($ng_cq);
 	$conn->do($ke_cq);
 	$conn->do($pm_cq);
+	$conn->do($mi_cq);
 	
 	&closeConnection($conn);
 }

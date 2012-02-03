@@ -351,18 +351,11 @@ input, text
 	text-align:center;
 }
 
-.logo 
+.logo
 {
 	padding:10px;
 	width:95px;
 	height:45px;
-}
-
-#note 
-{ 
-	width: 100%;
-	text-align: center;
-	padding-top: 1em; 
 }
 
 .infolink 
@@ -392,6 +385,40 @@ input, text
 	color: #AE0000;
 	font-size: 0.7em;
 }
-	
+
+.tooltip
+{
+	display: none;
+	background: transparent url(../images/tooltip_top.png);
+	font-size: 11px;
+	padding: 10px;
+	width: 130px;
+	height: 137px;
+	line-height: 1.5em;
+	color: #000000;
+}
+
+.tooltip.top
+{
+	background: transparent url(../images/tooltip_top.png);
+}
+
+.tooltip.bottom
+{
+	background: transparent url(../images/tooltip_bottom.png);
+	padding-top: 35px;
+	width: 128px;
+	height: 113px;	
+}
+
+.tooltip.right
+{
+	background: transparent url(../images/tooltip_right.png);
+}
+
+.tooltip.left
+{
+	background: transparent url(../images/tooltip_left.png);
+}
 
 /*html .ui-autocomplete { height: 200px; }*/

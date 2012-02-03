@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
 
-# prepareLocalHMDB.pl
-# A Perl script to download/parse specific data from NCBI to create the species and gene
-# tables in the KUPKB_Vis database
+# string2table.pl
+# A Perl script to download/parse data from STRING database to create the interaction
+# table in the KUPKB_Vis database
 #
 # Author      : Panagiotis Moulos (pmoulos@eie.gr)
 # Created     : 17 - 11 - 2011 (dd - mm - yyyy)
@@ -23,14 +23,10 @@ $|=1;
 # Set defaults
 our $scriptname = "string2table.pl";
 our $input; 	 # Input path containing downloaded files OR the bareword "download"
-our $paramfile;  # YAML parameters file
 our @dbdata;	 # Username and password for the DB to avoid hardcoding
 our $silent = 0; # Display verbose messages
 our $waitbar;    # Use a waitbar for parsing?
 our $help = 0;   # Help?
-
-# Check for the presence of YAML, required!!!
-&tryModule("YAML");
 
 # Check inputs
 &checkInputs;
@@ -39,25 +35,6 @@ our $help = 0;   # Help?
 my $date = &now;
 disp("$date - Started...");
 disp("Building the protein-protein interaction table in KUPKB_Vis...");
-
-# Read the parameters file
-use YAML qw(LoadFile Dump);
-my ($pfh,$phref);
-if ($paramfile)
-{
-	eval
-	{
-		open ($pfh,"<",$paramfile);
-		$phref = LoadFile($pfh);
-		close($pfh);
-	};
-	if ($@)
-	{
-		disp("Bad parameter file! Will try to load defaults...");
-		$phref = &loadDefaultParams();
-	}
-}
-else { $phref = &loadDefaultParams(); } # Not given
 
 # Proceed with data reading/downloading
 if ($input =~ m/download/i) # Case where we download from HTTP
@@ -124,7 +101,6 @@ sub checkInputs
 {
     my $stop;
     GetOptions("input|i=s" => \$input,
-			   "param|p=s" => \$paramfile,
     		   "dbdata|d=s{,}" => \@dbdata,
     		   "waitbar|w" => \$waitbar,
     		   "silent|s" => \$silent,
@@ -145,7 +121,6 @@ sub checkInputs
             print "Type perl $scriptname --help for help in usage.\n\n";
             exit;
     }
-    disp("Parameter file not given... Will try to load defaults...") if (!$paramfile);
 }
 
 sub insertInteraction
@@ -199,44 +174,6 @@ sub stripQuotes
 	$string =~ s/^\"+//;
 	$string =~ s/\"+$//;
 	return $string;
-}
-
-sub loadDefaultParams
-{
-	my %h = ("FTP" => "ftp.ncbi.nlm.nih.gov",
-			 "gene" => {
-						"DATA" => [
-									"gene2accession.gz",
-									"gene2ensembl.gz",
-									"gene2go.gz",
-									"gene_refseq_uniprotkb_collab.gz",
-									{
-										"GENE_INFO" => {
-											"Mammalia" => [
-															"All_Mammalia.gene_info.gz"
-														]
-													}
-									}
-								],
-							
-				},
-			 "pub" => {
-						"taxonomy" => [
-										"taxdump.tar.gz"
-									]
-				},
-			 "species" => [
-							"Homo sapiens",
-							"Mus musculus",
-							"Rattus norvegicus",
-							"Canis lupus familiaris"
-					],
-			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
-			 "DATA" => "/media/HD5/Work/TestGround/datasets",
-			 "INTERACTION_PATH" => "download",
-			 "GENE_PATH" => "download"
-		);
-	return(\%h);
 }
 
 sub openConnection
@@ -333,23 +270,6 @@ sub disp
 	print "\n@_" if (!$silent);
 }
 
-sub tryModule
-{
-	my $module = shift @_;
-	eval "require $module";
-	if ($@)
-	{
-		my $killer = "Module $module is required to continue with the execution. If you are in\n". 
-					 "Windows and you have ActiveState Perl installed, use the Package Manager\n".
-					 "to get the module. If you are under Linux, log in as a super user (or use\n".
-					 "sudo under Ubuntu) and type \"perl -MCPAN -e shell\" (you will possibly have\n".
-					 "to answer some questions). After this type \"install $module\" to install\n".
-					 "the module. If you don't know how to install the module, contact your\n".
-					 "system administrator.";
-		die "\n$killer\n\n";
-	}
-}
-
 sub programUsage 
 {
 	# The look sucks here but it is actually good in the command line
@@ -361,7 +281,7 @@ Create the interactions table in KUPKB_Vis database.
 Author : Panagiotis Moulos (pmoulos\@eie.gr)
 
 Main usage
-$scriptname --input dir/flag --param parameter_file.yml [OPTIONS]
+$scriptname --input dir/flag [OPTIONS]
 
 --- Required ---
   --input|i		dir/flag	Program input. It can be the word download
@@ -372,9 +292,6 @@ $scriptname --input dir/flag --param parameter_file.yml [OPTIONS]
 			be a vector of length two containing a username and
 			a password.			
 --- Optional ---
-  --param|p		A YAML parameters file containing FTP locations, species
-			and other information (see the example). If not given, some
-			defaults will be used.
   --silent|s		Use this option if you want to turn informative 
   			messages off.
   --waitbar|w		Display a waitbar for long operations.
