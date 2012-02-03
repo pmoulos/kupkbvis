@@ -443,7 +443,8 @@ sub loadDefaultParams
 			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
 			 "INTERACTION_PATH" => "download",
-			 "GENE_PATH" => "download"
+			 "GENE_PATH" => "download",
+			 "MIRNA_PATH" => "download"
 		);
 	return(\%h);
 }

@@ -59,33 +59,6 @@ function bindAutoComplete(id)
 		});
 }
 
-function initValidators(opt)
-{
-	var validator = new Validator("layout_form");
-
-	switch(opt)
-	{
-		case 'ForceDirected':
-			validator.addValidation("force_gravitation","gt=-1001","Node gravitation should be between -1000 and 1000");
-			validator.addValidation("force_gravitation","lt=1001","Node gravitation should be between -1000 and 1000");
-			validator.addValidation("force_gravitation","numeric","Node gravitation must be numeric");
-			validator.addValidation("force_node_mass","gt=0","Node gravitation should be between 1 and 100");
-			validator.addValidation("force_node_mass","lt=101","Node gravitation should be between 1 and 100");
-			validator.addValidation("force_node_mass","numeric","Node mass must be numeric");
-			validator.addValidation("force_edge_tension","gt=0","Edge tension should be between 0 and 1");
-			validator.addValidation("force_edge_tension","lt=1","Edge tension should be between 0 and 1");
-			validator.addValidation("force_edge_tension","numeric","Edge tension must be numeric");
-			break;
-		case 'Circle':
-			break;
-		case 'Radial':
-			break;
-		case 'Tree':
-			break;
-		}
-}
-
-
 function bindExport()
 {
 	$("#export_sif")
@@ -1101,9 +1074,18 @@ function initNetwork(networkJSON)
 			displayMultiInfo(event);
 		})
 		// Add context menus
-		.addContextMenuItem("Show level 1 neighbors","nodes",function(event) {})
-		.addContextMenuItem("Show level 2 neighbors","nodes",function(event) {})
-		.addContextMenuItem("Show level 3 neighbors","nodes",function(event) {})
+		.addContextMenuItem("Show level 1 neighbors","nodes",function(event)
+		{
+			fetchNeighbors(1);
+		})
+		.addContextMenuItem("Show level 2 neighbors","nodes",function(event)
+		{
+			fetchNeighbors(2);
+		})
+		.addContextMenuItem("Show level 3 neighbors","nodes",function(event)
+		{
+			fetchNeighbors(3);
+		})
 		.addContextMenuItem("Hide node","nodes",function(event)
 		{
 			hideElements("nodes","hide");
@@ -1279,6 +1261,54 @@ function initNetwork(networkJSON)
 				vis.removeElements(selElems);
 			}
 			updateInfo();
+		}
+
+		function fetchNeighbors(level)
+		{
+			var urlBase = initMe();
+	
+			var selNodes = vis.selected("nodes");
+			var allNodes = vis.nodes();
+			var selNodeIDs = [];
+			var allNodeIDs = [];
+			var sn = selNodes.length;
+			var an = allNodes.length;
+			var i = 0;
+
+			for (i=0; i<sn; i++)
+			{
+				selNodeIDs.push(selNodes[i].data.id);
+			}
+			for (i=0; i<an; i++)
+			{
+				allNodeIDs.push(allNodes[i].data.id);
+			}
+			
+			$.ajax(
+			{
+				type: 'POST',
+				url: urlBase+'php/control.php',
+				data: { level: level, node: $.toJSON(selNodeIDs), nodes: $.toJSON(allNodeIDs) },
+				beforeSend: function() { $('#loadingCircle').show(); },
+				complete: function() { $('#loadingCircle').hide(); },
+				success: function(data)
+				{						
+					if ($.isEmptyObject(data)) // Not likely...
+					{
+						displayError('Sorry! No neighbors found :-(');
+					}
+					else
+					{
+						addElements(data);
+						filterEdges();
+					}
+				},
+				error: function(data,error)
+				{												
+					displayError('Ooops! ' + error + ' ' + data.responseText);
+				},
+				dataType: "json"
+			});
 		}
 	});
 
@@ -1612,6 +1642,14 @@ function initMe()
     //var urlBase = 'http://localhost/kupkbvis/site/'
 	hideError(); //Hide previous errors
 	return(urlBase);
+}
+
+function initTooltip(id)
+{
+	for (var item in id)
+	{
+		$("#"+id[item]+"[title]").tooltip().dynamic();
+	}
 }
 
 // Only for the numbers required for the graph layout execution

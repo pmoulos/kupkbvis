@@ -18,6 +18,8 @@ $entrez_from_any_2_2 = ' OR genes.entrez_id IN ';
 $entrez_from_any_2_3 = ' OR entrez_to_uniprot.uniprot_id IN ';
 $entrez_from_any_2_4 = ' OR entrez_to_ensembl.ensembl_gene IN ';
 $entrez_from_any_2_5 = ' OR entrez_to_ensembl.ensembl_protein IN ';
+$entrez_from_any_3 = ') AND species.tax_id=';
+$entrez_from_any_4 = ' GROUP BY genes.entrez_id';
 
 $entrez_from_symbol_1 = 'SELECT `entrez_id` '.
 						'FROM `genes` '.
@@ -210,6 +212,28 @@ $get_edge_1 = 'SELECT `gene_symbol` '.
 			  'ON genes.entrez_id=entrez_to_ensembl.entrez_id '.
 			  'WHERE entrez_to_ensembl.ensembl_protein=';
 $get_edge_2 = ' OR entrez_to_ensembl.ensembl_protein=';
+
+/* Get the additional proteins */
+$get_neighbors_1 = 'SELECT `ensembl_protein` '.
+				   'FROM `entrez_to_ensembl` INNER JOIN `interactions` '.
+				   'ON entrez_to_ensembl.ensembl_protein=interactions.target '.
+				   'WHERE `source` IN ';
+$get_neighbors_2 = ' AND `target` NOT IN ';
+$get_neighbors_3 = ' GROUP BY `ensembl_protein`';
+
+/* With the results, initilize additional nodes in cytoscapeweb */
+$get_add_nodes = 'SELECT DISTINCT interactions.source AS `id`,genes.gene_symbol AS `label`,entrez_to_ensembl.entrez_id AS `entrez_id` '.
+				 'FROM `interactions` INNER JOIN `entrez_to_ensembl` '.
+				 'ON interactions.source=entrez_to_ensembl.ensembl_protein '.
+				 'INNER JOIN `genes` '.
+				 'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
+				 'WHERE entrez_to_ensembl.ensembl_protein IN ';
+
+/* Then additional edges in cytoscapeweb */
+$get_add_edges_1 = 'SELECT DISTINCT CONCAT_WS("_",CONCAT_WS("_to_",`source`,`target`),`interaction`) AS `id`,`target`,`source`,`interaction` '.
+				   'FROM `interactions` '.
+				   'WHERE `source` IN ';
+$get_add_edges_2 = ' AND `target` IN ';
 
 # LEGACY
 /* Get data for coloring this is slower than the UNION below above but we are keeping it for legacy reasons */

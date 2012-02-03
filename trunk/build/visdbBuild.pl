@@ -67,7 +67,7 @@ if ($schemaOK==0)
 }
 if ($ncbiOK==0)
 {
-	$stringOK = system("perl string2table.pl --input $phref->{\"INTERACTION_PATH\"} --param $paramfile --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar");
+	$stringOK = system("perl string2table.pl --input $phref->{\"INTERACTION_PATH\"} --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar");
 	disp("================================================================================\n");
 }
 # Build the data tables
@@ -151,7 +151,8 @@ sub loadDefaultParams
 			 "DESCRIPTION" => "/media/HD5/Work/TestGround/experiment_descriptions.xls",
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
 			 "INTERACTION_PATH" => "download",
-			 "GENE_PATH" => "download"
+			 "GENE_PATH" => "download",
+			 "MIRNA_PATH" => "download"
 		);
 	return(\%h);
 }

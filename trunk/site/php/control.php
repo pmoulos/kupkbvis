@@ -14,7 +14,8 @@ if ($_REQUEST['species'])
     $species = (int)$_REQUEST['species'];
 	$genes = $_REQUEST['genes'];
 	$genes = json_decode($genes,$assoc=TRUE);
-    $entrez = getEntrezFromSymbol($genes,$species);
+    //$entrez = getEntrezFromSymbol($genes,$species);
+    $entrez = getEntrezFromAny($genes,$species);
 	if (empty($entrez))
 	{
 		$resultKUPKB = array();
@@ -127,6 +128,20 @@ if ($_REQUEST['kegg'])
     echo json_encode($elements,JSON_NUMERIC_CHECK);
 }
 
+# Response to get neighbor queries
+if ($_REQUEST['level'])
+{
+	$level = $_REQUEST['level'];
+	$node = $_REQUEST['node'];
+	$nodes = $_REQUEST['nodes'];
+	$node = json_decode($node,$assoc=TRUE);
+	$nodes = json_decode($nodes,$assoc=TRUE);
+	$elements = getNeighbors($node,$nodes,$level);
+	//echo json_encode($elements,JSON_NUMERIC_CHECK);
+	echo json_encode($elements);
+	//print_r($elements);
+}
+
 # Response to gene node selection
 if ($_REQUEST['gene_data'])
 {
@@ -150,8 +165,8 @@ if ($_REQUEST['suggest_term'])
 {		
 	$term = $_REQUEST['suggest_term'];
 	$species = (int)$_REQUEST['suggest_species'];
-	$result = getAutocompGenes($term,$species);
-	//$result = getIndexedGenes($term,$species);
+	//$result = getAutocompGenes($term,$species);
+	$result = getIndexedGenes($term,$species);
 	echo json_encode($result,JSON_FORCE_OBJECT);
 }
 
@@ -216,10 +231,39 @@ function initSpecies()
 	return($species);	
 }
 
+function getEntrezFromAny($terms,$species)
+{					
+	global $entrez_from_any_1,$entrez_from_any_3,$entrez_from_any_4;
+	global $entrez_from_any_2_1,$entrez_from_any_2_2,$entrez_from_any_2_3,$entrez_from_any_2_4,$entrez_from_any_2_5;
+	$conn = open_connection();
+	$list_of_genes = is_array($terms) ? implode("', '",$terms) : $terms;
+	$query = $entrez_from_any_1.
+			 $entrez_from_any_2_1.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_2.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_3.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_4.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_5.'(\''.$list_of_genes.'\')';
+	if (isset($species))
+	{
+		$query .= $entrez_from_any_3.$species.$entrez_gene_4;
+	}
+	else
+	{
+		$query .= $entrez_from_any_4;
+	}
+	$result = mysql_query($query,$conn);
+	while ($row = mysql_fetch_array($result,MYSQL_NUM))
+	{
+		$entrez[] = $row[0];
+	}		
+	close_connection($conn);
+	return($entrez);
+}
+
 function getEntrezFromSymbol($genes,$species)
 {					
-	$conn = open_connection();
 	global $entrez_from_symbol_1,$entrez_from_symbol_2;
+	$conn = open_connection();
 	$list_of_genes = is_array($genes) ? implode("', '",$genes) : $genes;
 	$query = $entrez_from_symbol_1.'(\''.$list_of_genes.'\')'.$entrez_from_symbol_2.$species;
 	$result = mysql_query($query,$conn);
@@ -452,6 +496,98 @@ function getKEGGElements($keggs,$ensembl)
 }
 
 function getmirnaElements() {}
+
+function getNeighbors($node,$nodes,$level)
+{
+	global $get_neighbors_1,$get_neighbors_2,$get_neighbors_3;
+	global $get_add_nodes,$get_add_edges_1,$get_add_edges_2;
+	$neighbors = array();
+	$add_nodes = array();
+	$add_edges = array();
+	$seen = array();
+	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
+							  "expression" => "expression", "activation" => "activation");
+
+	if (!isset($level)) { $level = 1; }
+	
+	if(!empty($node) && !empty($nodes))
+	{
+		if (!is_array($node)) { $node = array($node); } # Good for level>1 use
+		if (!is_array($nodes)) { $nodes = array($nodes); } # ...as above...
+		
+		$conn = open_connection();
+
+		# Firstly get the neighbors
+		$selected_list = implode("', '",$node);
+		//$all_list = implode("', '",$nodes);
+		// Correct in the case that the user calls 2nd neighbors after calling first neighbors
+		// We should always start finding neighbors by excluding the session genes
+		$all_list = implode("', '",$_SESSION['proteins']); 
+		$query = $get_neighbors_1.'(\''.$selected_list.'\')'.$get_neighbors_2.'(\''.$all_list.'\')'.$get_neighbors_3;
+		$result = mysql_query($query,$conn);
+		while ($row = mysql_fetch_array($result,MYSQL_NUM))
+		{
+			$neighbors[] = $row[0];
+		}
+
+		if ($level > 1) # Not the best implementation, but for now it's OK...
+		{
+			$lev = 2;
+			while ($lev <= $level)
+			{
+				# Append the nth level neighbors to the initial node query and re-run
+				$neighbors[] = $node;
+				$nodes = array_merge($nodes,$neighbors);
+				$node = $neighbors;
+				$selected_list = implode("', '",$node);
+				$all_list = implode("', '",$nodes);
+				$query = $get_neighbors_1.'(\''.$selected_list.'\')'.$get_neighbors_2.'(\''.$all_list.'\')'.$get_neighbors_3;
+				$result = mysql_query($query,$conn);
+				while ($row = mysql_fetch_array($result,MYSQL_NUM))
+				{
+					$neighbors[] = $row[0];
+				}
+				$lev++;
+			}
+		}
+		
+		# Keep in mind! The cytoscapeweb node and edge queries need to be run only once!
+		# Now fire more queries to get the network elements
+		$neighbor_list = implode("', '",$neighbors);
+		$query = $get_add_nodes.'(\''.$neighbor_list.'\')';
+		$result = mysql_query($query,$conn);
+		while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
+		{
+			$add_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+								 "data" => array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
+												 "strength" => "", "expression" => "",
+												 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+												 "object_type" => "gene"));
+		}
+
+		$query = $get_add_edges_1.'(\''.$neighbor_list.'\')'.$get_add_edges_2.'(\''.$all_list.'\')';
+		//echo $query;
+		$result = mysql_query($query,$conn);
+		while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
+		{
+			$current_edge = array("id" => $id, "target" => $target, "source" => $source,
+								  "label" => $interaction_hash[$interaction],
+								  "interaction" => $interaction, "custom" => "");
+			// Little hack to eliminate directionality
+			$current_edge_tid = implode("_",array($source,$target,$interaction));
+			if ($seen[$current_edge_tid] != 1)
+			{
+				$add_edges[] = array("group" => "edges", "data" => $current_edge);
+				$current_edge_tid_inv = implode("_",array($target,$source,$interaction));
+				$seen[$current_edge_tid_inv] = 1;
+			}
+		}
+		
+		close_connection($conn);
+	}
+	
+	return(array_merge($add_nodes,$add_edges));
+}
 
 function getGeneData($gene,$species_id)
 {
@@ -754,11 +890,13 @@ function getIndexedGenes($term,$species)
 	$cl->SetLimits(0,100);
 	$cl->SetMatchMode(SPH_MATCH_ANY);
 	
-	$cl->SetFilter("species",array($species));
-	$cl->AddQuery($term,"kupkbvis_entrez");
-	$cl->AddQuery($term,"kupkbvis_ensembl");
+	if (!isset($species)) { $cl->SetFilter("species",array($species)); }
+	else { $cl->ResetFilters(); }
+	
+	$cl->AddQuery("*".$term."*","kupkbvis_entrez");
+	$cl->AddQuery("*".$term."*","kupkbvis_ensembl");
 	$cl->ResetFilters();
-	$cl->AddQuery($term,"kupkbvis_uniprot");
+	$cl->AddQuery("*".$term."*","kupkbvis_uniprot");
 	$result = $cl->RunQueries();
 
 	if ( $result === false )

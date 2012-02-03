@@ -482,7 +482,7 @@ function addElements(elems)
 
 	for (i=0; i<nodeLength; i++)
 	{
-		if ($.inArray(nodes[i].data.object_type,["component","function","process","pathway","mirna"]) !== -1)
+		if ($.inArray(nodes[i].data.object_type,["component","function","process","pathway","mirna","gene"]) !== -1)
 		{
 			nids.push(nodes[i].data.id);
 		}
@@ -496,7 +496,7 @@ function addElements(elems)
 		}
 	}
 
-	visObject.removeElements(elems);
+	visObject.removeElements(toRemove);
 	visObject.addElements(elems,true);
 	updateInfo();
 }
