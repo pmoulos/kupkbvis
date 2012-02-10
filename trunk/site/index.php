@@ -72,8 +72,8 @@
     					<div>
 							<fieldset><legend class="fieldSetTitle" style="font-size: 1.2em; background-color:#FFFF5F;">Network</legend>
 								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Genes</legend>
-									<input type="checkbox" id="sig_size_check" checked disabled> size relative to significance<br/>
-									<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"> show labels<br/>
+									<input type="checkbox" id="sig_size_check" disabled> size relative to significance<br/>
+									<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"> show node labels<br/>
 								</fieldset>
 								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Relationships</legend>
 									<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Interactions</legend>
@@ -88,7 +88,7 @@
 										<input type="checkbox" id="mirna_check" checked disabled onclick="filterEdges()"><span style="color:#A67D00; font-weight:bold;"> miRNAs</span><br/>
 									</fieldset>
 									<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Other</legend>
-										<input type="checkbox" id="edge_labels_check" disabled onclick="showLabels('edges')"> show labels<br/>
+										<input type="checkbox" id="edge_labels_check" disabled onclick="showLabels('edges')"> show edge labels<br/>
 									</fieldset>
 								</fieldset>
 							</fieldset>

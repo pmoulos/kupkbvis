@@ -66,6 +66,12 @@ $init_kegg_1 = 'SELECT kegg_pathways.pathway_id,`name`,`class` '.
 			   'WHERE pathway_members.entrez_member IN ';
 $init_kegg_2 = ' GROUP BY kegg_pathways.pathway_id';
 
+/* Fill the miRNA drop down */
+$init_mirna = 'SELECT DISTINCT `mirna_id` '.
+			  'FROM `mirna_to_ensembl` INNER JOIN `entrez_to_ensembl` '.
+			  'ON mirna_to_ensembl.ensembl_gene=entrez_to_ensembl.ensembl_gene '.
+			  'WHERE entrez_to_ensembl.entrez_id IN ';
+
 /* Update location and datasets based on disease */
 $update_locdata_disease_1 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
 							'FROM `data` INNER JOIN `genes` '.
@@ -199,7 +205,14 @@ $get_kegg_1 = 'SELECT CONCAT_WS("_to_",pathway_members.pathway_id,`ensembl_prote
               'INNER JOIN `kegg_pathways` '.
               'ON pathway_members.pathway_id=kegg_pathways.pathway_id '.
               'WHERE `ensembl_protein` IN ';
-$get_kegg_2 = 'AND pathway_members.pathway_id IN ';
+$get_kegg_2 = ' AND pathway_members.pathway_id IN ';
+
+/* Get miRNA edges */
+$get_mirna_1 = 'SELECT CONCAT_WS("_to_",`mirna_id`,`ensembl_protein`) AS `edge_id`,`mirna_id`,`ensembl_protein` '.
+			   'FROM `mirna_to_ensembl` INNER JOIN `entrez_to_ensembl` '.
+			   'ON mirna_to_ensembl.ensembl_gene=entrez_to_ensembl.ensembl_gene '.
+			   'WHERE `ensembl_protein` IN ';
+$get_mirna_2 = ' AND `mirna_id` IN ';
 
 /* Get gene data to display */
 $get_gene = 'SELECT `synonyms`, `dbXrefs`, `chromosome`, `description` '.

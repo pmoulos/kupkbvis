@@ -14,6 +14,7 @@ use Getopt::Long;
 use DBI;
 use File::Temp;
 use File::Spec;
+use File::Basename;
 use LWP::UserAgent;
 use POSIX qw(floor ceil);
 
@@ -27,11 +28,11 @@ our $input; 	 # Input path containing downloaded files OR the bareword "download
 our $paramfile;  # YAML parameters file
 our @dbdata;	 # Username and password for the DB to avoid hardcoding
 our $silent = 0; # Display verbose messages
-our $waitbar;    # Use a waitbar for parsing?
 our $help = 0;   # Help?
 
 # Check for the presence of YAML, required!!!
 &tryModule("YAML");
+&tryModule("Archive::Zip");
 
 # Check inputs
 &checkInputs;
@@ -76,7 +77,7 @@ if ($input =~ m/download/i) # Case where we download from HTTP
 	$tmpdir = File::Temp->newdir();
 	foreach $s (@{$phref->{"species"}})
 	{
-		disp("Getting miRNA targets for species $f from EBI FTP server...");
+		disp("Getting miRNA targets for species $s from EBI FTP server...");
 		$f = lc($s);
 		if ($f =~ m/^canis*/) # Dirty hack... hope someday to fix it...
 		{
@@ -92,7 +93,9 @@ if ($input =~ m/download/i) # Case where we download from HTTP
 		disp("Uncompressing...");
 		$ae = Archive::Extract->new(archive => $tmpzip);
 		$ok = $ae->extract(to => $tmpdir) or die $ae->error,"\n";
-		$f =~ s/^arch\.|\.zip$//;
+		#$f =~ s/^arch\.|\.zip$//;
+		$f =~ s/^arch\.//;
+		$f =~ s/\.zip$//;
 		$sfhash{lc($s)} = File::Spec->catfile($tmpdir,$f);
 	}
 
@@ -101,7 +104,6 @@ if ($input =~ m/download/i) # Case where we download from HTTP
 elsif (-d $input)
 {
 	my ($s,$f);
-	my ($pref,$suff) = ("arch.v5.txt.",".zip");
 	my @files;
 	eval
 	{
@@ -115,113 +117,109 @@ elsif (-d $input)
 	}
 	foreach $f (@files)
 	{
-		$s = lc($f);
+		$s = lc(fileparse($f));
 		$s =~ s/^v\d?\.txt\.//;
-
-		# FIXME!!! sfhash has to be constructed somehow...
-		if ($f =~ m/^canis*/) # Dirty hack... hope someday to fix it...
+		if ($s =~ m/^canis*/) # Dirty hack... hope someday to fix it...
 		{
-			$f = $pref."canis_familiaris".$suff;
+			$s = "canis lupus familiaris";
 		}
 		else
 		{
-			$f =~ s/ /_/g;
-			$f = $pref.$f.$suff;
+			$s =~ s/_/ /g;
 		}
+		$sfhash{$s} = $f;
 	}
 }
 
-# In the case of input being a directory or having downloaded and passed to next argument
-if (-d $input)
+# Create a hash of existing species in the database so that we can record the tax_id in
+# the database
+my %sphash = &getSpeciesHash();
+my %enhash = &getEnsemblSpeciesHash(\%sfhash);
+
+# General variables
+my ($line,$sp,$file,$xml,$tmpfh,$i,$j);
+my (@columns,@mirnas,@transcripts,@orgtranscripts);
+my %fields;
+
+foreach $sp (keys(%sfhash))
 {
-	# Create a hash of existing species in the database so that we can record the tax_id in
-	# the database
-	my %sphash = &getSpeciesHash();
-	my %enhash = &getEnsemblSpeciesHash(\%sfhash);
-	#my %enhash = ("homo sapiens" => "v5.txt.homo_sapiens");
-	# Create a hash of uncompressed files and species --DONE
-	# Using this hash and a loop:
-	#	Read for each file in a hash mirBase IDs and ensembl transcripts
-	#	Collect the ensembl transcripts and run biomart XML to retrieve genes and proteins
-	#	Put them in a hash with keys the transcripts
-	# Using the created hashes insert records in the table
-	# Table will be (Increment, miRNA, Gene, Protein, Species)
-
-	# General variables
-	my ($line,$len,$sp,$file,$xml,$tmpfh,$i);
-	my (@columns,@mirnas,@transcripts,@orgtranscripts);
-	my %fields;
-	my $c = 0;
+	disp("Executing reading, Biomart service calling and database recording for species $sp...");
+	my (%seen,%tran2gene,%mirnatargets);
+	#my %tran2prot;
 	
-	foreach $sp (keys(%sfhash))
+	$file = $sfhash{$sp};
+	disp("Reading target file $file...");
+	open(TARGET,$file);
+	while($line = <TARGET>)
 	{
-		disp($sp);
-		my (%seen,%tran2gene,%tran2prot,%mirnatargets);
-		
-		$file = $sfhash{$sp};
-		disp("Reading target file $file...");
-		$len = &countLines($file) if ($waitbar);
-		&waitbarInit if ($waitbar);
-		open(TARGET,$file);
-		while($line = <TARGET>)
-		{
-			$c++;
-			&waitbarUpdate($c,$len) if ($waitbar);
-			next if ($line =~ m/^#+/g);
-			$line =~ s/\r|\n$//g;
-			@columns = split(/\t/,$line);
-			push(@{$mirnatargets{$columns[1]}},$columns[11]);
+		next if ($line =~ m/^#+|^(\s)*$/g);
+		$line =~ s/\r|\n$//g;
+		@columns = split(/\t/,$line);
+		push(@{$mirnatargets{$columns[1]}},$columns[11]);
+	}
+	close(TARGET);
+
+	# Create unique Ensembl transcript targets as because each miRNA might target a
+	# different sequence of the transcript, we end up in duplicates
+	# Also, get the transcripts for the species under consideration
+	@mirnas = keys(%mirnatargets);
+	for ($i=0; $i<@mirnas; $i++)
+	{
+		@transcripts = @{$mirnatargets{$mirnas[$i]}};
+		%seen = &unique(@transcripts);
+		@{$mirnatargets{$mirnas[$i]}} = keys(%seen);
+		push(@orgtranscripts,@{$mirnatargets{$mirnas[$i]}});
+	}
+	# Now launch Biomart service request
+	%seen = &unique(@orgtranscripts);
+	$xml = &getXMLQuery($enhash{$sp},keys(%seen));
+	
+	my $path="http://www.biomart.org/biomart/martservice?";
+	my $request = HTTP::Request->new("POST",$path,HTTP::Headers->new(),'query='.$xml."\n");
+	my $ua = LWP::UserAgent->new;
+	my $response;
+
+	# We need to put data in a temporary file because it's scrambled by asynchronicity
+	disp("Querying Biomart...");
+	$tmpfh = File::Temp->new(DIR => $input,SUFFIX => ".ens");
+	$ua->request($request,
+					sub
+					{   
+						my ($data,$response) = @_;
+						if ($response->is_success)
+						{
+							print $tmpfh "$data";
+						}
+						else
+						{
+							warn ("Problems with the web server: ".$response->status_line);
+						}
+					},1000);
+
+	seek($tmpfh,0,SEEK_SET);
+	while ($line = <$tmpfh>)
+	{
+		$line =~ s/\r|\n$//g;
+		@columns = split(/\t/,$line);
+		$tran2gene{$columns[0]} = $columns[1];
+		#$tran2prot{$columns[0]} = $columns[2];
+	}
+	close($tmpfh);
+
+	disp("Inserting to database species $sp...");
+	@mirnas = keys(%mirnatargets);
+	for ($i=0; $i<@mirnas; $i++)
+	{
+		@transcripts = @{$mirnatargets{$mirnas[$i]}};
+		for ($j=0; $j<@transcripts; $j++)
+		{	
+			%fields = &initFields();
+			$fields{"mirna_id"} = $mirnas[$i];
+			$fields{"ensembl_gene"} = $tran2gene{$transcripts[$j]};
+			#$fields{"ensembl_protein"} = $tran2prot{$transcripts[$j]};
+			$fields{"species"} = $sphash{$sp};
+			&insertTarget(\%fields) if ($fields{"ensembl_gene"}); #|| $fields{"ensembl_protein"});
 		}
-		close(TARGET);
-
-		# Create unique Ensembl transcript targets as because each miRNA might target a
-		# different sequence of the transcript, we end up in duplicates
-		# Also, get the transcripts for the species under consideration
-		@mirnas = keys(%mirnatargets);
-		for ($i=0; $i<@mirnas; $i++)
-		{
-			@transcripts = @{$mirnatargets{$mirnas[$i]}};
-			%seen = &unique(@transcripts);
-			$mirnatargets{$mirnas[$i]} = keys(%seen);
-			push(@orgtranscripts,@{$mirnatargets{$mirnas[$i]}});
-		}
-
-		# Now launch Biomart service request
-		%seen = &unique(@orgtranscripts);
-		$xml = &getXMLQuery($enhash{$sp},keys(%seen));
-		
-		my $path="http://www.biomart.org/biomart/martservice?";
-		my $request = HTTP::Request->new("POST",$path,HTTP::Headers->new(),'query='.$xml."\n");
-		my $ua = LWP::UserAgent->new;
-		my $response;
-
-		# We need to put data in a temporary file because it's scrambled by asynchronicity
-		$tmpfh = File::Temp->new(DIR => $input,SUFFIX => ".ens");
-		$ua->request($request,
-						sub
-						{   
-							my ($data,$response) = @_;
-							if ($response->is_success)
-							{
-								print $tmpfh "$data";
-							}
-							else
-							{
-								warn ("Problems with the web server: ".$response->status_line);
-							}
-						},1000);
-
-		seek($tmpfh,0,SEEK_SET);
-		while ($line = <$tmpfh>)
-		{
-			$line =~ s/\r|\n$//g;
-			@columns = split(/\t/,$line);
-			$tran2gene{$columns[0]} = $columns[1];
-			$tran2prot{$columns[0]} = $columns[2];
-		}
-
-		&printHash(%tran2gene);
-		#&insertInteraction(\%fields);
 	}
 }
 
@@ -236,7 +234,6 @@ sub checkInputs
     GetOptions("input|i=s" => \$input,
 			   "param|p=s" => \$paramfile,
     		   "dbdata|d=s{,}" => \@dbdata,
-    		   "waitbar|w" => \$waitbar,
     		   "silent|s" => \$silent,
     		   "help|h" => \$help);
     # Check if the required arguments are set
@@ -279,6 +276,7 @@ sub insertTarget
 	
 	my $iq = "INSERT INTO `mirna_to_ensembl` (".join(", ",@field).") ".
 			 "VALUES (".join(", ",@value).");";
+	#print "\n$iq\n";
 	$conn->do($iq);
 	
 	&closeConnection($conn);
@@ -417,45 +415,11 @@ sub closeConnection
     $conn->disconnect;
 }
 
-sub waitbarInit
-{
-	my $initlen = shift @_;
-	$initlen = 50 if (!$initlen);
-	my $printlen = ' 'x$initlen;
-	print "\nProgress\n";
-	print "|$printlen|\n";
-	print("|");
-}
-
-sub waitbarUpdate
-{
-	my ($curr,$tot,$waitbarlen) = @_;
-	$waitbarlen = 50 if (!$waitbarlen);
-	my $step;
-	if ($tot > $waitbarlen)
-	{
-		$step = ceil($tot/$waitbarlen);
-		print "#" if ($curr%$step == 0);
-	}
-	else
-	{
-		$step = floor($waitbarlen/$tot);
-		print "#" x $step;
-	}
-	if ($curr == $tot)
-	{
-		my $rem;
-		($tot > $waitbarlen) ? ($rem = $waitbarlen - floor($tot/$step)) : 
-		($rem = $waitbarlen - $tot*$step);
-		($rem != 0) ? (print "#" x $rem."|\n") : print "|\n";
-	}
-}
-
 sub initFields
 {
 	my %out = ("mirna_id" => "",
 			   "ensembl_gene" => "",
-			   "ensembl_protein" => "",
+			   #"ensembl_protein" => "",
 			   "species" => "NULL");
 	return(%out);
 }
@@ -472,7 +436,7 @@ sub getXMLQuery
 			  "<Filter name = \"ensembl_transcript_id\" value = \"$query\" />\n".
 			  "<Attribute name = \"ensembl_transcript_id\" />\n".
 			  "<Attribute name = \"ensembl_gene_id\" />\n".
-			  "<Attribute name = \"ensembl_peptide_id\" />\n".
+			  #"<Attribute name = \"ensembl_peptide_id\" />\n".
 			  "</Dataset>\n".
 			  "</Query>\n";
 	return($xml);
@@ -505,15 +469,6 @@ sub now
 	(return($year.$month.$day.$hour.$min.$sec));
 }
 
-sub countLines
-{
-	open(IN,$_[0]) or die "\nThe file $_[0] does not exist!\n\n";
-	my $totlines = 0;
-	$totlines += tr/\n/\n/ while sysread(IN,$_,2**16);
-	close(IN);
-	return $totlines;
-}
-
 sub disp
 {
 	print "\n@_" if (!$silent);
@@ -542,7 +497,7 @@ sub programUsage
 	my $usagetext = << "END";
 	
 $scriptname
-Create the interactions table in KUPKB_Vis database.
+Create the mirna to ensembl table in KUPKB_Vis database.
 
 Author : Panagiotis Moulos (pmoulos\@eie.gr)
 
@@ -563,7 +518,6 @@ $scriptname --input dir/flag --param parameter_file.yml [OPTIONS]
 			defaults will be used.
   --silent|s		Use this option if you want to turn informative 
   			messages off.
-  --waitbar|w		Display a waitbar for long operations.
   --help|h		Display this help text.
 	
 This program builds the species and genes tables in the KUPKB_Vis database.
@@ -571,15 +525,4 @@ This program builds the species and genes tables in the KUPKB_Vis database.
 END
 	print $usagetext;
 	exit;
-}
-
-sub printHash
-{
-	my %h = %{$_[0]};
-	print "\n-------------------- Begin hash contents --------------------\n";
-	foreach my $k (keys(%h))
-	{
-		print "$k\t$h{$k}\n";
-	}
-	print "-------------------- End hash contents --------------------\n";
 }

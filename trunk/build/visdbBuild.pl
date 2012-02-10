@@ -53,8 +53,8 @@ if ($paramfile)
 }
 else { $phref = &loadDefaultParams(); } # Not given
 
-my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$keggOK);
-$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $keggOK = -1;
+my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$keggOK,$mirnaOK);
+$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $keggOK = $mirnaOK = -1;
 
 # Do the job... -create the schema first
 $schemaOK = system("perl createSchema.pl --dbdata $dbdata[0] $dbdata[1]");
@@ -85,6 +85,12 @@ if ($descriptionOK==0)
 if ($datasetOK==0)
 {
 	$keggOK = system("perl kegg2table.pl --param $paramfile --dbdata $dbdata[0] $dbdata[1]");
+	disp("================================================================================\n");
+}
+# Build the miRNA tables
+if ($keggOK==0)
+{
+	$mirnaOK = system("perl mirna2table.pl --input $phref->{\"MIRNA_PATH\"} --param $paramfile --dbdata $dbdata[0] $dbdata[1]");
 	disp("================================================================================\n");
 }
 $date = &now;

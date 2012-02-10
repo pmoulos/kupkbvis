@@ -227,14 +227,14 @@ sub createDB
 				ON DELETE RESTRICT ON UPDATE RESTRICT
 				) ENGINE = INNODB;";
 
-	my $mi_cq = "CREATE TABLE `mirna_2_ensembl` (
+	my $mi_cq = "CREATE TABLE `mirna_to_ensembl` (
 				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
 				`mirna_id` VARCHAR(32) NULL,
-				`ensembl_gene` VARCHAR(32) NOT NULL,
-				`ensembl_protein` VARCHAR(32) NOT NULL,
+				`ensembl_gene` VARCHAR(32) NULL,
 				`species` INT(10) UNSIGNED NOT NULL,
 				FOREIGN KEY (`species`) REFERENCES species(`tax_id`)
-				ON DELETE RESTRICT ON UPDATE RESTRICT
+				ON DELETE RESTRICT ON UPDATE RESTRICT,
+				INDEX `mirna_id` (`mirna_id`),
 				) ENGINE = INNODB;";
 			
 	$conn->do($st_cq);

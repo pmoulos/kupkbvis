@@ -18,59 +18,60 @@ function bypassNodeColors(ajaxData)
 {
 	var visObject = getVisData("cytoscapeweb");
 	var nodeMapper = initNodeMapper();
-	var nodes = visObject.nodes()
+	var nodes = visObject.nodes();
 	var noN = nodes.length;
 	var noA = ajaxData.length;
 	var ajaxNodes = [];
 	var visProps = [];
+	var newData = [];
 	var i, currNode;
 	var bypass = { nodes: { }, edges: { } };
 	
 	// Construct the array of entrez_id in ajaxData;
-	//ajaxNodes.ID = [];
-	//ajaxNodes.idx = [];
 	for (i=0; i<noA; i++)
 	{
-		if (ajaxData[i].ratio !== '') // Ratio exists
+		if (ajaxData[i].ratio !== 999 && ajaxData[i].ratio !== null) // Ratio exists
 		{
-			if ($("#sig_size_checked").is(":checked"))
+			if ($("#sig_size_checked").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].ratio !== null)
 			{
-				visProps.push({ color: { continuousMapper: nodeMapper.ratioMapper }, size: {continuousMapper: nodeMapper.pvalueMapper} });
+				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio), size: gimmeNodeSize(ajaxData[i].pvalue) });
 			}
 			else
 			{
-				visProps.push({ color: { continuousMapper: nodeMapper.ratioMapper } });
+				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio) });
 			}
 		}
 		else
 		{
-			if (ajaxData[i].expression !== '') // DE expression exists
+			if (ajaxData[i].expression !== '' && ajaxData[i].expression !== null) // DE expression exists
 			{
-				if ($("#sig_size_checked").is(":checked"))
+				if ($("#sig_size_checked").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].ratio !== null)
 				{
-					visProps.push({ color: { discreteMapper: nodeMapper.expressionMapper }, size: {continuousMapper: nodeMapper.pvalueMapper} });
+					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression), size: gimmeNodeSize(ajaxData[i].pvalue) });
 				}
 				else
 				{
-					visProps.push({ color: { discreteMapper: nodeMapper.expressionMapper } });
+					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression) });
 				}
 			}
 			else
 			{
-				if (ajaxData[i].strength !== '') // Expression strength exists
+				if (ajaxData[i].strength !== '' && ajaxData[i].strength !== null) // Expression strength exists
 				{
-					if ($("#sig_size_checked").is(":checked"))
+					if ($("#sig_size_checked").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 					{
-						visProps.push({ color: { discreteMapper: nodeMapper.strengthMapper }, size: {continuousMapper: nodeMapper.pvalueMapper} });
+						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), size: gimmeNodeSize(ajaxData[i].pvalue) });
 					}
 					else
 					{
-						visProps.push({ color: { discreteMapper: nodeMapper.strengthMapper } });
+						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength) });
+						//visProps.push({ color: { discreteMapper: nodeMapper.strengthMapper } });
 					}
 				}
 			}
 		}
 		ajaxNodes.push(ajaxData[i].entrez_id);
+		newData.push({ strength: ajaxData[i].strength, expression: ajaxData[i].expression, ratio: ajaxData[i].ratio, pvalue: -log10(ajaxData[i].pvalue), fdr: ajaxData[i].fdr });
 	}
 
 	for (i=0; i<noN; i++)
@@ -79,6 +80,7 @@ function bypassNodeColors(ajaxData)
 		if (ii !== -1) // Node in KUPKB expression data
 		{
 			currNode = nodes[i];
+			visObject.updateData([currNode.data.id],newData[ii]);
 			bypass[currNode.group][currNode.data.id] = visProps[ii]; // Crossing fingers...
 		}
 	}
@@ -191,8 +193,10 @@ function initNodeMapper()
 			entries:
 			[
 				{ attrValue: "Strong", value: "#0C5DA5" },
-				{ attrValue: "Medium", value: "#408DD2" },
-				{ attrValue: "Weak", value: "#679FD2" }
+				{ attrValue: "Medium", value: "#539AD9" },
+				{ attrValue: "Weak", value: "#A4C9EB" },
+				{ attrValue: "Present", value: "#9FFFB5" },
+				{ attrValue: "Absent", value: "#FFF59F" }
 			]
 		},
 		expressionMapper:
@@ -231,7 +235,7 @@ function initNodeMapper()
 				{ attrValue: "function", value: "bold" },
 				{ attrValue: "process", value: "bold" },
 				{ attrValue: "pathway", value: "bold" },
-				{ attrValue: "mirna", value: "normal" }
+				{ attrValue: "mirna", value: "bold" }
 			]
 		},
         fontColorMapper:
@@ -456,8 +460,16 @@ function removeMeta(what,howmany,cat)
 			switch(howmany)
 			{
 				case 'selected':
+					toRemove = JSON.parse($.toJSON($("#mirna_list").val()));
 					break;
 				case 'all':
+					for (i=0;i<len;i++)
+                    {
+                        if (nodes[i].data.object_type === "mirna")
+                        {
+                            toRemove.push(nodes[i].data.id);
+                        }
+                    }
 					break;
 			}
 			break;
@@ -591,21 +603,6 @@ function exportImage(format)
 	var visObject = getVisData('cytoscapeweb');
 	var urlBase = initMe();
 	visObject.exportNetwork(format,urlBase + 'php/control.php?export=' + format,{ window: '_self' });
-	/*switch(format)
-	{
-		case 'png':
-			text = visObject.png();
-			showInfo(text);
-			break;
-		case 'pdf':
-			text = visObject.pdf();
-			showInfo(text);
-			break;
-		case 'svg':
-			text = visObject.svg();
-			showInfo(text);
-			break;
-	}*/
 }
 
 function gimmeNodeData(type,staticData,ajaxData)
@@ -660,9 +657,9 @@ function gimmeGeneData(staticData,ajaxData)
 	nodeData.entrez = "Entrez ID: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/gene?term=" + staticData['entrez_id'] + "\" target=\"_blank\">" + staticData['entrez_id'] + "</a><br/>";
 	nodeData.strength = staticData['strength']==="" ? "" : "Expression strength: <span style=\"color:#FF0000\">" + staticData['strength'] + "</span><br/>";
 	nodeData.expression = staticData['expression']==="" ? "" : "Differential expression: <span style=\"color:#FF0000\">" + staticData['expression'] + "</span><br/>";
-	nodeData.ratio = staticData['ratio']===999 ? "" : "Fold change: <span style=\"color:#FF0000\">" + staticData['ratio'] + "</span><br/>";
-	nodeData.pvalue = staticData['pvalue']===999 ? "" : "p-value: <span style=\"color:#FF0000\">" + staticData['pvalue'] + "</span><br/>";
-	nodeData.fdr = staticData['fdr']===999 ? "" : "FDR: <span style=\"color:#FF0000\">" + staticData['fdr'] + "</span><br/>";
+	nodeData.ratio = (staticData['ratio']===999 || staticData['ratio']===null) ? "" : "Fold change: <span style=\"color:#FF0000\">" + staticData['ratio'] + "</span><br/>";
+	nodeData.pvalue = (staticData['pvalue']===999 || staticData['pvalue']===null) ? "" : "p-value: <span style=\"color:#FF0000\">" + Math.pow(10,-staticData['pvalue']) + "</span><br/>";
+	nodeData.fdr = (staticData['fdr']===999 || staticData['fdr']===null) ? "" : "FDR: <span style=\"color:#FF0000\">" + staticData['fdr'] + "</span><br/>";
 
 	if ($.isEmptyObject(ajaxData))
 	{
@@ -737,7 +734,7 @@ function gimmeMirnaData(staticData,ajaxData)
 
 	if ($.isEmptyObject(ajaxData)) { /*Stub, we might add something in the future*/ }
 
-	msg = "<span style=\"color:#000000; font-weight:bold\">KEGG pathway data</span><br/>" +
+	msg = "<span style=\"color:#000000; font-weight:bold\">miRNA data</span><br/>" +
 		  nodeData.id + nodeData.label + nodeData.other;
 
 	return(msg);
@@ -807,7 +804,82 @@ function gimmePathway2GeneData(staticData,ajaxData)
 
 function gimmeMirna2GeneData(staticData,ajaxData)
 {
-	// Stub
+	var msg;
+	var edgeData = {};
+
+	edgeData.interaction = "Interaction type: <span style=\"color:#FF0000\">" + staticData['interaction'] + "</span><br/>";
+	if ($.isEmptyObject(ajaxData)) { } // Stub
+	edgeData.evidence = "Evidence: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/pubmed?term=" +
+		staticData['custom'] + " AND " + ajaxData['target'] + "\" target=\"_blank\">Look in Pubmed</a><br/>";
+
+	msg = "<span style=\"color:#000000; font-weight:bold\">Edge data</span><br/>" +
+		  edgeData.interaction + edgeData.evidence;
+
+	return(msg);
+}
+
+function gimmeNodeColor(attr,val)
+{
+	var color;
+
+	switch(attr)
+	{
+		case "strength":
+			switch(val)
+			{
+				case "Strong":
+					color = "#0C5DA5";
+					break;
+				case "Medium":
+					color = "#539AD9";
+					break;
+				case "Weak":
+					color = "#A4C9EB";
+					break;
+				case "Present":
+					color = "#9FFFB5";
+					break;
+				case "Absent":
+					color = "#FFF59F";
+					break;
+				default:
+					color = "#F7F7F7";
+			}
+			break;
+		case "expression":
+			switch(val)
+			{
+				case "Up":
+					color = "#FF0000";
+					break;
+				case "Down":
+					color = "00FF00";
+					break;
+				case "Unmodified":
+					color = "#FFDA00";
+					break;
+				default:
+					color = "#F7F7F7";
+			}
+			break;
+		case "ratio":
+			color = mapRatioColor(val);
+			break;
+		default:
+			color = "#F7F7F7";
+	}
+
+	return(color);
+}
+
+function gimmeNodeSize(val)
+{
+	// Write a pvalue mapper, possibly with log10
+}
+
+function mapRatioColor(val)
+{
+	// Write a continuous mapping function...
 }
 
 function showLabels(group)
@@ -839,6 +911,25 @@ function showLabels(group)
 			updateInfo();
 			break;
 	}
+}
+
+function resetGeneData()
+{
+	var visObject = getVisData("cytoscapeweb");
+	var nodes = visObject.nodes();
+	var n = nodes.length;
+	var genes = [];
+	var i = 0;
+	var redata = { strength: "", expression: "", ratio: 999, pvalue: 999, fdr: 999 };
+
+	for (i=0; i<n; i++)
+	{
+		if (nodes[i].data.object_type === "gene")
+		{
+			genes.push(nodes[i].data.id)
+		}
+	}
+	visObject.updateData(genes,redata);
 }
 
 function removeElements(elems)
