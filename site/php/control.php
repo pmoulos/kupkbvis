@@ -37,8 +37,8 @@ if ($_REQUEST['species'])
 		}
 		$go = initGO($entrez);
 		$kegg = initKEGG($entrez);
-		//$mirna = initmiRNA($entrez);
-		$resultOther = array("go" => $go, "kegg" => $kegg);
+		$mirna = initmiRNA($entrez);
+		$resultOther = array("go" => $go, "kegg" => $kegg, "mirna" => $mirna);
 		
 		$result = array_merge($resultKUPKB,$resultOther);
 		echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
@@ -87,8 +87,13 @@ if ($_REQUEST['dataset'])
 	$dataset = $_REQUEST['dataset'];
 	$location = $_REQUEST['location_data'];
 	$disease = $_REQUEST['disease_data'];
+	//$dataset = json_decode($dataset);
+	//$location = json_decode($location);
+	//$disease = json_decode($disease);
+	//echo $disease."<br/>".$location."<br/>".$dataset."<br/>";
 	$genes = $_SESSION['entrez'];
 	$result = getRegulation($genes,$dataset,$disease,$location);
+	//echo json_encode($result | JSON_NUMERIC_CHECK);
 	echo json_encode($result);
 }
 
@@ -128,6 +133,16 @@ if ($_REQUEST['kegg'])
     echo json_encode($elements,JSON_NUMERIC_CHECK);
 }
 
+# Response to Select miRNA multi-select list
+if ($_REQUEST['mirna'])
+{
+    $proteins = $_SESSION['proteins'];
+    $mirnas = $_REQUEST['mirna'];
+    $mirnas = json_decode($mirnas,$assoc=TRUE);
+    $elements = getmiRNAElements($mirnas,$proteins);
+    echo json_encode($elements,JSON_NUMERIC_CHECK);
+}
+
 # Response to get neighbor queries
 if ($_REQUEST['level'])
 {
@@ -137,9 +152,7 @@ if ($_REQUEST['level'])
 	$node = json_decode($node,$assoc=TRUE);
 	$nodes = json_decode($nodes,$assoc=TRUE);
 	$elements = getNeighbors($node,$nodes,$level);
-	//echo json_encode($elements,JSON_NUMERIC_CHECK);
 	echo json_encode($elements);
-	//print_r($elements);
 }
 
 # Response to gene node selection
@@ -148,7 +161,6 @@ if ($_REQUEST['gene_data'])
     $the_gene = $_REQUEST['gene_data'];
     $gene_data = getGeneData($the_gene,$_SESSION['species']);
     echo json_encode($gene_data,JSON_NUMERIC_CHECK);
-    //print_r($gene_data);
 }
 
 # Response to gene to gene or pathway to gene edge selection
@@ -200,7 +212,6 @@ if ($_GET['export'])
     header('Content-disposition: attachment; filename="network'.$suff.'.'.$type .'"');
     # Send the data to the browser:
     print $data;
-    //echo $data;
 }
 
 #################################### DEBUG ###########################################
@@ -329,14 +340,17 @@ function updateLocDataDisease($genes,$disease)
 		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
 		{
 			$dataset_name[$id] = utf8_encode($name);
-			$loc_0[$b_0] = $b_0;
-			$loc_1[$b_1] = $b_1;
+			$bc_0 = $b_0 === "" ? "- no location association -" : $b_0;
+			$bc_1 = $b_1 === "" ? "- no location association -" : $b_1;
+			$loc_0[$b_0] = $bc_0;
+			$loc_1[$b_1] = $bc_1;
 		}
 		close_connection($conn);
 	}
 		
 	# Remove empty rows for each of $loc_0, $loc_1 and merge
-	$location = array_merge(array_filter($loc_0),array_filter($loc_1));
+	//$location = array_merge(array_filter($loc_0),array_filter($loc_1));
+	$location = array_merge($loc_0,$loc_1);
 	return(array("dataset" => $dataset_name, "location" => $location)); 
 }
 
@@ -357,14 +371,17 @@ function updateDisDataLocation($genes,$location)
 		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
 		{
 			$dataset_name[$id] = utf8_encode($name);
-			$dis_0[$d_0] = $d_0;
-			$dis_1[$d_1] = $d_1;
+			$dc_0 = $d_0 === "" ? "- no disease association -" : $d_0;
+			$dc_1 = $d_1 === "" ? "- no disease association -" : $d_1;
+			$dis_0[$d_0] = $dc_0;
+			$dis_1[$d_1] = $dc_1;
 		}
 		close_connection($conn);
 	}
 		
 	# Remove empty rows for each of $dis_0, $dis_1 and merge
-	$disease = array_merge(array_filter($dis_0),array_filter($dis_1));
+	//$disease = array_merge(array_filter($dis_0),array_filter($dis_1));
+	$disease = array_merge($dis_0,$dis_1);
 	return(array("dataset" => $dataset_name, "disease" => $disease));
 }
 
@@ -495,7 +512,43 @@ function getKEGGElements($keggs,$ensembl)
     return(array_merge($kegg_nodes,$kegg_edges));
 }
 
-function getmirnaElements() {}
+function getmirnaElements($mirnas,$ensembl)
+{
+	global $get_mirna_1,$get_mirna_2;
+	$mirna_nodes = array();
+	$mirna_edges = array();
+	$visited_mirna = array();
+	$visited_rel = array();
+	if(!empty($ensembl) && !empty($mirnas))
+    {
+        $conn = open_connection();
+        $protein_list = is_array($ensembl) ? implode("', '",$ensembl) : $ensembl;
+        $mirna_list = is_array($mirnas) ? implode("', '",$mirnas) : $mirnas;    
+        $query = $get_mirna_1.'(\''.$protein_list.'\')'.$get_mirna_2.'(\''.$mirna_list.'\')';
+        $result = mysql_query($query,$conn);
+        while (list($edge_id,$mirna_id,$protein) = mysql_fetch_array($result))
+        {
+            if ($visited_mirna[$mirna_id] != 1)
+            {
+                $mirna_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+                                       "data" => array("id" => $mirna_id, "label" => $mirna_id, "entrez_id" => "",
+                                                       "strength" => "", "expression" => "",
+                                                       "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+                                                       "object_type" => "mirna"));
+                $visited_mirna[$mirna_id] = 1;
+            }
+            if ($visited_rel[$edge_id] != 1) // Just in case... to be removed...
+            {
+                $mirna_edges[] = array("group" => "edges",
+                                       "data" => array("id" => $edge_id, "target" => $protein, "source" => $mirna_id,
+													   "interaction" => "mirna", "custom" => $mirna_id));
+                $visited_rel[$edge_id] = 1;
+            }
+        }
+        close_connection($conn);
+    }
+    return(array_merge($mirna_nodes,$mirna_edges));
+}
 
 function getNeighbors($node,$nodes,$level)
 {
@@ -708,13 +761,16 @@ function initLocation($dataset)
 		$result = mysql_query($query,$conn);
 		while (list($r_0,$r_1) = mysql_fetch_array($result))
 		{
-			$b_0[$r_0] = $r_0;
-			$b_1[$r_1] = $r_1;
+			$rc_0 = $r_0 === "" ? "- no location association -" : $r_0;
+			$rc_1 = $r_1 === "" ? "- no location association -" : $r_1;
+			$b_0[$r_0] = $rc_0;
+			$b_1[$r_1] = $rc_1;
 		}
 		close_connection($conn);
 		
 		# Remove empty rows for each of $b_0, $b_1 and merge
-		$location = array_merge(array_filter($b_0),array_filter($b_1));
+		//$location = array_merge(array_filter($b_0),array_filter($b_1));
+		$location = array_merge($b_0,$b_1);
 	}
 	return($location);
 }
@@ -731,13 +787,16 @@ function initDisease($dataset)
 		$result = mysql_query($query,$conn);
 		while (list($r_0,$r_1) = mysql_fetch_array($result))
 		{
-			$d_0[$r_0] = $r_0;
-			$d_1[$r_1] = $r_1;
+			$rc_0 = $r_0 === "" ? "- no disease association -" : $r_0;
+			$rc_1 = $r_1 === "" ? "- no disease association -" : $r_1;
+			$d_0[$r_0] = $rc_0;
+			$d_1[$r_1] = $rc_1;
 		}
 		close_connection($conn);
 		
 		# Remove empty rows for each of $d_0, $d_1 and merge
-		$disease = array_merge(array_filter($d_0),array_filter($d_1));
+		//$disease = array_merge(array_filter($d_0),array_filter($d_1));
+		$disease = array_merge($d_0,$d_1);
 	}
 	return($disease);
 }
@@ -797,6 +856,25 @@ function initKEGG($entrez)
 		close_connection($conn);
 	}
 	return($keggs);
+}
+
+function initmiRNA($entrez)
+{
+	global $init_mirna;
+	$mirnas = array();
+	if(is_array($entrez) && !empty($entrez))
+	{
+		$conn = open_connection();
+		$gene_list = '('.implode(", ",$entrez).')';
+		$query = $init_mirna.$gene_list;
+		$result = mysql_query($query,$conn);
+		while ($row = mysql_fetch_array($result,MYSQL_NUM))
+		{			    
+			$mirnas[$row[0]] = $row[0];
+		}
+		close_connection($conn);
+	}
+	return($mirnas);
 }
 
 function initNodes($entrez)
