@@ -117,13 +117,6 @@ input, text
     border-style: dashed;*/
 }
 
-.layoptCell
-{
-	padding: 2px;
-    vertical-align: middle;
-    text-align: left;
-}
-
 .buttonCell
 {
     padding-left: 3px;
@@ -131,6 +124,37 @@ input, text
     vertical-align: middle;
     /*border-width: 1px;
     border-style: dashed;*/
+}
+
+.colorTableCellColor
+{
+	padding-left: 3px;
+	padding-right: 3px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+    vertical-align: middle;
+    text-align: left;
+    /*border-width: 1px;
+    border-style: dashed;*/
+}
+
+.colorTableCellText
+{
+	padding-left: 5px;
+	padding-top: 0px;
+	padding-bottom: 0px;
+    vertical-align: middle;
+    text-align: left;
+    font-size: 0.9em;
+    /*border-width: 1px;
+    border-style: dashed;*/
+}
+
+.layoptCell
+{
+	padding: 2px;
+    vertical-align: middle;
+    text-align: left;
 }
 
 .goLabel
@@ -363,6 +387,12 @@ input, text
 	text-decoration: underline; 
 	color: #FF0000; 
 	cursor: pointer; 
+}
+
+.error
+{
+	font-size: 1.1em;
+	color: #FF0000;
 }
 
 .ui-autocomplete 

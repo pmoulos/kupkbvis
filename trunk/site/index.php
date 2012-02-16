@@ -42,8 +42,8 @@
 			</div>
 			<a href="" class="image"><img src="images/kupkb-logo-small.png" alt="KUPKB" border="0"/></a>
 			<br/><br/>
-			<div id="errorContainer"></div>
-			<div id="debugContainer"></div>
+			<!--<div id="errorContainer"></div>-->
+			<!--<div id="debugContainer"></div>-->
 			<table id="appContainer">
 				<tr>
 					<td id="graphContainer">
@@ -72,7 +72,7 @@
     					<div>
 							<fieldset><legend class="fieldSetTitle" style="font-size: 1.2em; background-color:#FFFF5F;">Network</legend>
 								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Genes</legend>
-									<input type="checkbox" id="sig_size_check" disabled> size relative to significance<br/>
+									<input type="checkbox" id="sig_size_check" disabled> border relative to significance<br/>
 									<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"> show node labels<br/>
 								</fieldset>
 								<fieldset style="margin-top: 10px;"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Relationships</legend>
@@ -138,6 +138,50 @@
 	    					<div id="filterCircle" style="display:none; float: left;"><img src="images/loading_small.gif"></div>
 	    					</td><td class="innerCell" colspan=2>
 	    					<button id="color_network_button" class="secondaryButton" style="font-weight:bold; float:right;" onclick="colorNodes()" disabled>Color network!</button>
+	    					</td></tr>
+	    					<tr><td colspan=2 class="innerCell">
+								<table class="innerTable" style="height:50%">
+									<tr><td colspan=6 class="innerCell" style="padding:0px; border-bottom-style:dashed; border-top-style:dashed; border-bottom-width:1px; border-top-width:1px;">
+										<table class="innerTable"><tr>
+										<td class="innerCell" style="width:50%; font-size:0.9em;">Color lookup also based on</td>
+										<td class="innerCell" style="width:25%; font-size:0.9em;"><input type="checkbox" id="disease_check" disabled> disease</td>
+										<td class="innerCell" style="width:25%; font-size:0.9em;"><input type="checkbox" id="location_check" disabled> location</td>
+										</tr></table>
+									</td></tr>
+									<tr>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#0C5DA5"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Strong</td>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#539AD9"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Medium</td>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#A4C9EB"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Weak</td>
+									</tr>
+									<tr>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#9FFFB5"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Present</td>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#FFF59F"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Absent</td>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">&nbsp;</td>
+									</tr>
+									<tr>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#FF0000"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Up</td>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#00FF00"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Down</td>
+										<td class="colorTableCellColor" style="width:5%;">
+										<table class="innerTable"><tr><td style="background-color:#FFDA00"></td></tr></table></td>
+										<td class="colorTableCellText" style="width:25%;">Unmodified</td>
+									</tr>
+								</table>
 	    					</td></tr>
 	    					</table>
 	    				</fieldset>  
@@ -216,7 +260,6 @@
 							<legend class="fieldSetTitle" style="background-color:#ECFFDE;">Element information</legend>
 							<table class="innerTable" style="table-layout: fixed"><tr><td class="optsCell">
 							<div id="infoContainer"></div>
-							<!--<textarea class="info" id="info_area" name="info_area" wrap="hard"></textarea>-->
 							</td></tr></table>
 						</fieldset>
                         </td>
