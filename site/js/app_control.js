@@ -274,26 +274,37 @@ function bindExport()
 
 /* In the first search we use jQuery .data function to store the initial search results in order to
    be able to use a reset button later, the same applies also to the update function with species */
-function search()
+function search(input)
 {
 	var urlBase = initMe(); 
-
+	var enteredTerms;
+	var recall = false;
+	
 	var species = $("#species_list").val();
 	if (species == 999999) //Nothing selected
 	{		
-		displayError('Please select species first!');
+		//displayError('Please select species first!');
+		modalAlert("Please select species first!","Species!");
 		return;
 	}
-	if ($("#enter_genes").val() !== '')
+	if (input !== '' && input !== null && input !== undefined)
 	{
-		var enteredTerms = $("#enter_genes").val().split(/\n|\r/);
+		enteredTerms = input;
+		recall = true;
+	}
+	else if ($("#enter_genes").val() !== '')
+	{
+		enteredTerms = $("#enter_genes").val().split(/\n|\r/);
 		
 		if (!allowedNumberOfTerms(enteredTerms,500))
 		{
 			modalAlert("Please restrict your search terms to 500!","Attention!");
 			return;
 		}
-		
+	}
+
+	if (!$.isEmptyObject(enteredTerms))
+	{
 		var searchJSON = $.toJSON(enteredTerms);
 		$.ajax(
 		{
@@ -349,7 +360,7 @@ function search()
 								if (data[outerkey] !== null)
 								{
 									$("#dataset_list").removeData();
-									enable(['dataset_list']);
+									enable(['dataset_list','reset_data_button','color_network_button','disease_check','location_check']);
 									$("#dataset_list").data("values",data[outerkey]);				
 									for (innerkey in data[outerkey])
 									{
@@ -363,7 +374,7 @@ function search()
 								if (data[outerkey] !== null)
 								{
 									$("#go_list").removeData();
-									enable(['go_list']);
+									enable(['go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat']);
 									$("#go_list").data("values",data[outerkey]);
 									//Initialize with component
 									innerkey = 'Component';									
@@ -380,7 +391,7 @@ function search()
 								if (data[outerkey] !== null)
 								{
 									$("#kegg_list").removeData();
-									enable(['kegg_list']);
+									enable(['kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg']);
 									$("#kegg_list").data("values",data[outerkey]);
 									for (innerkey in data[outerkey])
 									{									
@@ -398,7 +409,7 @@ function search()
 								if (data[outerkey] !== null)
 								{
 									$("#mirna_list").removeData();
-									enable(['mirna_list']);
+									enable(['mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
 									$("#mirna_list").data("values",data[outerkey]);
 									for (innerkey in data[outerkey])
 									{
@@ -418,7 +429,10 @@ function search()
 			dataType: "json"
 		});
 
-		fetchNetwork(); // Initiate the network
+		if (!recall) // If not called again because of the addition of neighbors
+		{
+			fetchNetwork(); // Initiate the network
+		}
 	}
 }
 
@@ -428,12 +442,13 @@ function update(id)
 	
 	var selSpecies,selDisease,selLocation,selDataset,selVal;
 	var outerkey,innerkey,innermost;
-	var genesQuery = $("#enter_genes").val();
-	var enteredTerms = $("#enter_genes").val().split(/\n|\r/);
+	//var genesQuery = $("#enter_genes").val();
+	//var enteredTerms = $("#enter_genes").val().split(/\n|\r/);
+	var enteredTerms = getEntrezIDs();
 
-	if (!allowedNumberOfTerms(enteredTerms,500))
+	if (!allowedNumberOfTerms(enteredTerms,1500))
 	{
-		modalAlert("Please restrict your search terms to 500!","Attention!");
+		modalAlert("Please restrict your network to 1500 nodes!","Attention!");
 		return;
 	}
 
@@ -506,7 +521,7 @@ function update(id)
 										if (data[outerkey] !== null)
 										{
 											$("#dataset_list").removeData();
-											enable(['dataset_list']);
+											enable(['dataset_list','reset_data_button','color_network_button','disease_check','location_check']);
 											$("#dataset_list").data("values",data[outerkey]);				
 											for (innerkey in data[outerkey])
 											{
@@ -520,7 +535,7 @@ function update(id)
 										if (data[outerkey] !== null)
 										{
 											$("#go_list").removeData();
-											enable(['go_list']);
+											enable(['go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat']);
 											$("#go_list").data("values",data[outerkey]);	
 											innerkey = 'Component';									
 											for (innermost in data[outerkey][innerkey])
@@ -536,7 +551,7 @@ function update(id)
 										if (data[outerkey] !== null)
 										{
 											$("#kegg_list").removeData();
-											enable(['kegg_list']);		
+											enable(['kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg']);		
 											for (innerkey in data[outerkey])
 											{
 												$("#kegg_list").append("<optgroup label=" + innerkey + ">");
@@ -554,7 +569,7 @@ function update(id)
 										if (data[outerkey] !== null)
 										{
 											$("#mirna_list").removeData();
-											enable(['mirna_list']);
+											enable(['mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna']);
 											$("#mirna_list").data("values",data[outerkey]);
 											for (innerkey in data[outerkey])
 											{
@@ -766,6 +781,9 @@ function colorNodes()
 	var selDisease = $("#disease_list").val();
 	var selLocation = $("#location_list").val();
 	var selDataset = $("#dataset_list").val();
+
+	if (!$("#disease_check").is(":checked")) { selDisease = ''; }
+	if (!$("#location_check").is(":checked")) { selLocation = ''; }
 	
 	$.ajax(
 	{
@@ -779,7 +797,8 @@ function colorNodes()
 			if ($.isEmptyObject(data))
 			{
 				displayError('Sorry, no expression data found for the selected disease, location ' +
-							 'and dataset combination. Try selecting disease and location first.');
+							 'and dataset combination. Try unchecking the disease and location checkboxes '+
+							 'below the dataset list if they are checked to make search less strict.');
 			}
 			else
 			{
@@ -1077,12 +1096,13 @@ function fetchNetwork()
 		{
 			$("#hello_kidney").empty(); // Remove the splash
 			$("#loading_big").show();
-			disable(['disease_list','location_list','dataset_list','reset_data_button','go_list','kegg_list','mirna_list']); 
+			loadingSmall();
 		},
 		complete: function() 
 		{ 
 			$("#loading_big").hide();
 			enable(['disease_list','location_list','dataset_list','reset_data_button','go_list','kegg_list','mirna_list']);
+			unloadingSmall();
 		},
 		success: function(data)
 		{
@@ -1156,10 +1176,10 @@ function initNetwork(networkJSON)
 		{
 			fetchNeighbors(2);
 		})
-		.addContextMenuItem("Show level 3 neighbors","nodes",function(event)
-		{
-			fetchNeighbors(3);
-		})
+		//.addContextMenuItem("Show level 3 neighbors","nodes",function(event)
+		//{
+		//	fetchNeighbors(3);
+		//})
 		.addContextMenuItem("Hide node","nodes",function(event)
 		{
 			hideElements("nodes","hide");
@@ -1349,6 +1369,12 @@ function initNetwork(networkJSON)
 			var an = allNodes.length;
 			var i = 0;
 
+			if (sn === 0) // Nothing selected
+			{
+				modalAlert("Please select at least one node.","Attention!");
+				return;
+			}
+
 			for (i=0; i<sn; i++)
 			{
 				selNodeIDs.push(selNodes[i].data.id);
@@ -1367,14 +1393,31 @@ function initNetwork(networkJSON)
 				complete: function() { $('#loadingCircle').hide(); },
 				success: function(data)
 				{						
+					var nodes;
+					var entrezID = [];
+					var i = 0;
+					
 					if ($.isEmptyObject(data)) // Not likely...
 					{
 						displayError('Sorry! No neighbors found :-(');
 					}
 					else
 					{
+						nodes = vis.nodes();
+						for (i=0; i<nodes.length; i++)
+						{
+							entrezID.push(nodes[i].data.entrez_id);
+						}
+						for (i=0; i<data.length; i++)
+						{
+							if (data[i].group === "nodes")
+							{
+								entrezID.push(data[i].data.entrez_id);
+							}
+						}
 						addElements(data);
 						filterEdges();
+						search(entrezID);
 					}
 				},
 				error: function(data,error)
@@ -1517,7 +1560,7 @@ function loadingSmall()
 	$('#loadingCircle').show();
 	disable(['search_button','clear_button',
 			 'species_list','disease_list','location_list','dataset_list',
-			 'reset_data_button','color_network_button',
+			 'reset_data_button','color_network_button','disease_check','location_check',
 			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
@@ -1540,7 +1583,7 @@ function unloadingSmall()
 	$('#loadingCircle').hide();
 	enable(['search_button','clear_button',
 			'species_list','disease_list','location_list','dataset_list',
-			'reset_data_button','color_network_button',
+			'reset_data_button','color_network_button','disease_check','location_check',
 			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
@@ -1556,6 +1599,19 @@ function unloadingSmall()
 	$("#export_pdf").css("background","url(images/export_buttons/pdf_unpressed.png)");
 	$("#export_svg").css("background","url(images/export_buttons/svg_unpressed.png)");
 	$("#layoutOptionContainer").find("input, button, select").removeAttr("disabled");
+
+	// There is an extreme case (dog) of not finding any KUPKB data... In this case,
+	// the KUPKB controls must remain disabled. We are placing this here as this is
+	// usually the last AJAX action performed before final initialization
+	if ($("#dataset_list").val() === '0')
+	{
+		disable(['disease_list','location_list','dataset_list','reset_data_button',
+				 'color_network_button','disease_check','location_check']);
+	}
+	if ($("#go_list").text() === '')
+	{
+		disable(['go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat']);
+	}
 }
 
 function searchAllow()
@@ -1689,18 +1745,20 @@ function fixKEGGClass(val) { return val.replace(/;\s+/,' - '); }
 
 function displayError(error)
 {				
-	$('#errorText').text(error);
-	$('#errorText').show("fast");
-	$('#errorContainer').text(error);
-	$('#errorContainer').show("fast");
+	$("#infoContainer").html("<span class=\"error\">" + error + "</span>");
+	//$('#errorText').text(error);
+	//$('#errorText').show("fast");
+	//$('#errorContainer').text(error);
+	//$('#errorContainer').show("fast");
 }
 
 function hideError()
 {
-	$('#errorText').hide("fast");				
-	$('#errorText').text('');
-	$('#errorContainer').hide("fast");
-	$('#errorContainer').text('');
+	$("#infoContainer").html('');
+	//$('#errorText').hide("fast");
+	//$('#errorText').text('');
+	//$('#errorContainer').hide("fast");
+	//$('#errorContainer').text('');
 }
 
 function clearCache()
@@ -1829,6 +1887,11 @@ function log10(x)
 	return(Math.log(x)/Math.log(10));
 }
 
+function log2(x)
+{
+	return(Math.log(x)/Math.log(2));
+}
+
 function isNumber(n)
 {
 	return(!isNaN(parseFloat(n)) && isFinite(n));
@@ -1836,7 +1899,6 @@ function isNumber(n)
 
 function debugMessage(msg)
 {
-	//$('#debugContainer').text(msg);
 	$('#debugContainer').html(msg);
 	$('#debugContainer').show("fast");
 }
@@ -1861,30 +1923,3 @@ function postDebugMessage(msg)
 		dataType: "json"
 	});
 }
-
-/*
-fillSelectList(id,dat)
-{	
-	$("#"+id).empty();
-	if (dat !== null)
-	{
-		enable([id]);					
-		for (var key in dat)
-		{
-			$("#"+id).append("<option value=" + key + ">" + dat[key]);
-		}
-	}
-}
-
-updateCache(d)
-{
-	clearCache();
-	$("#disease_list").data("values",d['disease']);
-	$("#location_list").data("values",d['location']);
-	$("#dataset_list").data("values",d['dataset']);
-	//$("#go_list").data("values",d['go']);
-	//$("kegg_list").data("values",d['kegg']);
-	//$("#mirna_list").data("values",d['mirna']);
-}
-
-*/

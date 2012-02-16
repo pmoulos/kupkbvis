@@ -26,7 +26,6 @@ if ($_REQUEST['species'])
 		if (empty($dataset))
 		{
 			$resultKUPKB = array();
-			echo json_encode($resultKUPKB,JSON_FORCE_OBJECT);
 		}
 		else 
 		{
@@ -39,14 +38,23 @@ if ($_REQUEST['species'])
 		$kegg = initKEGG($entrez);
 		$mirna = initmiRNA($entrez);
 		$resultOther = array("go" => $go, "kegg" => $kegg, "mirna" => $mirna);
-		
-		$result = array_merge($resultKUPKB,$resultOther);
-		echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
+		if (empty($resultKUPKB))
+		{
+			echo json_encode($resultOther,JSON_FORCE_OBJECT);
+		}
+		else
+		{
+			$result = array_merge($resultKUPKB,$resultOther);
+			echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
+		}
 	}
     
 	$_SESSION['species'] = $species;
 	$_SESSION['entrez'] = $entrez;
 }
+
+# Response to external calling (e.g. the iKUP)
+if ($_REQUEST['ikup_genes']) {}
 
 # Response to Select disease dropdown list
 if ($_REQUEST['disease'])
@@ -87,10 +95,6 @@ if ($_REQUEST['dataset'])
 	$dataset = $_REQUEST['dataset'];
 	$location = $_REQUEST['location_data'];
 	$disease = $_REQUEST['disease_data'];
-	//$dataset = json_decode($dataset);
-	//$location = json_decode($location);
-	//$disease = json_decode($disease);
-	//echo $disease."<br/>".$location."<br/>".$dataset."<br/>";
 	$genes = $_SESSION['entrez'];
 	$result = getRegulation($genes,$dataset,$disease,$location);
 	//echo json_encode($result | JSON_NUMERIC_CHECK);
@@ -106,7 +110,6 @@ if ($_REQUEST['network']) // The network!
 	$nodes = initNodes($entrez);
 	$edges = initEdges($proteins);
 	$resultNetwork = array("dataSchema" => $schema, "data" => array("nodes" => $nodes, "edges" => $edges));
-	#echo json_encode($resultNetwork,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 	#echo json_encode($resultNetwork,JSON_NUMERIC_CHECK);
 	echo json_encode($resultNetwork);
 
@@ -153,6 +156,11 @@ if ($_REQUEST['level'])
 	$nodes = json_decode($nodes,$assoc=TRUE);
 	$elements = getNeighbors($node,$nodes,$level);
 	echo json_encode($elements);
+	//echo json_encode($elements['elements']);
+
+	//$new_entrez = array_merge($_SESSION['entrez'],$elements['entrez']);
+	//$new_$dataset = getDatasetID($entrez);
+	//$_SESSION['entrez'] = $entrez;
 }
 
 # Response to gene node selection
@@ -213,19 +221,6 @@ if ($_GET['export'])
     # Send the data to the browser:
     print $data;
 }
-
-#################################### DEBUG ###########################################
-if ($_REQUEST['json_debug'])
-{		
-	$json_debug = $_REQUEST['json_debug'];
-    $path = (strtoupper(substr(PHP_OS,0,3)) === 'WIN') ? 'C:\Temp\json_network.json' :
-        '/media/HD5/Work/TestGround/PHPCounter/json_network.json';
-	$file = fopen($path,'w+');
-	fwrite($file,json_encode($json_debug,JSON_NUMERIC_CHECK));
-	fclose($file);
-	chown($path,"panos");
-}
-######################################################################################
 
 # FUNCTIONS	
 
@@ -396,13 +391,40 @@ function getRegulation($genes,$dataset,$disease,$location)
 	{
 		$conn = open_connection();
 		$gene_list = is_array($genes) ? implode(", ",$genes) : $genes;
-		$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
-				 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
-				 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
-				 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
-				 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
-				 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
-				 $get_coloring_5;
+		if (!empty($disease) && !empty($location))
+		{	
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+					 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
+					 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
+					 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
+					 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
+					 $get_coloring_5;
+		}
+		else if (!empty($disease) && empty($location))
+		{
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+					 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
+					 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
+					 $get_coloring_5;
+		}
+		else if (empty($disease) && !empty($location))
+		{
+			$get_coloring_2_4 = substr($get_coloring_2_4,1,strlen($get_coloring_2_4)-1);
+			$get_coloring_4_4 = substr($get_coloring_4_4,1,strlen($get_coloring_4_4)-1);
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+					 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
+					 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
+					 $get_coloring_5;
+		}
+		else
+		{
+			$get_coloring_3 = substr($get_coloring_3,1,strlen($get_coloring_3)-1);
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\'';
+		}
 		$result = mysql_query($query,$conn);
 		while (list($record_id,$dataset_id,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
 		{
@@ -640,6 +662,7 @@ function getNeighbors($node,$nodes,$level)
 	}
 	
 	return(array_merge($add_nodes,$add_edges));
+	//return(array("elements" => array_merge($add_nodes,$add_edges), "entrez" => $new_entrez));
 }
 
 function getGeneData($gene,$species_id)

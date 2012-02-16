@@ -95,7 +95,6 @@ $update_locdata_disease_4 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,
 $update_locdata_disease_5_1 = ' AND (datasets.disease_0=\'';
 $update_locdata_disease_5_2 = '\' OR datasets.disease_1=\'';
 $update_locdata_disease_6 = '\')';
-#WHERE disease_0 LIKE '%Diabetic nephropathy%' OR disease_1 LIKE '%Diabetic nephropathy%'
 
 /* Update disease and datasets based on location */
 $update_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.

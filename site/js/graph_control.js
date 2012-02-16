@@ -32,9 +32,9 @@ function bypassNodeColors(ajaxData)
 	{
 		if (ajaxData[i].ratio !== 999 && ajaxData[i].ratio !== null) // Ratio exists
 		{
-			if ($("#sig_size_checked").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].ratio !== null)
+			if ($("#sig_size_check").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 			{
-				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio), size: gimmeNodeSize(ajaxData[i].pvalue) });
+				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
 			}
 			else
 			{
@@ -45,9 +45,9 @@ function bypassNodeColors(ajaxData)
 		{
 			if (ajaxData[i].expression !== '' && ajaxData[i].expression !== null) // DE expression exists
 			{
-				if ($("#sig_size_checked").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].ratio !== null)
+				if ($("#sig_size_check").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 				{
-					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression), size: gimmeNodeSize(ajaxData[i].pvalue) });
+					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
 				}
 				else
 				{
@@ -58,9 +58,9 @@ function bypassNodeColors(ajaxData)
 			{
 				if (ajaxData[i].strength !== '' && ajaxData[i].strength !== null) // Expression strength exists
 				{
-					if ($("#sig_size_checked").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
+					if ($("#sig_size_check").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 					{
-						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), size: gimmeNodeSize(ajaxData[i].pvalue) });
+						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
 					}
 					else
 					{
@@ -113,12 +113,6 @@ function initNodeStyle()
 		borderWidth: 1,
 		borderColor: "#000000",
 		size: "auto",
-		// size will be passed to bypasser as we initialize colorless
-		/*size:
-		{
-			defaultValue: "auto",
-			continuousMapper: nodeMapper.pvalueMapper
-		},*/
 		color:
 		{
 			defaultValue: "#F7F7F7",
@@ -872,14 +866,48 @@ function gimmeNodeColor(attr,val)
 	return(color);
 }
 
-function gimmeNodeSize(val)
+function gimmeNodeBorder(val)
 {
-	// Write a pvalue mapper, possibly with log10
+	var mm = 10;
+	var from = 1;
+	var to = 10;
+	
+	if (val>0) { val = -log10(val) };
+	val = val>mm ? val=mm : val=val;
+	p = val/mm;
+	return(Math.floor(from+(to-from+1)*p));
 }
 
 function mapRatioColor(val)
 {
-	// Write a continuous mapping function...
+	var mm = 3;
+	if (val<0) // We need to down-interpolate R
+	{
+		val = log2(Math.abs(val));
+		val = val>mm ? val=mm : val=val;
+		r = Math.round((1-val/mm)*255);
+		g = 255;
+	}
+	else if (val>0) // We need to down-interpolate G
+	{
+		val = log2(val);
+		val = val>mm ? val=mm : val=val;
+		r = 255;
+		g = Math.round((1-val/mm)*255);
+	}
+	b = 0;
+	return(rgbToHex(r,g,b));
+}
+
+function componentToHex(c)
+{
+	var hex = c.toString(16);
+	return hex.length == 1 ? "0" + hex : hex;
+}
+
+function rgbToHex(r,g,b)
+{
+	return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
 function showLabels(group)
@@ -920,6 +948,7 @@ function resetGeneData()
 	var n = nodes.length;
 	var genes = [];
 	var i = 0;
+	var bypass = { nodes: { }, edges: { } };
 	var redata = { strength: "", expression: "", ratio: 999, pvalue: 999, fdr: 999 };
 
 	for (i=0; i<n; i++)
@@ -927,9 +956,26 @@ function resetGeneData()
 		if (nodes[i].data.object_type === "gene")
 		{
 			genes.push(nodes[i].data.id)
+			bypass["nodes"][nodes[i].data.id] = { color: "#F7F7F7", borderWidth: 1, borderColor: "#000000" };
 		}
 	}
 	visObject.updateData(genes,redata);
+	visObject.visualStyleBypass(bypass);
+}
+
+function getEntrezIDs()
+{
+	var visObject = getVisData('cytoscapeweb');
+	var nodes = visObject.nodes();
+	var n = nodes.length;
+	var entrezIDs = [];
+	
+	for (var i=0; i<n; i++)
+	{
+		entrezIDs.push(nodes[i].data.entrez_id);
+	}
+
+	return(entrezIDs);
 }
 
 function removeElements(elems)
@@ -957,18 +1003,3 @@ function setData(container,name,data)
 {
 	$(container).data(name,data);
 }
-
-// Check for initialized ratio, pvalue... If 999 then wrong coloring
-/*var nodes = vis.nodes();
-if (nodes[0].data.ratio === 999 || nodes[0].data.pvalue === 999 || nodes[0].data.fdr === 999)
-{
-	var bypass = { nodes: { } };
-	for (var i=0; i < nodes.length; i++)
-	{
-		var obj = nodes[i];
-		bypass['nodes'][obj.data.id] = { "color": "#F7F7F7" };
-	}
-	//vis.updateData("nodes",{ "color": "#F7F7F7" });
-	vis.visualStyleBypass(bypass);
-}*/
-
