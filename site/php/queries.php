@@ -26,6 +26,12 @@ $entrez_from_symbol_1 = 'SELECT `entrez_id` '.
 						'WHERE `gene_symbol` IN ';
 $entrez_from_symbol_2 = ' AND `species`=';
 
+# Get gene symbols from entrez... Useful in case of neighbors being called and wanting to
+# change species...
+$symbol_from_entrez = 'SELECT `gene_symbol` '.
+					  'FROM `genes` '.
+					  'WHERE  `entrez_id` IN ';
+
 # Intermediate query to get the datasets for subsequent use with disease and location
 # and is based on the input genes and the corresponding proteins
 $dataset_id_1 = 'SELECT `dataset_id` '.
@@ -122,23 +128,27 @@ $update_disdata_location_6 = '\')';
 /*WHERE biomaterial_0 LIKE '%kidney%' OR biomaterial_1 LIKE '%kidney%'*/
 
 /* Select the gene regulation for a selected dataset for both cases */
-$get_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`entrez_gene_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+$get_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`entrez_gene_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM `data` INNER JOIN `datasets` '.
 				  'ON data.dataset_record_id = datasets.record_id '.
+				  'INNER JOIN `dataset_descriptions` '.
+				  'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
 				  'WHERE `entrez_gene_id` IN ';
-$get_coloring_2_1 = ' AND `dataset_id`=';
+$get_coloring_2_1 = ' AND `dataset_id` IN ';
 $get_coloring_2_2 = ' AND (datasets.disease_0=';
 $get_coloring_2_3 = ' OR datasets.disease_1=';
 $get_coloring_2_4 = ') AND (datasets.biomaterial_0=';
 $get_coloring_2_5 = ' OR datasets.biomaterial_1=';
 $get_coloring_3 = ') UNION '.
-				  'SELECT datasets.record_id,`dataset_id`,entrez_to_uniprot.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'SELECT datasets.record_id,`dataset_id`,`display_name`,entrez_to_uniprot.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM `data` INNER JOIN `datasets` '.
 				  'ON data.dataset_record_id = datasets.record_id '.
+				  'INNER JOIN `dataset_descriptions` '.
+				  'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
 				  'INNER JOIN `entrez_to_uniprot` '.
 				  'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
 				  'WHERE entrez_to_uniprot.entrez_id IN ';
-$get_coloring_4_1 = ' AND `dataset_id`=';
+$get_coloring_4_1 = ' AND `dataset_id` IN ';
 $get_coloring_4_2 = ' AND (datasets.disease_0=';
 $get_coloring_4_3 = ' OR datasets.disease_1=';
 $get_coloring_4_4 = ') AND (datasets.biomaterial_0=';
@@ -184,8 +194,7 @@ $init_nodes = 'SELECT DISTINCT interactions.source AS id,'.
 			  'WHERE entrez_to_ensembl.entrez_id IN ';
 
 /* Get interactions */
-$init_edges_1 = 'SELECT DISTINCT CONCAT_WS("_",CONCAT_WS("_to_",`source`,`target`),`interaction`) AS `id`,'.
-				'`target`, `source`, `interaction` '.
+$init_edges_1 = 'SELECT DISTINCT `target`, `source`, `interaction` '.
 			    'FROM `interactions` '.
 			    'WHERE `source` IN ';
 $init_edges_2 = ' AND `target` IN ';
@@ -242,7 +251,7 @@ $get_add_nodes = 'SELECT DISTINCT interactions.source AS `id`,genes.gene_symbol 
 				 'WHERE entrez_to_ensembl.ensembl_protein IN ';
 
 /* Then additional edges in cytoscapeweb */
-$get_add_edges_1 = 'SELECT DISTINCT CONCAT_WS("_",CONCAT_WS("_to_",`source`,`target`),`interaction`) AS `id`,`target`,`source`,`interaction` '.
+$get_add_edges_1 = 'SELECT DISTINCT `target`,`source`,`interaction` '.
 				   'FROM `interactions` '.
 				   'WHERE `source` IN ';
 $get_add_edges_2 = ' AND `target` IN ';

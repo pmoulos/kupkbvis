@@ -24,8 +24,22 @@ function bypassNodeColors(ajaxData)
 	var ajaxNodes = [];
 	var visProps = [];
 	var newData = [];
-	var i, currNode;
+	var seen = [];
+	var dataSeen = [];
+	var propSeen = [];
+	var i, j, k, currNode;
 	var bypass = { nodes: { }, edges: { } };
+
+	// Not the best implementation, but we have to check for multiply present genes since
+	// we are able to select multiple datasets
+	for (i=0; i<noA; i++) // First initialize
+	{
+		seen[ajaxData[i].entrez_id] = 0;
+	}
+	for (i=0; i<noA; i++) // Now hash
+	{
+		seen[ajaxData[i].entrez_id]++;
+	}
 	
 	// Construct the array of entrez_id in ajaxData;
 	for (i=0; i<noA; i++)
@@ -56,9 +70,9 @@ function bypassNodeColors(ajaxData)
 			}
 			else
 			{
-				if (ajaxData[i].strength !== '' && ajaxData[i].strength !== null) // Expression strength exists
+				if ($("#sig_size_check").is(":checked") && ajaxData[i].strength !== '' && ajaxData[i].strength !== null) // Expression strength exists
 				{
-					if ($("#sig_size_check").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
+					if (ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 					{
 						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
 					}
@@ -71,216 +85,65 @@ function bypassNodeColors(ajaxData)
 			}
 		}
 		ajaxNodes.push(ajaxData[i].entrez_id);
-		newData.push({ strength: ajaxData[i].strength, expression: ajaxData[i].expression, ratio: ajaxData[i].ratio, pvalue: -log10(ajaxData[i].pvalue), fdr: ajaxData[i].fdr });
+		newData.push({ strength: ajaxData[i].strength, expression: ajaxData[i].expression, ratio: ajaxData[i].ratio, pvalue: -log10(ajaxData[i].pvalue), fdr: ajaxData[i].fdr, custom: ajaxData[i].custom });
 	}
 
+	dataSeen = { strength: "Multiple", expression: "Multiple", ratio: 999, pvalue: 999, fdr: 999 };
+	if ($("#multicolor_check").is(":checked"))
+	{
+		propSeen = { compoundColor: "#2B2B2B", compoundBorderWidth: 5, compoundBorderColor: "#ECBD00", compoundLabelFontColor: "#0000FF", compoundLabelFontWeight: "bold", compoundShape: "ELLIPSE" };
+	}
+	else
+	{
+		propSeen = { color: "#2B2B2B", borderWidth: 5, borderColor: "#ECBD00", labelFontColor: "#FFFFFF" };
+	}
+	
 	for (i=0; i<noN; i++)
 	{
 		var ii = $.inArray(nodes[i].data.entrez_id,ajaxNodes);
 		if (ii !== -1) // Node in KUPKB expression data
 		{
 			currNode = nodes[i];
-			visObject.updateData([currNode.data.id],newData[ii]);
-			bypass[currNode.group][currNode.data.id] = visProps[ii]; // Crossing fingers...
+			if (seen[currNode.data.entrez_id]>1)
+			{
+				if ($("#multicolor_check").is(":checked"))
+				{
+					for (j=0; j<seen[currNode.data.entrez_id]; j++)
+					{
+						k = j+1;
+						cdata = {
+									id: currNode.data.id + "_" + j,
+									label: newData[ii].custom + " (" + k + ")",
+									strength: newData[ii].strength,
+									expression: newData[ii].expression,
+									ratio: newData[ii].ratio,
+									pvalue: newData[ii].pvalue,
+									fdr: newData[ii].fdr,
+									entrez_id: currNode.data.entrez_id,
+									object_type: "gene",
+									parent: currNode.data.id
+								};
+						visObject.addNode(randomFromTo(350,450),randomFromTo(350,450),cdata,true);
+						bypass["nodes"][cdata.id] = visProps[ii];
+					}
+					visObject.updateData([currNode.data.id],dataSeen);
+					bypass[currNode.group][currNode.data.id] = propSeen;
+				}
+				else
+				{
+					visObject.updateData([currNode.data.id],dataSeen);
+					bypass[currNode.group][currNode.data.id] = propSeen;
+				}
+			}
+			else
+			{
+				visObject.updateData([currNode.data.id],newData[ii]);
+				bypass[currNode.group][currNode.data.id] = visProps[ii];
+			}
 		}
 	}
 
 	visObject.visualStyleBypass(bypass);
-}
-
-function initGlobalStyle()
-{
-	var globalStyle =
-	{
-		backgroundColor: "#FFFFFF",
-		selectionFillColor: "#9A9AFF"
-	};
-
-	return(globalStyle);
-}
-
-function initNodeStyle()
-{
-	var nodeMapper = initNodeMapper();
-
-	var nodeStyle =
-	{
-		shape:
-		{
-			defaultValue: "ELLIPSE",
-			discreteMapper: nodeMapper.shapeMapper
-		},
-		borderWidth: 1,
-		borderColor: "#000000",
-		size: "auto",
-		color:
-		{
-			defaultValue: "#F7F7F7",
-			discreteMapper: nodeMapper.metaMapper
-		},
-		labelHorizontalAnchor: "center",
-		labelVerticalAnchor: "middle",
-		selectionColor: "#5FFFFB",
-		selectionGlowColor: "#95FFFE",
-		selectionGlowStrength: 32,
-		labelFontWeight:
-		{
-			defaultValue: "normal",
-			discreteMapper: nodeMapper.fontWeightMapper
-		},
-        labelFontColor:
-        {
-            defaultValue: "#000000",
-            discreteMapper: nodeMapper.fontColorMapper
-        }
-	};
-
-	return(nodeStyle);
-}
-
-function initEdgeStyle()
-{
-	var edgeMapper = initEdgeMapper();
-
-	var edgeStyle =
-	{
-		color:
-		{
-			defaultValue: "#999999",
-			discreteMapper: edgeMapper.colorMapper
-		},
-		width:
-		{
-			defaultValue: 1,
-			discreteMapper: edgeMapper.widthMapper
-		},
-		labelFontColor:
-		{
-			defaultValue: "#000000",
-			discreteMapper: edgeMapper.colorMapper
-		}
-	};
-
-	return(edgeStyle);
-}
-
-function initNodeMapper()
-{
-	var nodeMapper =
-	{
-		shapeMapper:
-		{
-			attrName: "object_type",
-			entries:
-			[
-				{ attrValue: "gene", value: "ELLIPSE" },
-				{ attrValue: "component", value: "ROUNDRECT" },
-				{ attrValue: "function", value: "ROUNDRECT" },
-				{ attrValue: "process", value: "ROUNDRECT" },
-				{ attrValue: "pathway", value: "PARALLELOGRAM" },
-				{ attrValue: "mirna", value: "DIAMOND" }
-			]
-		},
-		strengthMapper:
-		{
-			attrName: "strength",
-			entries:
-			[
-				{ attrValue: "Strong", value: "#0C5DA5" },
-				{ attrValue: "Medium", value: "#539AD9" },
-				{ attrValue: "Weak", value: "#A4C9EB" },
-				{ attrValue: "Present", value: "#9FFFB5" },
-				{ attrValue: "Absent", value: "#FFF59F" }
-			]
-		},
-		expressionMapper:
-		{
-			attrName: "expression",
-			entries:
-			[
-				{ attrValue: "Up", value: "#FF0000" },
-				{ attrValue: "Down", value: "#00FF00" },
-				{ attrValue: "Unmodified", value: "#FFDA00" }
-			]
-		},
-		ratioMapper: { attrName: "ratio", minValue: "#00FF00", maxValue: "#FF0000" },
-		pvalueMapper: { attrName: "pvalue", minValue: 16, maxValue: 64 },
-		fdrMapper: { attrName: "fdr", minValue: 16, maxValue: 64 },
-		metaMapper:
-		{
-			attrName: "object_type",
-			entries:
-			[
-				{ attrValue: "gene", value: "#F7F7F7" },
-				{ attrValue: "component", value: "#A468D5" },
-				{ attrValue: "function", value: "#BFA630" },
-				{ attrValue: "process", value: "#6E86D6" },
-				{ attrValue: "pathway", value: "#700900" },
-				{ attrValue: "mirna", value: "#6E86D6" }
-			]
-		},
-		fontWeightMapper:
-		{
-			attrName: "object_type",
-			entries:
-			[
-				{ attrValue: "gene", value: "normal" },
-				{ attrValue: "component", value: "bold" },
-				{ attrValue: "function", value: "bold" },
-				{ attrValue: "process", value: "bold" },
-				{ attrValue: "pathway", value: "bold" },
-				{ attrValue: "mirna", value: "bold" }
-			]
-		},
-        fontColorMapper:
-        {
-            attrName: "object_type",
-            entries:
-            [
-                { attrValue: "gene", value: "#000000" },
-                { attrValue: "component", value: "#000000" },
-                { attrValue: "function", value: "#000000" },
-                { attrValue: "process", value: "#000000" },
-                { attrValue: "pathway", value: "#FFFFFF" },
-                { attrValue: "mirna", value: "#000000" }
-            ]
-        }
-	};
-
-	return(nodeMapper);
-}
-
-function initEdgeMapper()
-{
-	var edgeMapper =
-	{
-		colorMapper:
-		{
-			attrName: "interaction",
-			entries:
-			[
-				{ attrValue: "binding", value: "#028E9B" },
-				{ attrValue: "ptmod", value: "#133CAC" },
-				{ attrValue: "expression", value: "#FFAD00" },
-				{ attrValue: "activation", value: "#FF7800" },
-				{ attrValue: "go", value: "#9BA402" },
-				{ attrValue: "kegg", value: "#D30068" },
-				{ attrValue: "mirna", value: "#A67D00" }
-			]
-		},
-		widthMapper:
-		{
-			attrName: "interaction",
-			entries:
-			[
-				{ attrValue: "go", value: 3 },
-				{ attrValue: "kegg", value: 3 },
-				{ attrValue: "mirna", value: 3 }
-			]
-		}
-	};
-
-	return(edgeMapper);
 }
 
 // type: interaction type
@@ -480,10 +343,13 @@ function addElements(elems)
 	// We must check if any of the elements (IDs) are already in the canvas
 	// and remove them, else cytoscapeweb throws error
 	var nodes = visObject.nodes();
+	var edges = visObject.edges();
 	var nodeLength = nodes.length;
+	var edgeLength = edges.length;
 	var elemLength = elems.length;
 	var toRemove = [];
 	var nids = [];
+	var eids = [];
 	var i = 0;
 
 	for (i=0; i<nodeLength; i++)
@@ -493,10 +359,22 @@ function addElements(elems)
 			nids.push(nodes[i].data.id);
 		}
 	}
+	// No need to remove go, kegg, mirna edges for neighbors, otherwise, they are removed automatically
+	for (i=0; i<edgeLength; i++)
+	{
+		if ($.inArray(edges[i].data.interaction,["binding","ptmod","expression","activation"]) !== -1)
+		{
+			eids.push(edges[i].data.id);
+		}
+	}
 	
 	for (i=0; i<elemLength; i++)
 	{
 		if (elems[i].group === "nodes" && $.inArray(elems[i].data.id,nids) !== -1)
+		{
+			toRemove.push(elems[i].data.id);
+		}
+		if (elems[i].group === "edges" && $.inArray(elems[i].data.id,eids) !== -1)
 		{
 			toRemove.push(elems[i].data.id);
 		}
@@ -507,58 +385,51 @@ function addElements(elems)
 	updateInfo();
 }
 
-function updateLayout()
+function updateLayout(layopt)
 {
-	var layopt = $("#layout_list").val();
 	var visObject = getVisData("cytoscapeweb");
+	if ($.isEmptyObject(visObject) || visObject === undefined || visObject === null)
+	{
+		modalAlert("No network has been initialized yet!");
+		return;
+	}
 
+	var layoutOpts = $("#cytoscapeweb").data("layout");
 	switch(layopt)
 	{
 		case 'ForceDirected':
-			if (mySimpleValidation(['force_gravitation','force_node_mass','force_edge_tension']))
+			theLayout =
 			{
-				theLayout =
-				{
-					gravitation: parseFloat($("#force_gravitation").val()),
-					mass: parseFloat($("#force_node_mass").val()),
-					tension: parseFloat($("#force_edge_tension").val())
-				};
-				visObject.layout({ name: 'ForceDirected', options: theLayout });
-			} else { return; }
+				gravitation: layoutOpts.ForceDirected.gravitation,
+				mass: layoutOpts.ForceDirected.node_mass,
+				tension: layoutOpts.ForceDirected.edge_tension
+			};
+			visObject.layout({ name: 'ForceDirected', options: theLayout });
 			break;
 		case 'Circle':
-			if (mySimpleValidation(['circle_angle']))
+			theLayout =
 			{
-				theLayout =
-				{
-					angleWidth: parseFloat($("#circle_angle").val()),
-					tree: $("#circle_tree_struct").is(":checked")
-				};
-				visObject.layout({ name: 'Circle', options: theLayout });
-			} else { return; }
+				angleWidth: layoutOpts.Circle.angle_width,
+				tree: layoutOpts.Circle.tree_structure
+			};
+			visObject.layout({ name: 'Circle', options: theLayout });
 			break;
 		case 'Radial':
-			if (mySimpleValidation(['radial_radius','radial_angle']))
+			theLayout =
 			{
-				theLayout =
-				{
-					angleWidth: parseFloat($("#radial_angle").val()),
-					radius: parseFloat($("#radial_radius").val())
-				};
-				visObject.layout({ name: 'Radial', options: theLayout });
-			} else { return; }
+				angleWidth: layoutOpts.Radial.angle_width,
+				radius: layoutOpts.Radial.radius
+			};
+			visObject.layout({ name: 'Radial', options: theLayout });
 			break;
 		case 'Tree':
-			if (mySimpleValidation(['tree_depth','tree_breadth']))
+			theLayout =
 			{
-				theLayout =
-				{
-					orientation: $("#tree_orientation").val(),
-					depthSpace: parseFloat($("#tree_depth").val()),
-					breadthSpace: parseFloat($("#tree_breadth").val())
-				};
-				visObject.layout({ name: 'Radial', options: theLayout });
-			} else { return; }
+				orientation: layoutOpts.Tree.orientation,
+				depthSpace: layoutOpts.Tree.depth,
+				breadthSpace: layoutOpts.Tree.breadth
+			};
+			visObject.layout({ name: 'Radial', options: theLayout });
 			break;
 	}
 }
@@ -566,6 +437,11 @@ function updateLayout()
 function exportText(format)
 {
 	var visObject = getVisData('cytoscapeweb');
+	if ($.isEmptyObject(visObject) || visObject === undefined || visObject === null)
+	{
+		modalAlert("No network has been initialized yet!");
+		return;
+	}
 	var urlBase = initMe();
 	var text;
 		
@@ -595,6 +471,11 @@ function exportText(format)
 function exportImage(format)
 {
 	var visObject = getVisData('cytoscapeweb');
+	if ($.isEmptyObject(visObject) || visObject === undefined || visObject === null)
+	{
+		modalAlert("No network has been initialized yet!");
+		return;
+	}
 	var urlBase = initMe();
 	visObject.exportNetwork(format,urlBase + 'php/control.php?export=' + format,{ window: '_self' });
 }
@@ -647,7 +528,14 @@ function gimmeGeneData(staticData,ajaxData)
 	var nodeData = {};
 
 	nodeData.id = "Ensembl protein: <span style=\"color:#FF0000\">" + staticData['id'] + "</span><br/>";
-	nodeData.label = "Gene symbol: <a class=\"infolink\" href=\"http://www.genecards.org/cgi-bin/carddisp.pl?gene=" + staticData['label'] + "\" target=\"_blank\">" + staticData['label'] + "</a><br/>";
+	if (staticData['parent'] === '' || staticData['parent'] === null || staticData['parent'] === 'undefined')
+	{
+		nodeData.label = "Gene symbol: <a class=\"infolink\" href=\"http://www.genecards.org/cgi-bin/carddisp.pl?gene=" + staticData['label'] + "\" target=\"_blank\">" + staticData['label'] + "</a><br/>";
+	}
+	else
+	{
+		nodeData.label = "";
+	}
 	nodeData.entrez = "Entrez ID: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/gene?term=" + staticData['entrez_id'] + "\" target=\"_blank\">" + staticData['entrez_id'] + "</a><br/>";
 	nodeData.strength = staticData['strength']==="" ? "" : "Expression strength: <span style=\"color:#FF0000\">" + staticData['strength'] + "</span><br/>";
 	nodeData.expression = staticData['expression']==="" ? "" : "Differential expression: <span style=\"color:#FF0000\">" + staticData['expression'] + "</span><br/>";
@@ -910,6 +798,39 @@ function rgbToHex(r,g,b)
 	return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
 }
 
+function sigSizeChange()
+{
+	var visObject = getVisData("cytoscapeweb");
+	var nodes = visObject.nodes();
+	var noN = nodes.length;
+	var visProps = [];
+	var i, currNode;
+	var bypass = { nodes: { }, edges: { } };
+
+	if ($("#sig_size_check").is(":checked"))
+	{
+		for (i=0; i<noN; i++)
+		{
+			if (nodes[i].data.pvalue !== 999 && nodes[i].data.pvalue !== null)
+			{
+				bypass[nodes[i].group][nodes[i].data.id] = { color: nodes[i].color, borderWidth: gimmeNodeBorder(Math.pow(10,-nodes[i].data.pvalue)), borderColor: "#666666" };
+			}
+		}
+	}
+	else
+	{
+		for (i=0; i<noN; i++)
+		{
+			if (nodes[i].data.pvalue !== 999 && nodes[i].data.pvalue !== null)
+			{
+				bypass[nodes[i].group][nodes[i].data.id] = { color: nodes[i].color, borderWidth: 1, borderColor: "#000000" };
+			}
+		}
+	}
+
+	visObject.visualStyleBypass(bypass);
+}
+
 function showLabels(group)
 {
 	var visObject = getVisData('cytoscapeweb');
@@ -951,6 +872,7 @@ function resetGeneData()
 	var bypass = { nodes: { }, edges: { } };
 	var redata = { strength: "", expression: "", ratio: 999, pvalue: 999, fdr: 999 };
 
+	// Reset normal nodes
 	for (i=0; i<n; i++)
 	{
 		if (nodes[i].data.object_type === "gene")
@@ -959,8 +881,39 @@ function resetGeneData()
 			bypass["nodes"][nodes[i].data.id] = { color: "#F7F7F7", borderWidth: 1, borderColor: "#000000" };
 		}
 	}
+	// Now, find any children nodes, we will add an if to check if this is allowed by the application
+	if ($("#multicolor_check").is(":checked"))
+	{
+		var pNodes = visObject.parentNodes();
+		var cNodes = [];
+		for (i=0; i<pNodes.length; i++)
+		{
+			cNodes = visObject.childNodes(pNodes[i]);
+			visObject.removeElements("nodes",cNodes);
+		}
+	}
+	
 	visObject.updateData(genes,redata);
 	visObject.visualStyleBypass(bypass);
+}
+
+function checkMultiColor()
+{
+	var visObject = getVisData("cytoscapeweb");
+	if (!$("#multicolor_check").is(":checked"))
+	{
+		var pNodes = visObject.parentNodes();
+		var cNodes = [];
+		for (i=0; i<pNodes.length; i++)
+		{
+			cNodes = visObject.childNodes(pNodes[i]);
+			visObject.removeElements("nodes",cNodes);
+		}
+	}
+	else
+	{
+		colorNodes();
+	}
 }
 
 function getEntrezIDs()
@@ -984,6 +937,232 @@ function removeElements(elems)
 	visObject.removeElements(elems,true);
 }
 
+function initGlobalStyle()
+{
+	var globalStyle =
+	{
+		backgroundColor: "#FFFFFF",
+		selectionFillColor: "#9A9AFF"
+	};
+
+	return(globalStyle);
+}
+
+function initNodeStyle()
+{
+	var nodeMapper = initNodeMapper();
+
+	var nodeStyle =
+	{
+		shape:
+		{
+			defaultValue: "ELLIPSE",
+			discreteMapper: nodeMapper.shapeMapper
+		},
+		borderWidth: 1,
+		borderColor: "#000000",
+		size: "auto",
+		color:
+		{
+			defaultValue: "#F7F7F7",
+			discreteMapper: nodeMapper.metaMapper
+		},
+		labelHorizontalAnchor: "center",
+		labelVerticalAnchor: "middle",
+		selectionColor: "#5FFFFB",
+		selectionGlowColor: "#95FFFE",
+		selectionGlowStrength: 32,
+		labelFontWeight:
+		{
+			defaultValue: "normal",
+			discreteMapper: nodeMapper.fontWeightMapper
+		},
+        labelFontColor:
+        {
+            defaultValue: "#000000",
+            discreteMapper: nodeMapper.fontColorMapper
+        }
+	};
+
+	return(nodeStyle);
+}
+
+function initEdgeStyle()
+{
+	var edgeMapper = initEdgeMapper();
+
+	var edgeStyle =
+	{
+		color:
+		{
+			defaultValue: "#999999",
+			discreteMapper: edgeMapper.colorMapper
+		},
+		width:
+		{
+			defaultValue: 1,
+			discreteMapper: edgeMapper.widthMapper
+		},
+		labelFontColor:
+		{
+			defaultValue: "#000000",
+			discreteMapper: edgeMapper.colorMapper
+		}
+	};
+
+	return(edgeStyle);
+}
+
+function initNodeMapper()
+{
+	var nodeMapper =
+	{
+		shapeMapper:
+		{
+			attrName: "object_type",
+			entries:
+			[
+				{ attrValue: "gene", value: "ELLIPSE" },
+				{ attrValue: "component", value: "ROUNDRECT" },
+				{ attrValue: "function", value: "ROUNDRECT" },
+				{ attrValue: "process", value: "ROUNDRECT" },
+				{ attrValue: "pathway", value: "PARALLELOGRAM" },
+				{ attrValue: "mirna", value: "DIAMOND" }
+			]
+		},
+		strengthMapper:
+		{
+			attrName: "strength",
+			entries:
+			[
+				{ attrValue: "Strong", value: "#0C5DA5" },
+				{ attrValue: "Medium", value: "#539AD9" },
+				{ attrValue: "Weak", value: "#A4C9EB" },
+				{ attrValue: "Present", value: "#9FFFB5" },
+				{ attrValue: "Absent", value: "#FFF59F" }
+			]
+		},
+		expressionMapper:
+		{
+			attrName: "expression",
+			entries:
+			[
+				{ attrValue: "Up", value: "#FF0000" },
+				{ attrValue: "Down", value: "#00FF00" },
+				{ attrValue: "Unmodified", value: "#FFDA00" }
+			]
+		},
+		ratioMapper: { attrName: "ratio", minValue: "#00FF00", maxValue: "#FF0000" },
+		pvalueMapper: { attrName: "pvalue", minValue: 16, maxValue: 64 },
+		fdrMapper: { attrName: "fdr", minValue: 16, maxValue: 64 },
+		metaMapper:
+		{
+			attrName: "object_type",
+			entries:
+			[
+				{ attrValue: "gene", value: "#F7F7F7" },
+				{ attrValue: "component", value: "#A468D5" },
+				{ attrValue: "function", value: "#BFA630" },
+				{ attrValue: "process", value: "#6E86D6" },
+				{ attrValue: "pathway", value: "#700900" },
+				{ attrValue: "mirna", value: "#6E86D6" }
+			]
+		},
+		fontWeightMapper:
+		{
+			attrName: "object_type",
+			entries:
+			[
+				{ attrValue: "gene", value: "normal" },
+				{ attrValue: "component", value: "bold" },
+				{ attrValue: "function", value: "bold" },
+				{ attrValue: "process", value: "bold" },
+				{ attrValue: "pathway", value: "bold" },
+				{ attrValue: "mirna", value: "bold" }
+			]
+		},
+        fontColorMapper:
+        {
+            attrName: "object_type",
+            entries:
+            [
+                { attrValue: "gene", value: "#000000" },
+                { attrValue: "component", value: "#000000" },
+                { attrValue: "function", value: "#000000" },
+                { attrValue: "process", value: "#000000" },
+                { attrValue: "pathway", value: "#FFFFFF" },
+                { attrValue: "mirna", value: "#000000" }
+            ]
+        }
+	};
+
+	return(nodeMapper);
+}
+
+function initEdgeMapper()
+{
+	var edgeMapper =
+	{
+		colorMapper:
+		{
+			attrName: "interaction",
+			entries:
+			[
+				{ attrValue: "binding", value: "#028E9B" },
+				{ attrValue: "ptmod", value: "#133CAC" },
+				{ attrValue: "expression", value: "#FFAD00" },
+				{ attrValue: "activation", value: "#FF7800" },
+				{ attrValue: "go", value: "#9BA402" },
+				{ attrValue: "kegg", value: "#D30068" },
+				{ attrValue: "mirna", value: "#A67D00" }
+			]
+		},
+		widthMapper:
+		{
+			attrName: "interaction",
+			entries:
+			[
+				{ attrValue: "go", value: 3 },
+				{ attrValue: "kegg", value: 3 },
+				{ attrValue: "mirna", value: 3 }
+			]
+		}
+	};
+
+	return(edgeMapper);
+}
+
+function initLayoutOpts()
+{
+	var layoutOpts =
+	{
+		ForceDirected:
+		{
+			gravitation: -500,
+			node_mass: 5,
+			edge_tension: 0.5
+		},
+		Circle:
+		{
+			angle_width: 360,
+			tree_structure: true
+		},
+		Tree:
+		{
+			orientation: "topToBottom",
+			depth: 50,
+			breadth: 30
+		},
+		Radial:
+		{
+			radius: -500,
+			angle_width: 360
+		}
+	};
+
+	return(layoutOpts);
+}
+
 function getVisData(container)
 {
 	return($("#"+container).data("visObject"));
@@ -1003,3 +1182,60 @@ function setData(container,name,data)
 {
 	$(container).data(name,data);
 }
+
+
+/*function updateLayout()
+{
+	var visObject = getVisData("cytoscapeweb");
+	var layopt = $("#layout_list").val();
+
+	switch(layopt)
+	{
+		case 'ForceDirected':
+			if (mySimpleValidation(['force_gravitation','force_node_mass','force_edge_tension']))
+			{
+				theLayout =
+				{
+					gravitation: parseFloat($("#force_gravitation").val()),
+					mass: parseFloat($("#force_node_mass").val()),
+					tension: parseFloat($("#force_edge_tension").val())
+				};
+				visObject.layout({ name: 'ForceDirected', options: theLayout });
+			} else { return; }
+			break;
+		case 'Circle':
+			if (mySimpleValidation(['circle_angle']))
+			{
+				theLayout =
+				{
+					angleWidth: parseFloat($("#circle_angle").val()),
+					tree: $("#circle_tree_struct").is(":checked")
+				};
+				visObject.layout({ name: 'Circle', options: theLayout });
+			} else { return; }
+			break;
+		case 'Radial':
+			if (mySimpleValidation(['radial_radius','radial_angle']))
+			{
+				theLayout =
+				{
+					angleWidth: parseFloat($("#radial_angle").val()),
+					radius: parseFloat($("#radial_radius").val())
+				};
+				visObject.layout({ name: 'Radial', options: theLayout });
+			} else { return; }
+			break;
+		case 'Tree':
+			if (mySimpleValidation(['tree_depth','tree_breadth']))
+			{
+				theLayout =
+				{
+					orientation: $("#tree_orientation").val(),
+					depthSpace: parseFloat($("#tree_depth").val()),
+					breadthSpace: parseFloat($("#tree_breadth").val())
+				};
+				visObject.layout({ name: 'Radial', options: theLayout });
+			} else { return; }
+			break;
+	}
+}*/

@@ -321,7 +321,8 @@ function search(input)
 				}
 				else //Enable and fill the rest of the lists
 				{																						
-					$("#metadata").show("slow");
+					$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+					$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 					var outerkey,innerkey,innermost;					
 					for (outerkey in data)
 					{										
@@ -451,15 +452,46 @@ function update(id)
 		modalAlert("Please restrict your network to 1500 nodes!","Attention!");
 		return;
 	}
-
-	var searchJSON = $.toJSON(enteredTerms);
 	
 	switch(id)
 	{
 		case 'species_list':
-			if (genesQuery !== '') // If empty then we are at initialization phase 
+			if (enteredTerms !== '') // If empty then we are at initialization phase 
 			{
-				selSpecies = $('#species_list').val();					
+				// In this case, entrez genes will return an empty network as they are species
+				// specific... We have to get back gene symbols which will be then queried
+				// but the query ignores letter case
+				$.ajax(
+				{
+					type: 'POST',
+					url: urlBase+'php/control.php',
+					async: false, // Little cheat for speed...
+					data: { symbol: "symbol" }, // Entrez is in session... pointless to send data around
+					beforeSend: function() { $('#loadingCircle').show(); },
+					complete: function() { $('#loadingCircle').hide(); },
+					success: function(data)
+					{                        
+						if ($.isEmptyObject(data))
+						{
+							displayError('No gene symbols found!'); // Unlikely...
+						}
+						else
+						{
+							alert(data);
+							enteredTerms = data;
+						}
+					},
+					error: function(data,error)
+					{                                                
+						displayError('Ooops! ' + error + ' ' + data.responseText);                        
+					},
+					dataType: "json"
+				});
+				
+				var searchJSON = $.toJSON(enteredTerms);
+				selSpecies = $('#species_list').val();
+				alert(enteredTerms);
+
 				$.ajax(
 				{
 					type: 'POST',
@@ -482,8 +514,7 @@ function update(id)
 							displayError('Sorry! Nothing found... :-(');
 						}
 						else //Enable and fill the rest of the lists
-						{																									
-							$("#metadata").show("slow");
+						{
 							for (outerkey in data)
 							{										
 								switch(outerkey)
@@ -624,16 +655,20 @@ function update(id)
 							switch(outerkey)
 							{
 								case 'location':
-									$("#location_list").empty();
-									if (data['location'] !== null)
-									{								
-										enable(['location_list']);				
-										for (innerkey in data[outerkey])
-										{
-											$("#location_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
-												+ data[outerkey][innerkey] + "</option>");
+									if ($("#restrict_check").is(":checked"))
+									{
+										$("#location_list").empty();
+										if (data['location'] !== null)
+										{								
+											enable(['location_list']);				
+											for (innerkey in data[outerkey])
+											{
+												$("#location_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+													+ data[outerkey][innerkey] + "</option>");
+											}
 										}
 									}
+									else { enable(['location_list']); }
 									break;
 								case 'dataset':
 									$("#dataset_list").empty();
@@ -691,16 +726,19 @@ function update(id)
 							switch(outerkey)
 							{
 								case 'disease':
-									$("#disease_list").empty();
-									if (data[outerkey] !== null)
-									{								
-										enable(['disease_list']);				
-										for (innerkey in data[outerkey])
-										{
-											$("#disease_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
-												+ data[outerkey][innerkey] + "</option>");
+									if ($("#restrict_check").is(":checked"))
+									{
+										$("#disease_list").empty();
+										if (data[outerkey] !== null)
+										{								
+											enable(['disease_list']);		
+											for (innerkey in data[outerkey])
+											{
+												$("#disease_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+													+ data[outerkey][innerkey] + "</option>");
+											}
 										}
-									}
+									} else { enable(['disease_list']); } 
 									break;
 								case 'dataset':
 									$("#dataset_list").empty();
@@ -777,14 +815,30 @@ function changeGOCategory(category)
 function colorNodes()
 {
 	var urlBase = initMe();
-	//var selDisease = $("#disease_list option:selected").text();
-	var selDisease = $("#disease_list").val();
-	var selLocation = $("#location_list").val();
+	//var selDisease = $("#disease_list").val();
+	//var selLocation = $("#location_list").val();
 	var selDataset = $("#dataset_list").val();
+	var selLocation = $("#location_list option:selected").text();
+	var selDisease = $("#disease_list option:selected").text();
+
+	if (selDataset[0] === "none")
+	{
+		resetGeneData();
+		return;
+	}
 
 	if (!$("#disease_check").is(":checked")) { selDisease = ''; }
+	else
+	{
+		if (selDisease === "-data with no disease associated-") { selDisease = ''; }
+	}
 	if (!$("#location_check").is(":checked")) { selLocation = ''; }
-	
+	else
+	{
+		if (selLocation === "-data with no location associated-") { selLocation = ''; }
+	}
+
+	resetGeneData();
 	$.ajax(
 	{
 		type: 'POST',
@@ -991,99 +1045,6 @@ function clearMeta(what,howmany,flag)
     }
 }
 
-function updateLayoutOpts()
-{
-	var html = {};
-	var layout = $("#layout_list").val();
-
-	html.force =
-		"<table class=\"innerTable\">" +
-		"<tr>" +
-		"<td class=\"layoptCell\"><label for=\"force_gravitation\">Gravitation:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"2\" value=\"-500\"/></td>" +
-		"<td class=\"layoptCell\"><label for=\"force_node_mass\">Node mass:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"2\" value=\"5\"/></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td class=\"layoptCell\"><label for=\"force_edge_tension\">Edge tension:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_edge_tension\" size=\"2\" value=\"0.5\"/></td>" +
-		"<td class=\"layoptCell\"></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
-		"</tr>" +
-		"</table>";
-	html.circle =
-		"<table class=\"innerTable\">" +
-		"<tr>" +
-		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"circle_angle\">Angle width:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"circle_angle\" size=\"5\" value=\"360\"/></td>" +
-		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"circle_tree_struct\">Tree structure:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"checkbox\" id=\"circle_tree_struct\"/></td>" +
-		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
-		"</tr>" +
-		"</table>";
-	html.radial =
-		"<table class=\"innerTable\">" +
-		"<tr>" +
-		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"radial_radius\">Radius:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"radial_radius\" size=\"5\" value=\"auto\"/></td>" +
-		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"radial_angle\">Angle width:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"radial_angle\" size=\"5\" value=\"360\"/></td>" +
-		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
-		"</tr>" +
-		"</table>";
-	html.tree =
-		"<table class=\"innerTable\">" +
-		"<tr>" +
-		"<td class=\"layoptCell\"><label for=\"tree_orientation\">Orientation:</label></td>" +
-		"<td colspan=3 class=\"layoptCell\"><select id=\"tree_orientation\">" +
-		"<option value=\"topToBottom\">Top to Bottom</option>" +
-		"<option value=\"bottomToTop\">Bottom to Top</option>" +
-		"<option value=\"leftToRight\">Left to Right</option>" +
-		"<option value=\"rightToLeft\">Right to Left</option>" +
-		"</select></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td class=\"layoptCell\"><label for=\"tree_depth\">Depth:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"tree_depth\" size=\"2\" value=\"50\"/></td>" +
-		"<td class=\"layoptCell\"><label for=\"tree_breadth\">Breadth:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"tree_breadth\" size=\"2\" value=\"30\"/></td>" +
-		"</tr>" +
-		"<tr>" +
-		"<td colspan=4 class=\"layoptCell\"><button class=\"secondaryButton\" style=\"float:right\" id=\"execute_layout\" onclick=\"updateLayout()\">Execute layout</button></td>" +
-		"</tr>" +
-		"</table>";
-
-	switch(layout)
-	{
-		case 'ForceDirected':
-			$("#layoutOptionContainer").html(html.force);
-			break;
-		case 'Circle':
-			$("#layoutOptionContainer").html(html.circle);
-			break;
-		case 'Radial':
-			$("#layoutOptionContainer").html(html.radial);
-			break;
-		case 'Tree':
-			$("#layoutOptionContainer").html(html.tree);
-			break;
-	}
-}
-
 function fetchNetwork()
 {
 	var urlBase = initMe();
@@ -1135,7 +1096,7 @@ function fetchNetwork()
 
 function initNetwork(networkJSON)
 {
-	// Initialization options, visual style, initial controls, visualization
+	// Initialization options, visual style, initial controls, layout parameters, visualization
 	var options =
 	{
 		//swfPath: "../swf/CytoscapeWeb",
@@ -1144,15 +1105,17 @@ function initNetwork(networkJSON)
         flashInstallerPath: "swf/playerProductInstall"
 	};
 	var visual_style = initVisualStyle();
+	var layOpts = initLayoutOpts();
 	var vis = new org.cytoscapeweb.Visualization("cytoscapeweb",options);
 
 	// callback when Cytoscape Web has finished drawing
 	vis.ready(function()
 	{
-		// Store the network so it can be accessible to other functions
+		// Store the network and layout object so it can be accessible to other functions
 		$("#cytoscapeweb").data("visObject",vis);
+		$("#cytoscapeweb").data("layout",layOpts);
 		// Start with only the selected edges
-		filterEdges();
+		//filterEdges();
 		// Add click listeners
 		vis
 		.addListener("click","nodes",function(event)
@@ -1168,11 +1131,11 @@ function initNetwork(networkJSON)
 			displayMultiInfo(event);
 		})
 		// Add context menus
-		.addContextMenuItem("Show level 1 neighbors","nodes",function(event)
+		.addContextMenuItem("Get level 1 neighbors","nodes",function(event)
 		{
 			fetchNeighbors(1);
 		})
-		.addContextMenuItem("Show level 2 neighbors","nodes",function(event)
+		.addContextMenuItem("Get level 2 neighbors","nodes",function(event)
 		{
 			fetchNeighbors(2);
 		})
@@ -1180,6 +1143,10 @@ function initNetwork(networkJSON)
 		//{
 		//	fetchNeighbors(3);
 		//})
+		.addContextMenuItem("Highlight level 1 neighbors","nodes",function(event)
+		{
+			showNeighbors(1);
+		})
 		.addContextMenuItem("Hide node","nodes",function(event)
 		{
 			hideElements("nodes","hide");
@@ -1427,6 +1394,32 @@ function initNetwork(networkJSON)
 				dataType: "json"
 			});
 		}
+
+		// Only for level 1 for the moment...
+		function showNeighbors(level)
+		{
+			var selNodes = vis.selected("nodes");
+			var selNodeIDs = [];
+			var sn = selNodes.length;
+			var i = 0;
+
+			if (sn === 0) // Nothing selected
+			{
+				modalAlert("Please select at least one node.","Attention!");
+				return;
+			}
+
+			for (i=0; i<sn; i++)
+			{
+				selNodeIDs.push(selNodes[i].data.id);
+			}
+
+			var nObj = vis.firstNeighbors(selNodeIDs,true);
+
+			// Now highlight neighboring nodes and edges
+			vis.select("nodes",nObj.neighbors);
+			vis.select("edges",nObj.edges);
+		}
 	});
 
 	// draw options
@@ -1544,6 +1537,246 @@ function infoSifDiv()
 	}
 }
 
+function modalLayoutParamForm(tit)
+{
+	var visObject = getVisData('cytoscapeweb');
+	if ($.isEmptyObject(visObject) || visObject === undefined || visObject === null)
+	{
+		modalAlert("No network has been initialized yet!");
+		return;
+	}
+	
+	$("#dialog")
+	.html(
+		"<table class=\"innerTable\">" +
+		"<tr><td class=\"innerCell\" style=\"text-align:left; width:28%\">" +
+		"<span class=\"boldText\">View: </span>" +
+		"</td><td colspan=3 class=\"innerCell\">" +
+		"<select name=\"layout_list\" id=\"layout_list\" onchange=\"updateLayoutOpts()\">" +
+		"<option value=\"ForceDirected\">Default</option>" +
+		"<option value=\"Circle\">Circle</option>" +
+		"<option value=\"Tree\">Tree</option>" +
+		"<option value=\"Radial\">Pizza</option>" +
+		"</select>" +
+		"</td></tr>" +
+		"<tr>" +
+		"<td class=\"innerCell\" style=\"text-align:left\">Layout Options:" +
+		"</td>" +
+		"<td colspan=3 class=\"innerCell\" style=\"text-align:left\">" +
+		"<div id=\"layoutOptionContainer\">" +
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"force_gravitation\">Gravitation:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"5\" value=\"-500\" /></td>" +
+		"<td class=\"layoptCell\"><label for=\"force_node_mass\">Node mass:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"5\" value=\"5\" /></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"force_edge_tension\">Edge tension:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_edge_tension\" size=\"5\" value=\"0.5\" /></td>" +
+		"<td class=\"layoptCell\"></td>" +
+		"</tr></table></div></td></tr></table>"
+	)
+	.dialog(
+	{
+		modal: true,
+		autoOpen: false,
+		title: tit,
+		dialogClass: "attention",
+		resizable: false,
+		width: 400,
+		buttons:
+		{
+			OK: function()
+			{
+				var layopt = $("#layout_list").val();
+				var layoutOpts = $("#cytoscapeweb").data("layout");
+				
+				switch(layopt)
+				{
+					case 'ForceDirected':
+						if (mySimpleValidation(['force_gravitation','force_node_mass','force_edge_tension']))
+						{
+							layoutOpts.ForceDirected.gravitation = parseFloat($("#force_gravitation").val());
+							layoutOpts.ForceDirected.node_mass = parseFloat($("#force_node_mass").val());
+							layoutOpts.ForceDirected.edge_tension = parseFloat($("#force_edge_tension").val())
+						} else { return; }
+						break;
+					case 'Circle':
+						if (mySimpleValidation(['circle_angle']))
+						{
+							layoutOpts.Circle.angle_width = parseFloat($("#circle_angle").val());
+							layoutOpts.Circle.tree_structure = $("#circle_tree_struct").is(":checked");
+						} else { return; }
+						break;
+					case 'Radial':
+						if (mySimpleValidation(['radial_radius','radial_angle']))
+						{
+							layoutOpts.Radial.angle_width = parseFloat($("#radial_angle").val());
+							layoutOpts.Radial.radius = parseFloat($("#radial_radius").val());
+						} else { return; }
+						break;
+					case 'Tree':
+						if (mySimpleValidation(['tree_depth','tree_breadth']))
+						{
+							layoutOpts.Tree.orientation = $("#tree_orientation").val();
+							layoutOpts.Tree.depth = parseFloat($("#tree_depth").val());
+							layoutOpts.Tree.breadth = parseFloat($("#tree_breadth").val());
+						} else { return; }
+						break;
+				}
+
+				$("#cytoscapeweb").data("layout",layoutOpts);
+				$(this).dialog("close");
+			},
+			"OK and Update": function()
+			{
+				var layopt = $("#layout_list").val();
+				var layoutOpts = $("#cytoscapeweb").data("layout");
+				
+				switch(layopt)
+				{
+					case 'ForceDirected':
+						if (mySimpleValidation(['force_gravitation','force_node_mass','force_edge_tension']))
+						{
+							layoutOpts.ForceDirected.gravitation = parseFloat($("#force_gravitation").val());
+							layoutOpts.ForceDirected.node_mass = parseFloat($("#force_node_mass").val());
+							layoutOpts.ForceDirected.edge_tension = parseFloat($("#force_edge_tension").val())
+						} else { return; }
+						break;
+					case 'Circle':
+						if (mySimpleValidation(['circle_angle']))
+						{
+							layoutOpts.Circle.angle_width = parseFloat($("#circle_angle").val());
+							layoutOpts.Circle.tree_structure = $("#circle_tree_struct").is(":checked");
+						} else { return; }
+						break;
+					case 'Radial':
+						if (mySimpleValidation(['radial_radius','radial_angle']))
+						{
+							layoutOpts.Radial.angle_width = parseFloat($("#radial_angle").val());
+							layoutOpts.Radial.radius = parseFloat($("#radial_radius").val());
+						} else { return; }
+						break;
+					case 'Tree':
+						if (mySimpleValidation(['tree_depth','tree_breadth']))
+						{
+							layoutOpts.Tree.orientation = $("#tree_orientation").val();
+							layoutOpts.Tree.depth = parseFloat($("#tree_depth").val());
+							layoutOpts.Tree.breadth = parseFloat($("#tree_breadth").val());
+						} else { return; }
+						break;
+				}
+
+				$("#cytoscapeweb").data("layout",layoutOpts);
+				updateLayout(layopt);
+				$(this).dialog("close");
+			},
+			Cancel: function()
+			{
+				$(this).dialog("close");
+				$(this).removeData();
+			}
+		}
+	});
+	$("#dialog").dialog("open");
+
+	return(false);
+}
+
+function updateLayoutOpts()
+{
+	var html = {};
+	var layout = $("#layout_list").val();
+
+	html.force =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"force_gravitation\">Gravitation:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"5\" value=\"-500\"/></td>" +
+		"<td class=\"layoptCell\"><label for=\"force_node_mass\">Node mass:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"5\" value=\"5\"/></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"force_edge_tension\">Edge tension:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_edge_tension\" size=\"5\" value=\"0.5\"/></td>" +
+		"<td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"</table>";
+	html.circle =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"circle_angle\">Angle width:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"circle_angle\" size=\"5\" value=\"360\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"circle_tree_struct\">Tree structure:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"checkbox\" id=\"circle_tree_struct\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"</table>";
+	html.radial =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"radial_radius\">Radius:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"radial_radius\" size=\"5\" value=\"auto\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\" style=\"width:30%\"><label for=\"radial_angle\">Angle width:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"radial_angle\" size=\"5\" value=\"360\"/></td>" +
+		"<td class=\"layoptCell\"></td><td class=\"layoptCell\"></td>" +
+		"</tr>" +
+		"</table>";
+	html.tree =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"tree_orientation\">Orientation:</label></td>" +
+		"<td colspan=3 class=\"layoptCell\"><select id=\"tree_orientation\">" +
+		"<option value=\"topToBottom\">Top to Bottom</option>" +
+		"<option value=\"bottomToTop\">Bottom to Top</option>" +
+		"<option value=\"leftToRight\">Left to Right</option>" +
+		"<option value=\"rightToLeft\">Right to Left</option>" +
+		"</select></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"tree_depth\">Depth:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"tree_depth\" size=\"5\" value=\"50\"/></td>" +
+		"<td class=\"layoptCell\"><label for=\"tree_breadth\">Breadth:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"tree_breadth\" size=\"5\" value=\"30\"/></td>" +
+		"</tr>" +
+		"</table>";
+
+	switch(layout)
+	{
+		case 'ForceDirected':
+			$("#layoutOptionContainer").html(html.force);
+			break;
+		case 'Circle':
+			$("#layoutOptionContainer").html(html.circle);
+			break;
+		case 'Radial':
+			$("#layoutOptionContainer").html(html.radial);
+			break;
+		case 'Tree':
+			$("#layoutOptionContainer").html(html.tree);
+			break;
+	}
+}
+
+function toggleInfo()
+{
+	if ($('#element_info').css("opacity") == 0.0)
+	{
+		$('#element_info').animate({ opacity: 1.0 },250);
+	}
+	else
+	{
+		$('#element_info').animate({ opacity: 0.0 },250);
+	}
+}
+
 function showInfo(msg)
 {
 	$("#infoContainer").html(msg);
@@ -1566,9 +1799,8 @@ function loadingSmall()
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
 			 'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
 			 'binding_check','ptmod_check','expression_check','activation_check',
-			 'go_check','kegg_check','mirna_check',
-			 'sig_size_check','node_labels_check','edge_labels_check',
-			 'layout_list']);
+			 'go_check','kegg_check','mirna_check','multicolor_check','restrict_check',
+			 'node_labels_check','edge_labels_check','sig_size_check','layout_list']);
 	$("#export_sif").css("background","url(images/export_buttons/sif_fade.png)");
 	$("#export_graphml").css("background","url(images/export_buttons/gml_fade.png)");
 	$("#export_xgmml").css("background","url(images/export_buttons/xml_fade.png)");
@@ -1589,9 +1821,8 @@ function unloadingSmall()
 			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
 			'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
 			'binding_check','ptmod_check','expression_check','activation_check',
-			'go_check','kegg_check','mirna_check',
-			'sig_size_check','node_labels_check','edge_labels_check',
-			'layout_list']);
+			'go_check','kegg_check','mirna_check','multicolor_check','restrict_check',
+			'node_labels_check','edge_labels_check','sig_size_check','layout_list']);
 	$("#export_sif").css("background","url(images/export_buttons/sif_unpressed.png)");
 	$("#export_graphml").css("background","url(images/export_buttons/gml_unpressed.png)");
 	$("#export_xgmml").css("background","url(images/export_buttons/xml_unpressed.png)");
@@ -1704,7 +1935,8 @@ function resetSearch()
 			 'go_check','kegg_check','mirna_check',
 			 'sig_size_check','node_labels_check','edge_labels_check',
 			 'layout_list']);
-	$("#metadata").hide("fast");
+	$("#color_legend").css("visibility","hidden");
+	$("#info_section").css("visibility","hidden");
 }
 
 function resetData() 
@@ -1784,7 +2016,13 @@ function initTooltip(id)
 {
 	for (var item in id)
 	{
-		$("#"+id[item]+"[title]").tooltip().dynamic();
+		$("#"+id[item]+"[title]")
+		.tooltip({ effect: "fade" })
+		.dynamic({
+			top: { offset: [0, 0] },
+			left: { offset: [95, 0] },
+			right: { offset: [95, 0] }
+		});
 	}
 }
 
