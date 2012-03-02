@@ -16,6 +16,7 @@ if ($_REQUEST['species'])
 	$genes = json_decode($genes,$assoc=TRUE);
     //$entrez = getEntrezFromSymbol($genes,$species);
     $entrez = getEntrezFromAny($genes,$species);
+    
 	if (empty($entrez))
 	{
 		$resultKUPKB = array();
@@ -101,6 +102,13 @@ if ($_REQUEST['dataset'])
 	echo json_encode($result);
 }
 
+# Response to gene symbol request
+if ($_REQUEST['symbol'])
+{
+	$result = getSymbolFromEntrez($_SESSION['entrez']);
+	echo json_encode($result);
+}
+
 # Response to AJAX network construction
 if ($_REQUEST['network']) // The network!
 {
@@ -159,7 +167,6 @@ if ($_REQUEST['level'])
 	//echo json_encode($elements['elements']);
 
 	//$new_entrez = array_merge($_SESSION['entrez'],$elements['entrez']);
-	//$new_$dataset = getDatasetID($entrez);
 	//$_SESSION['entrez'] = $entrez;
 }
 
@@ -251,7 +258,7 @@ function getEntrezFromAny($terms,$species)
 			 $entrez_from_any_2_5.'(\''.$list_of_genes.'\')';
 	if (isset($species))
 	{
-		$query .= $entrez_from_any_3.$species.$entrez_gene_4;
+		$query .= $entrez_from_any_3.$species.$entrez_from_any_4;
 	}
 	else
 	{
@@ -264,6 +271,22 @@ function getEntrezFromAny($terms,$species)
 	}		
 	close_connection($conn);
 	return($entrez);
+}
+
+function getSymbolFromEntrez($entrez)
+{					
+	global $symbol_from_entrez;
+	$symbol = array();
+	$conn = open_connection();
+	$list_of_genes = is_array($entrez) ? implode(", ",$entrez) : $entrez;
+	$query = $symbol_from_entrez.'('.$list_of_genes.')';
+	$result = mysql_query($query,$conn);
+	while ($row = mysql_fetch_array($result,MYSQL_NUM))
+	{
+		$symbol[] = $row[0];
+	}		
+	close_connection($conn);
+	return($symbol);
 }
 
 function getEntrezFromSymbol($genes,$species)
@@ -322,6 +345,7 @@ function updateLocDataDisease($genes,$disease)
 {
 	global $update_locdata_disease_1,$update_locdata_disease_2_1,$update_locdata_disease_2_2,$update_locdata_disease_3;
 	global $update_locdata_disease_4,$update_locdata_disease_5_1,$update_locdata_disease_5_2,$update_locdata_disease_6;
+	$dataset_name = array("none" => "---no dataset selected---");
 	
 	if(is_array($genes) && !empty($genes))
 	{
@@ -335,8 +359,8 @@ function updateLocDataDisease($genes,$disease)
 		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
 		{
 			$dataset_name[$id] = utf8_encode($name);
-			$bc_0 = $b_0 === "" ? "- no location association -" : $b_0;
-			$bc_1 = $b_1 === "" ? "- no location association -" : $b_1;
+			$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
+			$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
 			$loc_0[$b_0] = $bc_0;
 			$loc_1[$b_1] = $bc_1;
 		}
@@ -353,6 +377,7 @@ function updateDisDataLocation($genes,$location)
 {
 	global $update_disdata_location_1,$update_disdata_location_2_1,$update_disdata_location_2_2,$update_disdata_location_3;
 	global $update_disdata_location_4,$update_disdata_location_5_1,$update_disdata_location_5_2,$update_disdata_location_6;
+	$dataset_name = array("none" => "---no dataset selected---");
 	
 	if(is_array($genes) && !empty($genes))
 	{
@@ -366,8 +391,8 @@ function updateDisDataLocation($genes,$location)
 		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
 		{
 			$dataset_name[$id] = utf8_encode($name);
-			$dc_0 = $d_0 === "" ? "- no disease association -" : $d_0;
-			$dc_1 = $d_1 === "" ? "- no disease association -" : $d_1;
+			$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
+			$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
 			$dis_0[$d_0] = $dc_0;
 			$dis_1[$d_1] = $dc_1;
 		}
@@ -386,26 +411,30 @@ function getRegulation($genes,$dataset,$disease,$location)
 	global $get_coloring_2_1,$get_coloring_2_2,$get_coloring_2_3,$get_coloring_2_4,$get_coloring_2_5;
 	global $get_coloring_4_1,$get_coloring_4_2,$get_coloring_4_3,$get_coloring_4_4,$get_coloring_4_5;
 	$color_data = array();
-	
+
 	if(!empty($genes) && !empty($dataset))
 	{
+		# When we have a multiple select list, the incoming result is an array
+		if (!is_array($dataset)) { $dataset = array($dataset); }
+		$dataset = '(\''.implode("', '",$dataset).'\')';
+
 		$conn = open_connection();
 		$gene_list = is_array($genes) ? implode(", ",$genes) : $genes;
 		if (!empty($disease) && !empty($location))
 		{	
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
 					 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
 					 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset.
 					 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
 					 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
 					 $get_coloring_5;
 		}
 		else if (!empty($disease) && empty($location))
 		{
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
 					 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset.
 					 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
 					 $get_coloring_5;
 		}
@@ -413,23 +442,23 @@ function getRegulation($genes,$dataset,$disease,$location)
 		{
 			$get_coloring_2_4 = substr($get_coloring_2_4,1,strlen($get_coloring_2_4)-1);
 			$get_coloring_4_4 = substr($get_coloring_4_4,1,strlen($get_coloring_4_4)-1);
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
 					 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\''.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset.
 					 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
 					 $get_coloring_5;
 		}
 		else
 		{
 			$get_coloring_3 = substr($get_coloring_3,1,strlen($get_coloring_3)-1);
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.'\''.$dataset.'\''.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.'\''.$dataset.'\'';
+			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
+					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset;
 		}
 		$result = mysql_query($query,$conn);
-		while (list($record_id,$dataset_id,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
+		while (list($record_id,$dataset_id,$display_name,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
 		{
 			$color_data[] = array("entrez_id" => $entrez_id, "strength" => $expr_strength, "expression" => $expr_de,
-								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr);
+								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "custom" => $display_name);
 		}
 		close_connection($conn);
 	}
@@ -572,6 +601,9 @@ function getmirnaElements($mirnas,$ensembl)
     return(array_merge($mirna_nodes,$mirna_edges));
 }
 
+# node: the selected ones to fetch their neighbors
+# nodes: all the current nodes in the network
+# level: the depth of neighborhood
 function getNeighbors($node,$nodes,$level)
 {
 	global $get_neighbors_1,$get_neighbors_2,$get_neighbors_3;
@@ -579,7 +611,7 @@ function getNeighbors($node,$nodes,$level)
 	$neighbors = array();
 	$add_nodes = array();
 	$add_edges = array();
-	$seen = array();
+	$adj = array();
 	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
 							  "expression" => "expression", "activation" => "activation");
 
@@ -640,26 +672,56 @@ function getNeighbors($node,$nodes,$level)
 												 "object_type" => "gene"));
 		}
 
-		$query = $get_add_edges_1.'(\''.$neighbor_list.'\')'.$get_add_edges_2.'(\''.$all_list.'\')';
-		//echo $query;
+		if ($level == 1) { $nodes = array_merge($nodes,$neighbors); } // Else already done
+		$all_list = implode("', '",$nodes); // Must be redefined, $_SESSION['proteins'] no longer enough...
+		#$query = $get_add_edges_1.'(\''.$neighbor_list.'\')'.$get_add_edges_2.'(\''.$all_list.'\')';
+		$query = $get_add_edges_1.'(\''.$all_list.'\')'.$get_add_edges_2.'(\''.$all_list.'\')';
 		$result = mysql_query($query,$conn);
-		while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
+		while (list($target,$source,$interaction) = mysql_fetch_array($result))
 		{
-			$current_edge = array("id" => $id, "target" => $target, "source" => $source,
-								  "label" => $interaction_hash[$interaction],
-								  "interaction" => $interaction, "custom" => "");
-			// Little hack to eliminate directionality
-			$current_edge_tid = implode("_",array($source,$target,$interaction));
-			if ($seen[$current_edge_tid] != 1)
+			$adj[$interaction][$source][$target] = 1;
+		}
+
+		$interactions = array_keys($adj);
+		foreach ($interactions as $i)
+		{
+			$sources = array_keys($adj[$i]);
+			foreach ($sources as $s)
 			{
-				$add_edges[] = array("group" => "edges", "data" => $current_edge);
-				$current_edge_tid_inv = implode("_",array($target,$source,$interaction));
-				$seen[$current_edge_tid_inv] = 1;
+				$targets = array_keys($adj[$i][$s]);
+				foreach ($targets as $t)
+				{
+					if ($adj[$i][$s][$t] === 1 && $adj[$i][$t][$s] === 1)
+					{
+						$add_edges[] = array("group" => "edges",
+											 "data" => array("id" => $s."_to_".$t."_".$i,"target" => $t, "source" => $s,
+															 "directed" => false, "label" => $interaction_hash[$i],
+															 "interaction" => $i, "custom" => ""));
+						$adj[$i][$s][$t] = 0;
+						$adj[$i][$t][$s] = 0;
+					}
+					else if ($adj[$i][$s][$t] === 1 && $adj[$i][$t][$s] !== 1)
+					{
+						$add_edges[] = array("group" => "edges",
+											 "data" => array("id" => $s."_to_".$t."_".$i,"target" => $t, "source" => $s,
+															 "directed" => true, "label" => $interaction_hash[$i],
+															 "interaction" => $i, "custom" => ""));
+						$adj[$i][$s][$t] = 0;
+					}
+					else if ($adj[$i][$s][$t] !== 1 && $adj[$i][$t][$s] === 1)
+					{
+						$add_edges[] = array("group" => "edges",
+											 "data" => array("id" => $t."_to_".$s."_".$i,"target" => $s, "source" => $t,
+															 "directed" => true, "label" => $interaction_hash[$i],
+															 "interaction" => $i, "custom" => ""));
+						$adj[$i][$t][$s] = 0;
+					}
+				}
 			}
 		}
-		
-		close_connection($conn);
 	}
+		
+	close_connection($conn);
 	
 	return(array_merge($add_nodes,$add_edges));
 	//return(array("elements" => array_merge($add_nodes,$add_edges), "entrez" => $new_entrez));
@@ -784,8 +846,8 @@ function initLocation($dataset)
 		$result = mysql_query($query,$conn);
 		while (list($r_0,$r_1) = mysql_fetch_array($result))
 		{
-			$rc_0 = $r_0 === "" ? "- no location association -" : $r_0;
-			$rc_1 = $r_1 === "" ? "- no location association -" : $r_1;
+			$rc_0 = $r_0 === "" ? "-data with no location associated-" : $r_0;
+			$rc_1 = $r_1 === "" ? "-data with no location associated-" : $r_1;
 			$b_0[$r_0] = $rc_0;
 			$b_1[$r_1] = $rc_1;
 		}
@@ -810,8 +872,8 @@ function initDisease($dataset)
 		$result = mysql_query($query,$conn);
 		while (list($r_0,$r_1) = mysql_fetch_array($result))
 		{
-			$rc_0 = $r_0 === "" ? "- no disease association -" : $r_0;
-			$rc_1 = $r_1 === "" ? "- no disease association -" : $r_1;
+			$rc_0 = $r_0 === "" ? "-data with no disease associated-" : $r_0;
+			$rc_1 = $r_1 === "" ? "-data with no disease associated-" : $r_1;
 			$d_0[$r_0] = $rc_0;
 			$d_1[$r_1] = $rc_1;
 		}
@@ -827,7 +889,7 @@ function initDisease($dataset)
 function initDataset($dataset) 
 {
 	global $init_dataset;
-	$dname = array();
+	$dname = array("none" => "---no dataset selected---");
 	if(is_array($dataset) && !empty($dataset))
 	{	
 		$conn = open_connection();
@@ -913,7 +975,7 @@ function initNodes($entrez)
 		$nodes[] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
 						 "strength" => "", "expression" => "",
 						 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
-						 "object_type" => "gene");
+						 "object_type" => "gene", "custom" => "");
 	}
 	close_connection($conn);
 	return($nodes);
@@ -922,8 +984,9 @@ function initNodes($entrez)
 function initEdges($ensembl)
 {
 	global $init_edges_1,$init_edges_2;
+	$predges = array();
+	$adj = array();
 	$edges = array();
-	$seen = array();
 	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
 							  "expression" => "expression", "activation" => "activation");
 	if(is_array($ensembl) && !empty($ensembl))
@@ -932,25 +995,45 @@ function initEdges($ensembl)
 		$pro_list = '(\''.implode("', '",$ensembl).'\')';
 		$query = $init_edges_1.$pro_list.$init_edges_2.$pro_list;
 		$result = mysql_query($query,$conn);
-		while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
+		while (list($target,$source,$interaction) = mysql_fetch_array($result))
 		{
-			$current_edge = array("id" => $id, "target" => $target, "source" => $source,
-								  "label" => $interaction_hash[$interaction],
-								  "interaction" => $interaction, "custom" => "");
-			// Little hack to eliminate directionality
-			$current_edge_tid = implode("_",array($source,$target,$interaction));
-			if ($seen[$current_edge_tid] != 1)
+			$adj[$interaction][$source][$target] = 1;
+		}
+
+		$interactions = array_keys($adj);
+		foreach ($interactions as $i)
+		{
+			$sources = array_keys($adj[$i]);
+			foreach ($sources as $s)
 			{
-				$edges[] = $current_edge;
-				$current_edge_tid_inv = implode("_",array($target,$source,$interaction));
-				$seen[$current_edge_tid_inv] = 1;
-				
+				$targets = array_keys($adj[$i][$s]);
+				foreach ($targets as $t)
+				{
+					if ($adj[$i][$s][$t] === 1 && $adj[$i][$t][$s] === 1)
+					{
+						$edges[] = array("id" => $s."_to_".$t."_".$i,"target" => $t, "source" => $s,
+										 "directed" => false, "label" => $interaction_hash[$i],
+										 "interaction" => $i, "custom" => "");
+						$adj[$i][$s][$t] = 0;
+						$adj[$i][$t][$s] = 0;
+					}
+					else if ($adj[$i][$s][$t] === 1 && $adj[$i][$t][$s] !== 1)
+					{
+						$edges[] = array("id" => $s."_to_".$t."_".$i,"target" => $t, "source" => $s,
+										 "directed" => true, "label" => $interaction_hash[$i],
+										 "interaction" => $i, "custom" => "");
+						$adj[$i][$s][$t] = 0;
+					}
+					else if ($adj[$i][$s][$t] !== 1 && $adj[$i][$t][$s] === 1)
+					{
+						$edges[] = array("id" => $t."_to_".$s."_".$i,"target" => $s, "source" => $t,
+										 "directed" => true, "label" => $interaction_hash[$i],
+										 "interaction" => $i, "custom" => "");
+						$adj[$i][$t][$s] = 0;
+					}
+				}
 			}
 		}
-		/*while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
-		{
-			$edges[$interaction][] = array("id" => $id, "target" => $target, "source" => $source);
-		}*/
 	}
 	return($edges);
 }
@@ -966,6 +1049,7 @@ function initDataSchema()
 	$node_schema[] = array("name" => "pvalue", "type" => "number");
 	$node_schema[] = array("name" => "fdr", "type" => "number");
 	$node_schema[] = array("name" => "object_type", "type" => "string");
+	$node_schema[] = array("name" => "custom", "type" => "string");
 
 	$edge_schema = array();
 	$edge_schema[] = array("name" => "label", "type" => "string");
@@ -1065,4 +1149,42 @@ function getIndexedGenes($term,$species)
 	return($suggestions);
 }
 
+/*function initEdges($ensembl)
+{
+	global $init_edges_1,$init_edges_2;
+	$seen = array();
+	$edges = array();
+	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
+							  "expression" => "expression", "activation" => "activation");
+	if(is_array($ensembl) && !empty($ensembl))
+	{
+		$conn = open_connection();
+		$pro_list = '(\''.implode("', '",$ensembl).'\')';
+		$query = $init_edges_1.$pro_list.$init_edges_2.$pro_list;
+		$result = mysql_query($query,$conn);
+		while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
+		{
+			$current_edge = array("id" => $id, "target" => $target, "source" => $source,
+								  "directed" => false, "label" => $interaction_hash[$interaction],
+								  "interaction" => $interaction, "custom" => "");
+			$current_edge_tid = implode("_",array($source,$target,$interaction));
+
+			// Little hack to determine directionality and collapse edges
+			if ($seen[$current_edge_tid] != 1)
+			{
+				$edges[] = $current_edge;
+				$current_edge_tid_inv = implode("_",array($target,$source,$interaction));
+				$seen[$current_edge_tid_inv] = 1;
+			}
+		}
+		
+		#while (list($id,$target,$source,$interaction) = mysql_fetch_array($result))
+		#{
+		#	$edges[$interaction][] = array("id" => $id, "target" => $target, "source" => $source);
+		#}
+	}
+	return($edges);
+}*/
+
 ?>
+
