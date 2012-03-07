@@ -59,219 +59,6 @@ function bindAutoComplete(id)
 		});
 }
 
-function bindExport()
-{
-	$("#export_sif")
-	.data("clicked",false)
-	.hover(
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#A3A3A3");
-				if ($(this).data("clicked"))
-				{
-					$(this).css("background","url('images/export_buttons/sif_pressed.png')");
-				}
-			}
-		},
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#E0E0E0");
-				$(this).css("background","url('images/export_buttons/sif_unpressed.png')");
-			}
-		})
-	.mousedown(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/sif_pressed.png')");
-			$(this).data("clicked",true);
-		})
-	.mouseup(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/sif_unpressed.png')");
-			$(this).data("clicked",false);
-		});
-
-	$("#export_graphml")
-	.data("clicked",false)
-	.hover(
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#A3A3A3");
-				if ($(this).data("clicked"))
-				{
-					$(this).css("background","url('images/export_buttons/gml_pressed.png')");
-				}
-			}
-		},
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#E0E0E0");
-				$(this).css("background","url('images/export_buttons/gml_unpressed.png')");
-			}
-		})
-	.mousedown(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/gml_pressed.png')");
-			$(this).data("clicked",true);
-		})
-	.mouseup(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/gml_unpressed.png')");
-			$(this).data("clicked",false);
-		});
-
-	$("#export_xgmml")
-	.data("clicked",false)
-	.hover(
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#A3A3A3");
-				if ($(this).data("clicked"))
-				{
-					$(this).css("background","url('images/export_buttons/xml_pressed.png')");
-				}
-			}
-		},
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#E0E0E0");
-				$(this).css("background","url('images/export_buttons/xml_unpressed.png')");
-			}
-		})
-	.mousedown(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/xml_pressed.png')");
-			$(this).data("clicked",true);
-		})
-	.mouseup(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/xml_unpressed.png')");
-			$(this).data("clicked",false);
-		});
-		
-	$("#export_png")
-	.data("clicked",true)
-	.hover(
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#A3A3A3");
-				if ($(this).data("clicked"))
-				{
-					$(this).css("background","url('images/export_buttons/png_pressed.png')");
-				}
-			}
-		},
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#E0E0E0");
-				$(this).css("background","url('images/export_buttons/png_unpressed.png')");
-			}
-		})
-	.mousedown(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/png_pressed.png')");
-			$(this).data("clicked",true);
-		})
-	.mouseup(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/png_unpressed.png')");
-			$(this).data("clicked",false);
-		});
-		
-	$("#export_pdf")
-	.data("clicked",false)
-	.hover(
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#A3A3A3");
-				if ($(this).data("clicked"))
-				{
-					$(this).css("background","url('images/export_buttons/pdf_pressed.png')");
-				}
-			}
-		},
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#E0E0E0");
-				$(this).css("background","url('images/export_buttons/pdf_unpressed.png')");
-			}
-		})
-	.mousedown(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/pdf_pressed.png')");
-			$(this).data("clicked",true);
-		})
-	.mouseup(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/pdf_unpressed.png')");
-			$(this).data("clicked",false);
-		});
-		
-	$("#export_svg")
-	.data("clicked",false)
-	.hover(
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#A3A3A3");
-				if ($(this).data("clicked"))
-				{
-					$(this).css("background","url('images/export_buttons/svg_pressed.png')");
-				}
-			}
-		},
-		function()
-		{
-			if (!$(this).is(":disabled"))
-			{
-				$(this).css("border-color","#E0E0E0");
-				$(this).css("background","url('images/export_buttons/svg_unpressed.png')");
-			}
-		})
-	.mousedown(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/svg_pressed.png')");
-			$(this).data("clicked",true);
-		})
-	.mouseup(
-		function()
-		{
-			$(this).css("background","url('images/export_buttons/svg_unpressed.png')");
-			$(this).data("clicked",false);
-		});
-}
-
 /* In the first search we use jQuery .data function to store the initial search results in order to
    be able to use a reset button later, the same applies also to the update function with species */
 function search(input)
@@ -317,6 +104,9 @@ function search(input)
 			{				
 				if ($.isEmptyObject(data))
 				{
+					$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+					$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+					$('#element_info').animate({ opacity: 1.0 },250);
 					displayError('Sorry! Nothing found... :-(');
 				}
 				else //Enable and fill the rest of the lists
@@ -361,7 +151,7 @@ function search(input)
 								if (data[outerkey] !== null)
 								{
 									$("#dataset_list").removeData();
-									enable(['dataset_list','reset_data_button','color_network_button','disease_check','location_check']);
+									enable(['dataset_list','reset_gene_data_button','color_network_button','disease_gene_check','location_gene_check']);
 									$("#dataset_list").data("values",data[outerkey]);				
 									for (innerkey in data[outerkey])
 									{
@@ -419,12 +209,57 @@ function search(input)
 									}
 								}
 								break;
+							case 'disease_mirna':
+								$("#disease_mirna_list").empty();
+								if (data[outerkey] !== null)
+								{
+									$("#disease_mirna_list").removeData();									
+									enable(['disease_mirna_list']);
+									$("#disease_mirna_list").data("values",data[outerkey]); //Cache!	
+									for (innerkey in data[outerkey])
+									{
+										$("#disease_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+											+ data[outerkey][innerkey] + "</option>");
+									}
+								}
+								break;
+							case 'location_mirna':
+								$("#location_mirna_list").empty();
+								if (data[outerkey] !== null)
+								{
+									$("#location_mirna_list").removeData();				
+									enable(['location_mirna_list']);
+									$("#location_mirna_list").data("values",data[outerkey]);					
+									for (innerkey in data[outerkey])
+									{
+										$("#location_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+											+ data[outerkey][innerkey] + "</option>");
+									}
+								}
+								break;
+							case 'dataset_mirna':
+								$("#dataset_mirna_list").empty();
+								if (data[outerkey] !== null)
+								{
+									$("#dataset_mirna_list").removeData();
+									enable(['dataset_mirna_list','reset_mirna_data_button','color_mirna_button','disease_mirna_check','location_mirna_check']);
+									$("#dataset_mirna_list").data("values",data[outerkey]);				
+									for (innerkey in data[outerkey])
+									{
+										$("#dataset_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+											+ data[outerkey][innerkey] + "</option>");
+									}
+								}
+								break;
 						}
 					}
 				}
 			},
 			error: function(data,error)
 			{
+				$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+				$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+				$('#element_info').animate({ opacity: 1.0 },250);
 				displayError('Ooops! ' + error + " " + data.responseText);						
 			},
 			dataType: "json"
@@ -477,7 +312,6 @@ function update(id)
 						}
 						else
 						{
-							alert(data);
 							enteredTerms = data;
 						}
 					},
@@ -490,7 +324,6 @@ function update(id)
 				
 				var searchJSON = $.toJSON(enteredTerms);
 				selSpecies = $('#species_list').val();
-				alert(enteredTerms);
 
 				$.ajax(
 				{
@@ -511,6 +344,9 @@ function update(id)
 					{				
 						if ($.isEmptyObject(data))
 						{
+							$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+							$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+							$('#element_info').animate({ opacity: 1.0 },250);
 							displayError('Sorry! Nothing found... :-(');
 						}
 						else //Enable and fill the rest of the lists
@@ -552,7 +388,7 @@ function update(id)
 										if (data[outerkey] !== null)
 										{
 											$("#dataset_list").removeData();
-											enable(['dataset_list','reset_data_button','color_network_button','disease_check','location_check']);
+											enable(['dataset_list','reset_gene_data_button','color_network_button','disease_gene_check','location_gene_check']);
 											$("#dataset_list").data("values",data[outerkey]);				
 											for (innerkey in data[outerkey])
 											{
@@ -609,12 +445,57 @@ function update(id)
 											}
 										}
 										break;
+									case 'disease_mirna':
+										$("#disease_mirna_list").empty();
+										if (data[outerkey] !== null)
+										{
+											$("#disease_mirna_list").removeData();									
+											enable(['disease_mirna_list']);
+											$("#disease_mirna_list").data("values",data[outerkey]); //Cache!	
+											for (innerkey in data[outerkey])
+											{
+												$("#disease_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+													+ data[outerkey][innerkey] + "</option>");
+											}
+										}
+										break;
+									case 'location_mirna':
+										$("#location_mirna_list").empty();
+										if (data[outerkey] !== null)
+										{
+											$("#location_mirna_list").removeData();				
+											enable(['location_mirna_list']);
+											$("#location_mirna_list").data("values",data[outerkey]);					
+											for (innerkey in data[outerkey])
+											{
+												$("#location_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+													+ data[outerkey][innerkey] + "</option>");
+											}
+										}
+										break;
+									case 'dataset_mirna':
+										$("#dataset_mirna_list").empty();
+										if (data[outerkey] !== null)
+										{
+											$("#dataset_mirna_list").removeData();
+											enable(['dataset_mirna_list','reset_mirna_data_button','color_mirna_button','disease_mirna_check','location_mirna_check']);
+											$("#dataset_mirna_list").data("values",data[outerkey]);				
+											for (innerkey in data[outerkey])
+											{
+												$("#dataset_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+													+ data[outerkey][innerkey] + "</option>");
+											}
+										}
+										break;
 								}
 							}
 						}
 					},
 					error: function(data,error)
 					{
+						$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+						$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+						$('#element_info').animate({ opacity: 1.0 },250);
 						displayError('Ooops! ' + error + " " + data.responseText);						
 					},
 					dataType: "json"
@@ -635,7 +516,7 @@ function update(id)
 				beforeSend: function()
 				{
 					$("#filterCircle").show();
-					disable(['disease_list','location_list','dataset_list','reset_data_button']); 
+					disable(['disease_list','location_list','dataset_list','reset_gene_data_button']); 
 				},
 				complete: function() 
 				{ 
@@ -655,7 +536,7 @@ function update(id)
 							switch(outerkey)
 							{
 								case 'location':
-									if ($("#restrict_check").is(":checked"))
+									if ($("#restrict_gene_check").is(":checked"))
 									{
 										$("#location_list").empty();
 										if (data['location'] !== null)
@@ -692,7 +573,7 @@ function update(id)
 				},
 				dataType: "json"
 			});
-			enable(['reset_data_button']);
+			enable(['reset_gene_data_button']);
 			break;
 			
 		case 'location_list':
@@ -726,7 +607,7 @@ function update(id)
 							switch(outerkey)
 							{
 								case 'disease':
-									if ($("#restrict_check").is(":checked"))
+									if ($("#restrict_gene_check").is(":checked"))
 									{
 										$("#disease_list").empty();
 										if (data[outerkey] !== null)
@@ -762,7 +643,148 @@ function update(id)
 				},
 				dataType: "json"
 			});
-			enable(['reset_data_button']);
+			enable(['reset_gene_data_button']);
+			break;
+
+			case 'disease_mirna_list':
+			selVal = $('#disease_mirna_list').val();
+			selDisease = $("#disease_mirna_list option:selected").text();
+			$.ajax(
+			{
+				type: 'POST',
+				url: urlBase+'php/control.php',
+				data: { disease_mirna: selDisease },
+				beforeSend: function()
+				{
+					$("#filterCircle").show();
+					disable(['disease_mirna_list','location_mirna_list','dataset_mirna_list','reset_mirna_data_button']); 
+				},
+				complete: function() 
+				{ 
+					$("#filterCircle").hide();
+					enable(['disease_mirna_list']); 
+				},
+				success: function(data)
+				{				
+					if ($.isEmptyObject(data))
+					{
+						displayError('Sorry! Nothing found... :-(');
+					}
+					else //Enable and fill the rest of the lists
+					{																																
+						for (outerkey in data)
+						{	
+							switch(outerkey)
+							{
+								case 'location':
+									if ($("#restrict_mirna_check").is(":checked"))
+									{
+										$("#location_mirna_list").empty();
+										if (data['location'] !== null)
+										{								
+											enable(['location_mirna_list']);				
+											for (innerkey in data[outerkey])
+											{
+												$("#location_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+													+ data[outerkey][innerkey] + "</option>");
+											}
+										}
+									}
+									else { enable(['location_mirna_list']); }
+									break;
+								case 'dataset':
+									$("#dataset_mirna_list").empty();
+									if (data['dataset'] !== null)
+									{
+										enable(['dataset_mirna_list']);					
+										for (innerkey in data[outerkey])
+										{
+											$("#dataset_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+												+ data[outerkey][innerkey] + "</option>");
+										}
+									}
+									break;
+							}
+						}
+					}
+				},
+				error: function(data,error)
+				{
+					displayError('Ooops! ' + error + " " + data.responseText);						
+				},
+				dataType: "json"
+			});
+			enable(['reset_mirna_data_button']);
+			break;
+			
+		case 'location_mirna_list':
+			selVal = $('#location_mirna_list').val();
+			selLocation = $("#location_mirna_list option:selected").text();
+			$.ajax(
+			{
+				type: 'POST',
+				url: urlBase+'php/control.php',
+				data: { location_mirna: selLocation },
+				beforeSend: function()
+				{
+					$("#filterCircle").show();
+					disable(['disease_mirna_list','location_mirna_list','dataset_mirna_list']); 
+				},
+				complete: function() 
+				{ 
+					$("#filterCircle").hide();
+					enable(['location_mirna_list']); 
+				},
+				success: function(data)
+				{				
+					if ($.isEmptyObject(data))
+					{
+						displayError('Sorry! Nothing found... :-(');
+					}
+					else //Enable and fill the rest of the lists
+					{																																
+						for (outerkey in data)
+						{	
+							switch(outerkey)
+							{
+								case 'disease':
+									if ($("#restrict_mirna_check").is(":checked"))
+									{
+										$("#disease_mirna_list").empty();
+										if (data[outerkey] !== null)
+										{								
+											enable(['disease_mirna_list']);		
+											for (innerkey in data[outerkey])
+											{
+												$("#disease_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+													+ data[outerkey][innerkey] + "</option>");
+											}
+										}
+									} else { enable(['disease_mirna_list']); } 
+									break;
+								case 'dataset':
+									$("#dataset_mirna_list").empty();
+									if (data[outerkey] !== null)
+									{
+										enable(['dataset_mirna_list']);					
+										for (innerkey in data[outerkey])
+										{
+											$("#dataset_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+												+ data[outerkey][innerkey] + "</option>");
+										}
+									}
+									break;
+							}
+						}
+					}
+				},
+				error: function(data,error)
+				{
+					displayError('Ooops! ' + error + " " + data.responseText);						
+				},
+				dataType: "json"
+			});
+			enable(['reset_mirna_data_button']);
 			break;
 	}
 }
@@ -812,75 +834,148 @@ function changeGOCategory(category)
 	}
 }
 
-function colorNodes()
+function colorNodes(type)
 {
 	var urlBase = initMe();
-	//var selDisease = $("#disease_list").val();
-	//var selLocation = $("#location_list").val();
-	var selDataset = $("#dataset_list").val();
-	var selLocation = $("#location_list option:selected").text();
-	var selDisease = $("#disease_list option:selected").text();
+	var selDataset,selLocation,selDisease;
+	var j;
 
-	if (selDataset[0] === "none")
+	switch(type)
 	{
-		resetGeneData();
-		return;
-	}
-
-	if (!$("#disease_check").is(":checked")) { selDisease = ''; }
-	else
-	{
-		if (selDisease === "-data with no disease associated-") { selDisease = ''; }
-	}
-	if (!$("#location_check").is(":checked")) { selLocation = ''; }
-	else
-	{
-		if (selLocation === "-data with no location associated-") { selLocation = ''; }
-	}
-
-	resetGeneData();
-	$.ajax(
-	{
-		type: 'POST',
-		url: urlBase+'php/control.php',
-		data: { dataset: selDataset, location_data: selLocation, disease_data: selDisease },
-		beforeSend: function() { $('#loadingCircle').show(); },
-		complete: function() { $('#loadingCircle').hide(); },
-		success: function(data)
-		{						
-			if ($.isEmptyObject(data))
+		case 'gene':
+			//selDisease = $("#disease_list").val();
+			//selLocation = $("#location_list").val();
+			selDataset = $("#dataset_list").val();
+			selLocation = $("#location_list option:selected").text();
+			selDisease = $("#disease_list option:selected").text();
+			if (selDataset[0] === "none")
 			{
-				displayError('Sorry, no expression data found for the selected disease, location ' +
-							 'and dataset combination. Try unchecking the disease and location checkboxes '+
-							 'below the dataset list if they are checked to make search less strict.');
+				resetNodeData('gene');
+				return;
 			}
+
+			if (!$("#disease_gene_check").is(":checked")) { selDisease = ''; }
 			else
 			{
-				//alert("Something came back after all...");
-				for (var j=0; j<data.length; j++)
-				{
-					if (data[j].ratio !== 999 && data[j].ratio !== null)
-					{
-						data[j].ratio = parseFloat(data[j].ratio);
-					}
-					if (data[j].pvalue !== 999 && data[j].pvalue !== null)
-					{
-						data[j].pvalue = parseFloat(data[j].pvalue);
-					}
-					if (data[j].fdr !== 999 && data[j].fdr !== null)
-					{
-						data[j].fdr = parseFloat(data[j].fdr);
-					}
-				}
-				bypassNodeColors(data);
+				if (selDisease === "-data with no disease associated-") { selDisease = ''; }
 			}
-		},
-		error: function(data,error)
-		{												
-			displayError('Ooops! ' + error + ' ' + data.responseText);						
-		},
-		dataType: "json"
-	});
+			if (!$("#location_gene_check").is(":checked")) { selLocation = ''; }
+			else
+			{
+				if (selLocation === "-data with no location associated-") { selLocation = ''; }
+			}
+
+			resetNodeData('gene');
+			$.ajax(
+			{
+				type: 'POST',
+				url: urlBase+'php/control.php',
+				data: { dataset: selDataset, location_data: selLocation, disease_data: selDisease },
+				beforeSend: function() { $('#loadingCircle').show(); },
+				complete: function() { $('#loadingCircle').hide(); },
+				success: function(data)
+				{						
+					if ($.isEmptyObject(data))
+					{
+						displayError('Sorry, no gene expression data found for the selected disease, location ' +
+									 'and dataset combination. Try unchecking the disease and location checkboxes '+
+									 'in the Advanced tab if they are checked to make search less strict.');
+					}
+					else
+					{
+						for (j=0; j<data.length; j++)
+						{
+							if (data[j].ratio !== 999 && data[j].ratio !== null)
+							{
+								data[j].ratio = parseFloat(data[j].ratio);
+							}
+							if (data[j].pvalue !== 999 && data[j].pvalue !== null)
+							{
+								data[j].pvalue = parseFloat(data[j].pvalue);
+							}
+							if (data[j].fdr !== 999 && data[j].fdr !== null)
+							{
+								data[j].fdr = parseFloat(data[j].fdr);
+							}
+						}
+						bypassNodeColors(data,'gene');
+					}
+				},
+				error: function(data,error)
+				{												
+					displayError('Ooops! ' + error + ' ' + data.responseText);
+				},
+				dataType: "json"
+			});
+
+			break;
+
+		case 'mirna':
+			selDataset = $("#dataset_mirna_list").val();
+			selLocation = $("#location_mirna_list option:selected").text();
+			selDisease = $("#disease_mirna_list option:selected").text();
+			if (selDataset[0] === "none")
+			{
+				resetNodeData('mirna');
+				return;
+			}
+
+			if (!$("#disease_mirna_check").is(":checked")) { selDisease = ''; }
+			else
+			{
+				if (selDisease === "-data with no disease associated-") { selDisease = ''; }
+			}
+			if (!$("#location_mirna_check").is(":checked")) { selLocation = ''; }
+			else
+			{
+				if (selLocation === "-data with no location associated-") { selLocation = ''; }
+			}
+
+			resetNodeData('mirna');
+			$.ajax(
+			{
+				type: 'POST',
+				url: urlBase+'php/control.php',
+				data: { dataset_mirna: selDataset, location_mirna_data: selLocation, disease_mirna_data: selDisease },
+				beforeSend: function() { $('#loadingCircle').show(); },
+				complete: function() { $('#loadingCircle').hide(); },
+				success: function(data)
+				{						
+					if ($.isEmptyObject(data))
+					{
+						displayError('Sorry, no miRNA expression data found for the selected disease, location ' +
+									 'and dataset combination. Try unchecking the disease and location checkboxes '+
+									 'in the Advanced tab if they are checked to make search less strict.');
+					}
+					else
+					{
+						for (j=0; j<data.length; j++)
+						{
+							if (data[j].ratio !== 999 && data[j].ratio !== null)
+							{
+								data[j].ratio = parseFloat(data[j].ratio);
+							}
+							if (data[j].pvalue !== 999 && data[j].pvalue !== null)
+							{
+								data[j].pvalue = parseFloat(data[j].pvalue);
+							}
+							if (data[j].fdr !== 999 && data[j].fdr !== null)
+							{
+								data[j].fdr = parseFloat(data[j].fdr);
+							}
+						}
+						bypassNodeColors(data,'mirna');
+					}
+				},
+				error: function(data,error)
+				{												
+					displayError('Ooops! ' + error + ' ' + data.responseText);						
+				},
+				dataType: "json"
+			});
+
+			break;
+	}		
 }
 
 /* what: go, kegg, mirna
@@ -993,6 +1088,7 @@ function showMeta(what,howmany)
                     else
                     {
                         addElements(data);
+						addMiRNAData();
                     }
                 },
                 error: function(data,error)
@@ -1062,7 +1158,7 @@ function fetchNetwork()
 		complete: function() 
 		{ 
 			$("#loading_big").hide();
-			enable(['disease_list','location_list','dataset_list','reset_data_button','go_list','kegg_list','mirna_list']);
+			enable(['disease_list','location_list','dataset_list','reset_gene_data_button','go_list','kegg_list','mirna_list']);
 			unloadingSmall();
 		},
 		success: function(data)
@@ -1111,9 +1207,6 @@ function initNetwork(networkJSON)
 	// callback when Cytoscape Web has finished drawing
 	vis.ready(function()
 	{
-		// Store the network and layout object so it can be accessible to other functions
-		$("#cytoscapeweb").data("visObject",vis);
-		$("#cytoscapeweb").data("layout",layOpts);
 		// Start with only the selected edges
 		//filterEdges();
 		// Add click listeners
@@ -1169,6 +1262,13 @@ function initNetwork(networkJSON)
 			filterEdges();
 			updateInfo();
 		});
+
+		// Store the network and layout object so it can be accessible to other functions
+		// Also store a bypass variable for visual style beause it seems that before applying
+		// each bypass, cytoscapeweb reverts to its original visual style.
+		$("#cytoscapeweb").data("visObject",vis);
+		$("#cytoscapeweb").data("layout",layOpts);
+		$("#cytoscapeweb").data("bypass", { nodes: { }, edges: { } });
 		
 		function displaySingleInfo(event)
 		{
@@ -1319,7 +1419,34 @@ function initNetwork(networkJSON)
 			}
 			else if (action === "delete")
 			{
+				// We additionally need to see if there any miRNAs to be deleted in order
+				// to update the relative datasets
+				hasmirna = false;
+				if (group === "nodes")
+				{
+					for (i=0; i<selElems.length; i++)
+					{
+						if (selElems[i].data.object_type === "mirna")
+						{
+							hasmirna = true;
+							break;
+						}
+					}
+				}
+
 				vis.removeElements(selElems);
+
+				if (hasmirna)
+				{
+					for (i=0; i<selElems.length; i++)
+					{
+						if (selElems[i].data.object_type === "mirna")
+						{
+							selElemIDs.push(selElems[i].data.id);
+						}
+					}
+					removeMiRNAData(selElemIDs);
+				}
 			}
 			updateInfo();
 		}
@@ -1419,7 +1546,7 @@ function initNetwork(networkJSON)
 			// Now highlight neighboring nodes and edges
 			vis.select("nodes",nObj.neighbors);
 			vis.select("edges",nObj.edges);
-		}
+		}	
 	});
 
 	// draw options
@@ -1431,6 +1558,184 @@ function initNetwork(networkJSON)
 	};
 		
 	vis.draw(draw_options);
+}
+
+function addMiRNAData()
+{
+	urlBase = initMe();
+	
+	$.ajax(
+	{
+		type: 'POST',
+		url: urlBase+'php/control.php',
+		data: { add_mirna: "add_mirna" }, // Some random text
+		beforeSend: function()
+		{
+			$('#loadingCircle').show();
+			disable(['disease_mirna_list','location_mirna_list','dataset_mirna_list',
+					 'reset_mirna_data_button','color_mirna_button']);
+		},
+		complete: function() { $('#loadingCircle').hide(); },
+		success: function(data)
+		{						
+			if ($.isEmptyObject(data))
+			{
+				$("#disease_mirna_list").empty();
+				$("#location_mirna_list").empty();
+				$("#dataset_mirna_list").empty();
+				$("#disease_mirna_list").removeData();
+				$("#location_mirna_list").removeData();
+				$("#dataset_mirna_list").removeData();
+			}
+			else
+			{
+				enable(['reset_mirna_data_button','color_mirna_button']);
+				var outerkey,innerkey,innermost;					
+				for (outerkey in data)
+				{										
+					switch(outerkey)
+					{
+						case 'disease_mirna':
+							$("#disease_mirna_list").empty();
+							if (data[outerkey] !== null)
+							{
+								$("#disease_mirna_list").removeData();									
+								enable(['disease_mirna_list']);
+								$("#disease_mirna_list").data("values",data[outerkey]); //Cache!	
+								for (innerkey in data[outerkey])
+								{
+									$("#disease_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+										+ data[outerkey][innerkey] + "</option>");
+								}
+							}
+							break;
+						case 'location_mirna':
+							$("#location_mirna_list").empty();
+							if (data[outerkey] !== null)
+							{
+								$("#location_mirna_list").removeData();				
+								enable(['location_mirna_list']);
+								$("#location_mirna_list").data("values",data[outerkey]);					
+								for (innerkey in data[outerkey])
+								{
+									$("#location_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+										+ data[outerkey][innerkey] + "</option>");
+								}
+							}
+							break;
+						case 'dataset_mirna':
+							$("#dataset_mirna_list").empty();
+							if (data[outerkey] !== null)
+							{
+								$("#dataset_mirna_list").removeData();
+								enable(['dataset_mirna_list','reset_mirna_data_button','color_mirna_button','disease_mirna_check','location_mirna_check']);
+								$("#dataset_mirna_list").data("values",data[outerkey]);				
+								for (innerkey in data[outerkey])
+								{
+									$("#dataset_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+										+ data[outerkey][innerkey] + "</option>");
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		error: function(data,error)
+		{												
+			displayError('Ooops! ' + error + ' ' + data.responseText);						
+		},
+		dataType: "json"
+	});
+}
+
+function removeMiRNAData(ids)
+{
+	urlBase = initMe();
+	
+	$.ajax(
+	{
+		type: 'POST',
+		url: urlBase+'php/control.php',
+		data: { remove_mirna: $.toJSON(ids) },
+		beforeSend: function()
+		{
+			$('#loadingCircle').show();
+			disable(['disease_mirna_list','location_mirna_list','dataset_mirna_list',
+					 'reset_mirna_data_button','color_mirna_button']);
+		},
+		complete: function() { $('#loadingCircle').hide(); },
+		success: function(data)
+		{						
+			if ($.isEmptyObject(data))
+			{
+				$("#disease_mirna_list").empty();
+				$("#location_mirna_list").empty();
+				$("#dataset_mirna_list").empty();
+				$("#disease_mirna_list").removeData();
+				$("#location_mirna_list").removeData();
+				$("#dataset_mirna_list").removeData();
+			}
+			else
+			{
+				enable(['reset_mirna_data_button','color_mirna_button']);
+				var outerkey,innerkey,innermost;
+				for (outerkey in data)
+				{										
+					switch(outerkey)
+					{
+						case 'disease_mirna':
+							$("#disease_mirna_list").empty();
+							if (data[outerkey] !== null)
+							{
+								$("#disease_mirna_list").removeData();
+								enable(['disease_mirna_list']);
+								$("#disease_mirna_list").data("values",data[outerkey]); //Cache!
+								for (innerkey in data[outerkey])
+								{
+									$("#disease_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+										+ data[outerkey][innerkey] + "</option>");
+								}
+							}
+							break;
+						case 'location_mirna':
+							$("#location_mirna_list").empty();
+							if (data[outerkey] !== null)
+							{
+								$("#location_mirna_list").removeData();
+								enable(['location_mirna_list']);
+								$("#location_mirna_list").data("values",data[outerkey]);					
+								for (innerkey in data[outerkey])
+								{
+									$("#location_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+										+ data[outerkey][innerkey] + "</option>");
+								}
+							}
+							break;
+						case 'dataset_mirna':
+							$("#dataset_mirna_list").empty();
+							if (data[outerkey] !== null)
+							{
+								$("#dataset_mirna_list").removeData();
+								enable(['dataset_mirna_list','reset_mirna_data_button','color_mirna_button','disease_mirna_check','location_mirna_check']);
+								$("#dataset_mirna_list").data("values",data[outerkey]);				
+								for (innerkey in data[outerkey])
+								{
+									$("#dataset_mirna_list").append("<option title=\"" + data[outerkey][innerkey] + "\" value=" + innerkey + ">"
+										+ data[outerkey][innerkey] + "</option>");
+								}
+							}
+							break;
+					}
+				}
+			}
+		},
+		error: function(data,error)
+		{												
+			displayError('Ooops! ' + error + ' ' + data.responseText);						
+		},
+		dataType: "json"
+	});
 }
 
 function modalAlert(msg,tit)
@@ -1777,6 +2082,20 @@ function toggleInfo()
 	}
 }
 
+function toggleClickColor()
+{
+	if ($('#allow_click_color_check').is(":checked"))
+	{
+		$('#dataset_list').attr("onchange","colorNodes('gene')");
+		$('#dataset_mirna_list').attr("onchange","colorNodes('mirna')");
+	}
+	else
+	{
+		$('#dataset_list').removeAttr("onchange");
+		$('#dataset_mirna_list').removeAttr("onchange");
+	}
+}
+
 function showInfo(msg)
 {
 	$("#infoContainer").html(msg);
@@ -1793,20 +2112,18 @@ function loadingSmall()
 	$('#loadingCircle').show();
 	disable(['search_button','clear_button',
 			 'species_list','disease_list','location_list','dataset_list',
-			 'reset_data_button','color_network_button','disease_check','location_check',
+			 'reset_gene_data_button','color_network_button',
 			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
-			 'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
 			 'binding_check','ptmod_check','expression_check','activation_check',
-			 'go_check','kegg_check','mirna_check','multicolor_check','restrict_check',
-			 'node_labels_check','edge_labels_check','sig_size_check','layout_list']);
-	$("#export_sif").css("background","url(images/export_buttons/sif_fade.png)");
-	$("#export_graphml").css("background","url(images/export_buttons/gml_fade.png)");
-	$("#export_xgmml").css("background","url(images/export_buttons/xml_fade.png)");
-	$("#export_png").css("background","url(images/export_buttons/png_fade.png)");
-	$("#export_pdf").css("background","url(images/export_buttons/pdf_fade.png)");
-	$("#export_svg").css("background","url(images/export_buttons/svg_fade.png)");
+			 'go_check','kegg_check','mirna_check',
+			 'multicolor_gene_check','multicolor_mirna_check',
+			 'restrict_gene_check','restrict_mirna_check',
+			 'disease_gene_check','location_gene_check',
+			 'disease_mirna_check','location_mirna_check',
+			 'node_labels_check','edge_labels_check','sig_size_check','allow_click_color_check',
+			 'layout_list']);
 	$("#layoutOptionContainer").find("input, button, select").attr("disabled","disabled");
 }
 
@@ -1815,20 +2132,18 @@ function unloadingSmall()
 	$('#loadingCircle').hide();
 	enable(['search_button','clear_button',
 			'species_list','disease_list','location_list','dataset_list',
-			'reset_data_button','color_network_button','disease_check','location_check',
+			'reset_gene_data_button','color_network_button',
 			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
-			'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
 			'binding_check','ptmod_check','expression_check','activation_check',
-			'go_check','kegg_check','mirna_check','multicolor_check','restrict_check',
-			'node_labels_check','edge_labels_check','sig_size_check','layout_list']);
-	$("#export_sif").css("background","url(images/export_buttons/sif_unpressed.png)");
-	$("#export_graphml").css("background","url(images/export_buttons/gml_unpressed.png)");
-	$("#export_xgmml").css("background","url(images/export_buttons/xml_unpressed.png)");
-	$("#export_png").css("background","url(images/export_buttons/png_unpressed.png)");
-	$("#export_pdf").css("background","url(images/export_buttons/pdf_unpressed.png)");
-	$("#export_svg").css("background","url(images/export_buttons/svg_unpressed.png)");
+			'go_check','kegg_check','mirna_check',
+			'multicolor_gene_check','multicolor_mirna_check',
+			'restrict_gene_check','restrict_mirna_check',
+			'disease_gene_check','location_gene_check',
+			'disease_mirna_check','location_mirna_check',
+			'node_labels_check','edge_labels_check','sig_size_check','allow_click_color_check',
+			'layout_list']);
 	$("#layoutOptionContainer").find("input, button, select").removeAttr("disabled");
 
 	// There is an extreme case (dog) of not finding any KUPKB data... In this case,
@@ -1836,8 +2151,8 @@ function unloadingSmall()
 	// usually the last AJAX action performed before final initialization
 	if ($("#dataset_list").val() === '0')
 	{
-		disable(['disease_list','location_list','dataset_list','reset_data_button',
-				 'color_network_button','disease_check','location_check']);
+		disable(['disease_list','location_list','dataset_list','reset_gene_data_button',
+				 'color_network_button','disease_gene_check','location_gene_check']);
 	}
 	if ($("#go_list").text() === '')
 	{
@@ -1913,8 +2228,7 @@ function resetSearch()
 	$("#enter_genes").val('');
 	empty(['disease_list','location_list','dataset_list','go_list','kegg_list'])
 	$("#mirna_list").empty();
-	removeData(['disease_list','location_list','dataset_list','go_list','kegg_list',
-				'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg'])
+	removeData(['disease_list','location_list','dataset_list','go_list','kegg_list'])
 	$("#mirna_list").removeData();
 	$("#disease_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
 	$("#location_list").append("<option value=" + "0" + ">" + "Select..." + "</option>");
@@ -1925,46 +2239,76 @@ function resetSearch()
 	$("#go_component").css("background-color","#FFFFFF");
 	$("#go_function").css("background-color","#FFFFFF");
 	$("#go_process").css("background-color","#FFFFFF");
-	disable(['search_button','clear_button','disease_list','location_list','dataset_list',
-			 'reset_data_button','color_network_button',
-			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go',
+	disable(['search_button','clear_button',
+			 'disease_list','location_list','dataset_list',
+			 'reset_gene_data_button','color_network_button',
+			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
-			 'export_sif','export_graphml','export_xgmml','export_png','export_pdf','export_svg',
 			 'binding_check','ptmod_check','expression_check','activation_check',
 			 'go_check','kegg_check','mirna_check',
-			 'sig_size_check','node_labels_check','edge_labels_check',
-			 'layout_list']);
+			 'multicolor_gene_check','multicolor_mirna_check',
+			 'restrict_gene_check','restrict_mirna_check',
+			 'disease_gene_check','location_gene_check',
+			 'disease_mirna_check','location_mirna_check',
+			 'node_labels_check','edge_labels_check','sig_size_check','layout_list']);
 	$("#color_legend").css("visibility","hidden");
 	$("#info_section").css("visibility","hidden");
 }
 
-function resetData() 
+function resetData(type) 
 {												
-	var diseaseData = $("#disease_list").data("values");
-	var locationData = $("#location_list").data("values");
-	var datasetData = $("#dataset_list").data("values");
 	var key;
 
-	hideError();
-	resetGeneData(); // Reset the expression, pvalues etc.
-	$("#disease_list").empty(); 
-	for (key in diseaseData)
+	switch(type)
 	{
-		$("#disease_list").append("<option value=" + key + ">" + diseaseData[key] + "</option>");
+		case 'gene':		
+			var diseaseData = $("#disease_list").data("values");
+			var locationData = $("#location_list").data("values");
+			var datasetData = $("#dataset_list").data("values");
+			hideError();
+			resetNodeData('gene'); // Reset the expression, pvalues etc.
+			$("#disease_list").empty(); 
+			for (key in diseaseData)
+			{
+				$("#disease_list").append("<option value=" + key + ">" + diseaseData[key] + "</option>");
+			}
+			$("#location_list").empty(); 
+			for (key in locationData)
+			{
+				$("#location_list").append("<option value=" + key + ">" + locationData[key] + "</option>");
+			}
+			$("#dataset_list").empty(); 
+			for (key in datasetData)
+			{
+				$("#dataset_list").append("<option value=" + key + ">" + datasetData[key] + "</option>");
+			}
+			enable(['disease_list','location_list','dataset_list']);
+			break;
+		case 'mirna':		
+			var diseaseData = $("#disease_mirna_list").data("values");
+			var locationData = $("#location_mirna_list").data("values");
+			var datasetData = $("#dataset_mirna_list").data("values");
+			hideError();
+			resetNodeData('mirna'); // Reset the expression, pvalues etc.
+			$("#disease_mirna_list").empty(); 
+			for (key in diseaseData)
+			{
+				$("#disease_mirna_list").append("<option value=" + key + ">" + diseaseData[key] + "</option>");
+			}
+			$("#location_mirna_list").empty(); 
+			for (key in locationData)
+			{
+				$("#location_mirna_list").append("<option value=" + key + ">" + locationData[key] + "</option>");
+			}
+			$("#dataset_mirna_list").empty(); 
+			for (key in datasetData)
+			{
+				$("#dataset_mirna_list").append("<option value=" + key + ">" + datasetData[key] + "</option>");
+			}
+			enable(['disease_mirna_list','location_mirna_list','dataset_mirna_list']);
+			break;
 	}
-	$("#location_list").empty(); 
-	for (key in locationData)
-	{
-		$("#location_list").append("<option value=" + key + ">" + locationData[key] + "</option>");
-	}
-	$("#dataset_list").empty(); 
-	for (key in datasetData)
-	{
-		$("#dataset_list").append("<option value=" + key + ">" + datasetData[key] + "</option>");
-	}
-
-	enable(['disease_list','location_list','dataset_list']);
 }
 
 function split(val) { return val.split(/\n/); }
@@ -2133,6 +2477,11 @@ function log2(x)
 function isNumber(n)
 {
 	return(!isNaN(parseFloat(n)) && isFinite(n));
+}
+
+function capFirst(str)
+{
+    return str.charAt(0).toUpperCase() + str.substr(1);
 }
 
 function debugMessage(msg)

@@ -491,7 +491,9 @@ sub loadDefaultParams
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
 			 "INTERACTION_PATH" => "download",
 			 "GENE_PATH" => "download",
-			 "MIRNA_PATH" => "download"
+			 "MIRNA_PATH" => "download",
+			 "INDEX_PATH" => "/etc/sphinxsearch/kupkbvis_sphinx.conf",
+			 "CURATORS" => "/media/HD5/Work/TestGround/contr_emails.txt"
 		);
 	return(\%h);
 }
