@@ -221,7 +221,7 @@ a.toggler:hover
 {
 	font-weight: bold;
 	color: #555555;
-	background-color: #FFFFDA;
+	background-color: #FFFF5F;
 	border: solid 1px black;
 	border-radius: 8px;
 	-webkit-border-radius: 8px;
@@ -439,6 +439,11 @@ a.toggler:hover
 {
 	font-size: 1.1em;
 	color: #FF0000;
+}
+
+.hint
+{
+	float: right;
 }
 
 .ui-autocomplete 

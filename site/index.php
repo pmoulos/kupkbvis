@@ -1,10 +1,10 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 
 <?php
-	include('php/utils.php');
-	include('php/control.php');
-	include('php/queries.php');
-	session_start();	
+session_start();
+include('php/utils.php');
+include('php/control.php');
+include('php/queries.php');
 ?>
 
 <html>
@@ -105,12 +105,12 @@
 			<td class="innerCell">
 				<div id="color_legend" style="visibility:hidden"><table class="innerTable">
 					<tr><td colspan=4 class="colorTableCellText">
-					<span style="font-size:1.2em; font-weight:bold">Node color legend</span></td>
+					<span style="font-size:1.1em; font-weight:bold">Node color legend</span></td>
 					</td></tr>
 					<tr>
 					<td class="colorTableCellColor" style="width:10%;">
-					<table class="innerTable"><tr><td style="background-color:#F7F7F7"></td></tr></table></td>
-					<td class="colorTableCellText" style="width:40%;">Default</td>
+					<table class="innerTable"><tr><td style="background-color:#2B2B2B; opacity:0.8"></td></tr></table></td>
+					<td class="colorTableCellText" style="width:40%;">Multiple*</td>
 					<td class="colorTableCellColor" style="width:10%;">
 					<table class="innerTable"><tr><td style="background-color:#0C5DA5"></td></tr></table></td>
 					<td class="colorTableCellText" style="width:40%;">Strong</td>
@@ -126,7 +126,7 @@
 					<tr>
 					<td class="colorTableCellColor" style="width:10%;">
 					<table class="innerTable"><tr><td style="background-color:#FF0000"></td></tr></table></td>
-					<td class="colorTableCellText" style="width:40%;">Up</td>
+					<td class="colorTableCellText" style="width:40%;">Up**</td>
 					<td class="colorTableCellColor" style="width:10%;">
 					<table class="innerTable"><tr><td style="background-color:#A4C9EB"></td></tr></table></td>
 					<td class="colorTableCellText" style="width:40%;">Weak</td>
@@ -134,7 +134,7 @@
 					<tr>
 					<td class="colorTableCellColor" style="width:10%;">
 					<table class="innerTable"><tr><td style="background-color:#00FF00"></td></tr></table></td>
-					<td class="colorTableCellText" style="width:40%;">Down</td>
+					<td class="colorTableCellText" style="width:40%;">Down**</td>
 					<td class="colorTableCellColor" style="width:10%;">
 					<table class="innerTable"><tr><td style="background-color:#9FFFB5"></td></tr></table></td>
 					<td class="colorTableCellText" style="width:40%;">Present</td>
@@ -146,6 +146,16 @@
 					<td class="colorTableCellColor" style="width:10%;">
 					<table class="innerTable"><tr><td style="background-color:#FFF59F"></td></tr></table></td>
 					<td class="colorTableCellText" style="width:40%;">Absent</td>
+					</tr>
+					<tr>
+					<td colspan=4 class="colorTableCellText" style="width:100%; font-size:0.8em">
+						*Expression found in multiple selected datasets
+					</td>
+					</tr>
+					<tr>
+					<td colspan=4 class="colorTableCellText" style="width:100%; font-size:0.8em">
+						**If an expression value is recorded in KUPKB, color varies depending on the value
+					</td>
 					</tr>
 				</table></div>
 			</td>
@@ -189,7 +199,17 @@
 								<img id="search_tip" src="images/questionmark.png" title="You can search by Gene Symbol, Entrez ID, Ensembl gene or protein ID, Uniprot ID or simply gene description like 'angiotensin II'"/>
 							</div>
 							<div>						
-								<textarea id="enter_genes" name="enter_genes" wrap="hard" onkeyup="searchAllow()" onclick="searchAllow()"></textarea>
+								<textarea id="enter_genes" name="enter_genes" wrap="hard" onkeyup="searchAllow()" onclick="searchAllow()"><?php
+									# Response to external calling (e.g. the iKUP), has to be like this, else a lot of whitespace...
+									if ($_POST['ikup_terms'])
+									{
+										$from_ikup = $_POST['ikup_terms'];
+										$from_ikup = json_decode($from_ikup,$assoc=TRUE);
+										if (!is_array($from_ikup)) { $from_ikup = array($from_ikup); }
+										$terms = implode("\n",$from_ikup);
+										echo $terms;
+									}
+								?></textarea>
 							</div>
 							<div id="errorText"></div>
 							<div><button id="search_button" class="primaryButton" onclick="search()" disabled>GO</button></div>
@@ -227,16 +247,16 @@
 										echo "<tr><td class=\"innerCell\">";
 										echo "<span class=\"boldText\">Dataset: </span>";
 										echo "</td><td class=\"innerCell\">";
-										echo html_selectbox('dataset_list',$dataset,'NULL',array('multiple' => 'multiple', 'style' => 'height:7em', 'disabled' => 'disabled','onchange' => 'colorNodes()'));
+										echo html_selectbox('dataset_list',$dataset,'NULL',array('multiple' => 'multiple', 'style' => 'height:7em', 'disabled' => 'disabled','onchange' => 'colorNodes(\'gene\')'));
 										echo "</td></tr>";				
 									?>
 									<tr>
 									<td class="innerCell">
-										<button id="reset_data_button" class="secondaryButton" onclick="resetData()" disabled>Reset</button>
+										<button id="reset_gene_data_button" class="secondaryButton" onclick="resetData('gene')" disabled>Reset</button>
 										<div id="filterCircle" style="display:none; float:left;"><img src="images/loading_small.gif"></div>
 									</td>
 									<td class="innerCell" colspan=2>
-										<button id="color_network_button" class="secondaryButton" style="font-weight:bold; float:right;" onclick="colorNodes()" disabled>Color network!</button>
+										<button id="color_network_button" class="secondaryButton" style="font-weight:bold; float:right;" onclick="colorNodes('gene')" disabled>Color network!</button>
 									</td>
 									</tr>
 								</table>
@@ -244,7 +264,7 @@
 						</td>
 						<td class="optsCell" style="width:20%">
 							<div>
-								<fieldset class="optsGroup"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Interactions</legend>
+								<fieldset class="optsGroup"><legend class="fieldSetTitle">Interactions</legend>
 									<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges()"><span style="color:#028E9B; font-weight:bold;"> binding</span><br/>
 									<input type="checkbox" id="ptmod_check" checked disabled onclick="filterEdges()"><span style="color:#133CAC; font-weight:bold;"> modification</span><br/>
 									<input type="checkbox" id="expression_check" checked disabled onclick="filterEdges()"><span style="color:#FFAD00; font-weight:bold;"> expression</span><br/>
@@ -377,36 +397,87 @@
 			</div>
 			<div id="advoptContainer">
 				<table class="innerTable"><tr><td id="advancedContainer">
-					<table class="innerTable">
+					<table class="innerTable" style="table-layout:fixed">
 						<tr>
-						<td class="optsCell" style="width:20%">
+						<td class="optsCell" style="width:40%">           
+							<fieldset class="optsGroup"><legend class="fieldSetTitle">KUPKB miRNA data</legend>
+								<table class="innerTable">
+									<?php										
+										$disease_mirna = array('0' => 'Select...');
+										echo "<tr><td class=\"innerCell\">";
+										echo "<span class=\"boldText\">Disease: </span>";
+										echo "</td><td class=\"innerCell\">";
+										echo html_selectbox('disease_mirna_list',$disease_mirna,'NULL',array('disabled' => 'disabled','onchange' => 'update(\'disease_mirna_list\')'));
+										echo "</td></tr>";
+										
+										$location_mirna = array('0' => 'Select...');
+										echo "<tr><td class=\"innerCell\">";
+										echo "<span class=\"boldText\">Location: </span>";
+										echo "</td><td class=\"innerCell\">";
+										echo html_selectbox('location_mirna_list',$location_mirna,'NULL',array('disabled' => 'disabled','onchange' => 'update(\'location_mirna_list\')'));
+										echo "</td></tr>";
+										
+										$dataset_mirna = array('0' => 'Select...');
+										echo "<tr><td class=\"innerCell\">";
+										echo "<span class=\"boldText\">Dataset: </span>";
+										echo "</td><td class=\"innerCell\">";
+										echo html_selectbox('dataset_mirna_list',$dataset_mirna,'NULL',array('multiple' => 'multiple', 'style' => 'height:8em', 'disabled' => 'disabled','onchange' => 'colorNodes(\'mirna\')'));
+										echo "</td></tr>";				
+									?>
+									<tr>
+									<td class="innerCell">
+										<button id="reset_mirna_data_button" class="secondaryButton" onclick="resetData('mirna')" disabled>Reset</button>
+										<div id="filterCircle" style="display:none; float:left;"><img src="images/loading_small.gif"></div>
+									</td>
+									<td class="innerCell" colspan=2>
+										<button id="color_mirna_button" class="secondaryButton" style="font-weight:bold; float:right;" onclick="colorNodes('mirna')" disabled>Color miRNAs!</button>
+									</td>
+									</tr>
+								</table>
+							</fieldset>
+						</td>
+						<td class="optsCell" style="width:30%">
 						<div>
-							<fieldset class="optsGroup"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Gene coloring</legend>
+							<fieldset class="optsGroup"><legend class="fieldSetTitle">Node coloring</legend>
 								<table class="innerTable" style="height:50%">
 									<tr>
-									<td class="innerCell" style="padding:0px">
+									<td class="innerCell">
 										<table class="innerTable">
 											<tr>
-											<td class="innerCell" style="width:50%">Limit disease and/or location on selection</td>
-											<td colspan=2 class="innerCell" style="width:46%; text-align:left"><input type="checkbox" id="restrict_check" disabled /></td>
-											<td class="innerCell" style="width:4%">
-											<img id="restrict_tip" src="images/questionmark.png" title="Check this to limit the contents of Disease and Location lists based on what is selected on the other one. E.g. if disease='proteinuria', the location list will be filled only with locations associated with proteinuria, else the original search result is maintained. This always ensures that expression data for coloring exist."/>
+											<td colspan=2 class="layoptCell">Limit disease and/or location on selection
+											<img class="hint" id="restrict_tip" src="images/questionmark.png" title="Check this to limit the contents of Disease and Location lists for genes and/or miRNAs, based on what is selected on the other one. E.g. if disease='proteinuria', the location list will be filled only with locations associated with proteinuria, else the original search result is maintained. This always ensures that expression data for coloring exist."/>
 											</td>
 											</tr>
 											<tr>
-											<td class="innerCell" style="width:50%">Allow multiple gene coloring</td>
-											<td colspan=2 class="innerCell" style="width:46%; text-align:left"><input type="checkbox" id="multicolor_check" onclick="checkMultiColor()" checked disabled /></td>
-											<td class="innerCell" style="width:4%">
-											<img id="multicolor_tip" src="images/questionmark.png" title="Check this to allow mutliple colors in a gene in the network, if this is found to be present in multiple selected datasets. The presence of a gene expressed in multiple datasets will be represented by a larger node containing several smaller ones, according to the number of the datasets. Each one will be colored based on the expression recorded in the dataset."/>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="restrict_gene_check" disabled /> genes</td>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="restrict_mirna_check" disabled /> miRNAs</td>
+											</tr>
+											<tr>
+											<td colspan=2 class="layoptCell">Allow multiple node coloring
+											<img class="hint" id="multicolor_tip" src="images/questionmark.png" title="Check this to allow mutliple colors in a gene/miRNA in the network, if this is found to be present in multiple selected datasets. Expression in multiple datasets will be represented by a larger node containing several smaller ones, according to the number of the datasets. Each one will be colored based on the expression recorded in the dataset."/>
 											</td>
 											</tr>
 											<tr>
-											<td class="innerCell" style="width:50%">Color lookup also based on</td>
-											<td class="innerCell" style="width:23%"><input type="checkbox" id="disease_check" disabled /> disease</td>
-											<td class="innerCell" style="width:23%"><input type="checkbox" id="location_check" disabled /> location</td>
-											<td class="innerCell" style="width:4%">
-											<img id="allcrit_tip" src="images/questionmark.png" title="Check any of these boxes to put disease/location restrictions when searching for expression data. For example, if both of the boxes are checked, the application will search for expression data matching the selected disease, location and dataset(s). If none is checked, the application looks for expression data for coloring only based on the selected dataset(s)."/>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="multicolor_gene_check" onclick="checkMultiColor('gene')" checked disabled /> genes</td>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="multicolor_mirna_check" onclick="checkMultiColor('mirna')" checked disabled /> miRNAs</td>
+											</tr>
+											<tr>
+											<td colspan=2 class="layoptCell">Gene expression lookup also based on
+											<img class="hint" id="allgenecrit_tip" src="images/questionmark.png" title="Check any of these boxes to put disease/location restrictions when searching for gene expression data. For example, if both of the boxes are checked, the application will search for expression data matching the selected disease, location and dataset(s). If none is checked, the application looks for expression data for coloring only based on the selected dataset(s)."/>
 											</td>
+											</tr>
+											<tr>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="disease_gene_check" disabled /> disease</td>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="location_gene_check" disabled /> location</td>
+											</tr>
+											<tr>
+											<td colspan=2 class="layoptCell">miRNA expression lookup also based on
+											<img class="hint" id="allmirnacrit_tip" src="images/questionmark.png" title="Check any of these boxes to put disease/location restrictions when searching for miRNA expression data. For example, if both of the boxes are checked, the application will search for expression data matching the selected disease, location and dataset(s). If none is checked, the application looks for expression data for coloring only based on the selected dataset(s)."/>
+											</td>
+											</tr>
+											<tr>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="disease_mirna_check" disabled /> disease</td>
+											<td class="layoptCell" style="width:50%"><input type="checkbox" id="location_mirna_check" disabled /> location</td>
 											</tr>
 										</table>
 									</td>
@@ -415,13 +486,15 @@
 							</fieldset>									
 						</div>
 						</td>
-						<td class="optsCell" style="width:20%">
+						<td class="optsCell" style="width:30%">
 						<div>
-							<fieldset class="optsGroup"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">Other</legend>
+							<fieldset class="optsGroup"><legend class="fieldSetTitle">Other</legend>
 								<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"> show node labels<br/>
 								<input type="checkbox" id="edge_labels_check" disabled onclick="showLabels('edges')"> show edge labels<br/>
 								<input type="checkbox" id="sig_size_check" onclick="sigSizeChange()" checked disabled> border relative to significance
-								<span style="float:right"><img id="sigsize_tip" src="images/questionmark.png" title="Check to make the nodes outline thickness relative to a gene's p-value, if this exists in the selected KUPKB dataset(s)."/></span>
+								<span class="hint"><img id="sigsize_tip" src="images/questionmark.png" title="Check this box to make the nodes outline thickness relative to a gene/miRNA's p-value, if the latter exists in the selected KUPKB dataset(s)."/></span><br/>
+								<input type="checkbox" id="allow_click_color_check" onclick="toggleClickColor()" checked disabled> allow coloring on dataset(s) click
+								<span class="hint"><img id="allowclickcolor_tip" src="images/questionmark.png" title="Check this box to allow the coloring of network nodes simply by clicking on the dataset name(s) in the list. Otherwise, the respective button must be pressed. Use this option to explore the datasets without excessive workload for the server."/></span>
 							</fieldset>								
 						</div>
 						</td>
@@ -461,10 +534,17 @@
 	$("#species_list").val(9606);
 	clearCache();
 	bindAutoComplete('enter_genes');
-	bindExport();
-	initTooltip(['search_tip','elinfo_tip','allcrit_tip','multicolor_tip','sigsize_tip','restrict_tip']);
+	initTooltip(['search_tip','elinfo_tip','allgenecrit_tip','allmirnacrit_tip','multicolor_tip','sigsize_tip','restrict_tip','allowclickcolor_tip']);
 </script>
 
+<!-- Here, PHP code for handling a call from the iKUP. It will receive the JSON, send it
+to control.php with the selected species and then initiate a search through JS -->
+<?php
+if ($_POST['ikup_terms'])
+{
+	echo "<script type=\"text/javascript\">search()</script>";
+}
+?>
 </body>
 </html>
 

@@ -5,7 +5,7 @@ $init_species = 'SELECT `tax_id`,`name` '.
 				'ORDER BY `name`';
 
 # Convert ANY input to entrez IDs to reduce subsequent burden */
-$entrez_from_any_1 = 'SELECT genes.entrez_id '.
+$entrez_from_any_1 = 'SELECT genes.entrez_id AS `entity`,\'gene\' AS `type` '.
 					 'FROM `genes` INNER JOIN `entrez_to_uniprot` '.
 					 'ON genes.entrez_id=entrez_to_uniprot.entrez_id '.
 					 'INNER JOIN `entrez_to_ensembl` '.
@@ -20,6 +20,14 @@ $entrez_from_any_2_4 = ' OR entrez_to_ensembl.ensembl_gene IN ';
 $entrez_from_any_2_5 = ' OR entrez_to_ensembl.ensembl_protein IN ';
 $entrez_from_any_3 = ') AND species.tax_id=';
 $entrez_from_any_4 = ' GROUP BY genes.entrez_id';
+$union_mirna = ' UNION ';
+$mirna_from_input_1 = 'SELECT `mirna_id` AS `entity`,\'mirna\' AS `type` '.
+					  'FROM `mirna_to_ensembl` '.
+					  'INNER JOIN `species` '.
+					  'ON mirna_to_ensembl.species=species.tax_id '.
+					  'WHERE `mirna_id` IN ';
+$mirna_from_input_2 = ' AND species.tax_id=';
+$mirna_from_input_3 = ' GROUP BY `mirna_id`';
 
 $entrez_from_symbol_1 = 'SELECT `entrez_id` '.
 						'FROM `genes` '.
@@ -104,24 +112,24 @@ $update_locdata_disease_6 = '\')';
 
 /* Update disease and datasets based on location */
 $update_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
-							'FROM `data` INNER JOIN `genes` '.
-							'ON data.entrez_gene_id=genes.entrez_id '.
-							'INNER JOIN `datasets` '.
-							'ON data.dataset_id=datasets.experiment_id '.
-							'INNER JOIN `dataset_descriptions` '.
-							'ON data.dataset_id=dataset_descriptions.experiment_name '.
-							'WHERE genes.entrez_id IN ';
+							 'FROM `data` INNER JOIN `genes` '.
+							 'ON data.entrez_gene_id=genes.entrez_id '.
+							 'INNER JOIN `datasets` '.
+							 'ON data.dataset_id=datasets.experiment_id '.
+							 'INNER JOIN `dataset_descriptions` '.
+							 'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							 'WHERE genes.entrez_id IN ';
 $update_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
 $update_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
 $update_disdata_location_3 = '\') UNION ';
 $update_disdata_location_4 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
-							'FROM `data` INNER JOIN `entrez_to_uniprot` '.
-							'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
-							'INNER JOIN `datasets` '.
-							'ON data.dataset_id=datasets.experiment_id '.
-							'INNER JOIN `dataset_descriptions` '.
-							'ON data.dataset_id=dataset_descriptions.experiment_name '.
-							'WHERE entrez_to_uniprot.entrez_id IN ';
+							 'FROM `data` INNER JOIN `entrez_to_uniprot` '.
+							 'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+							 'INNER JOIN `datasets` '.
+							 'ON data.dataset_id=datasets.experiment_id '.
+							 'INNER JOIN `dataset_descriptions` '.
+							 'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							 'WHERE entrez_to_uniprot.entrez_id IN ';
 $update_disdata_location_5_1 = ' AND (datasets.biomaterial_0=\'';
 $update_disdata_location_5_2 = '\' OR datasets.biomaterial_1=\'';
 $update_disdata_location_6 = '\')';
@@ -172,6 +180,10 @@ $auto_ensembl = 'SELECT entrez_to_ensembl.entrez_id,`ensembl_gene`,`ensembl_prot
 				'INNER JOIN `species` '.
 				'ON entrez_to_ensembl.species=species.tax_id '.
 				'WHERE entrez_to_ensembl.id IN ';
+$auto_mirna = 'SELECT DISTINCT `mirna_id`,species.name '.
+			  'FROM `mirna_to_ensembl` INNER JOIN `species` '.
+			  'ON mirna_to_ensembl.species=species.tax_id '.
+			  'WHERE `id` IN ';
 $auto_uniprot = 'SELECT entrez_to_uniprot.entrez_id,`uniprot_id`,`gene_symbol`,`description` '.
 				'FROM `entrez_to_uniprot` INNER JOIN `genes` '.
 				'ON entrez_to_uniprot.entrez_id=genes.entrez_id '.
@@ -198,6 +210,11 @@ $init_edges_1 = 'SELECT DISTINCT `target`, `source`, `interaction` '.
 			    'FROM `interactions` '.
 			    'WHERE `source` IN ';
 $init_edges_2 = ' AND `target` IN ';
+
+/* Initiate input miRNA nodes, edges are initiated with the query of getmirnaElements */
+$init_mirna_nodes = 'SELECT DISTINCT `mirna_id` '.
+					'FROM `mirna_to_ensembl` '.
+					'WHERE `mirna_id` IN ';
 
 /* Get the selected GO terms and their genes to create GO nodes and edges */
 $get_go_1 = 'SELECT CONCAT_WS("_to_",`go_id`,`ensembl_protein`) AS `edge_id`,entrez_to_go.entrez_id,`go_id`,`go_term`,`category`,`pubmed`,`ensembl_protein` '.
@@ -255,6 +272,62 @@ $get_add_edges_1 = 'SELECT DISTINCT `target`,`source`,`interaction` '.
 				   'FROM `interactions` '.
 				   'WHERE `source` IN ';
 $get_add_edges_2 = ' AND `target` IN ';
+
+/* Get datasets for miRNA interface section */
+$mirna_dataset_id = 'SELECT `dataset_id` '.
+					'FROM `data` '.
+					'WHERE `microcosm_id` IN ';
+
+/* Get diseases for miRNA datasets */
+$init_mirna_disease = 'SELECT DISTINCT `disease_0`,`disease_1` '.
+					  'FROM `datasets` '.
+					  'WHERE `experiment_id` IN ';
+
+/* Get locations for miRNA datasets */
+$init_mirna_location = 'SELECT DISTINCT `biomaterial_0`,`biomaterial_1` '.
+					   'FROM `datasets` '.
+					   'WHERE `experiment_id` IN ';
+
+/* Get names for miRNA datasets */
+$init_mirna_dataset = 'SELECT `experiment_name`,`display_name` '.
+					  'FROM `dataset_descriptions` '.
+					  'WHERE `experiment_name` IN ';
+
+/* Update location and datasets based on disease for miRNAs */
+$update_mirna_locdata_disease_1 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
+								  'FROM `data` INNER JOIN `datasets` '.
+								  'ON data.dataset_id=datasets.experiment_id '.
+								  'INNER JOIN `dataset_descriptions` '.
+								  'ON data.dataset_id=dataset_descriptions.experiment_name '.
+								  'WHERE data.microcosm_id IN ';
+$update_mirna_locdata_disease_2_1 = ' AND (datasets.disease_0=\'';
+$update_mirna_locdata_disease_2_2 = '\' OR datasets.disease_1=\'';
+$update_mirna_locdata_disease_3 = '\')';
+
+/* Update disease and datasets based on location */
+$update_mirna_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
+								   'FROM `data` INNER JOIN `datasets` '.
+								   'ON data.dataset_id=datasets.experiment_id '.
+								   'INNER JOIN `dataset_descriptions` '.
+								   'ON data.dataset_id=dataset_descriptions.experiment_name '.
+								   'WHERE data.microcosm_id IN ';
+$update_mirna_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
+$update_mirna_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
+$update_mirna_disdata_location_3 = '\')';
+
+$get_mirna_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`microcosm_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+						'FROM `data` INNER JOIN `datasets` '.
+						'ON data.dataset_record_id = datasets.record_id '.
+						'INNER JOIN `dataset_descriptions` '.
+						'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
+						'WHERE `microcosm_id` IN ';
+$get_mirna_coloring_2_1 = ' AND `dataset_id` IN ';
+$get_mirna_coloring_2_2 = ' AND (datasets.disease_0=';
+$get_mirna_coloring_2_3 = ' OR datasets.disease_1=';
+$get_mirna_coloring_2_4 = ') AND (datasets.biomaterial_0=';
+$get_mirna_coloring_2_5 = ' OR datasets.biomaterial_1=';
+$get_mirna_coloring_3 = ')';
+
 
 # LEGACY
 /* Get data for coloring this is slower than the UNION below above but we are keeping it for legacy reasons */

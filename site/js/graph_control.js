@@ -14,10 +14,10 @@ function initVisualStyle()
 	return(visualStyle);
 }
 
-function bypassNodeColors(ajaxData)
+function bypassNodeColors(ajaxData,type)
 {
 	var visObject = getVisData("cytoscapeweb");
-	var nodeMapper = initNodeMapper();
+	var bypass = getData("cytoscapeweb","bypass");
 	var nodes = visObject.nodes();
 	var noN = nodes.length;
 	var noA = ajaxData.length;
@@ -28,17 +28,33 @@ function bypassNodeColors(ajaxData)
 	var dataSeen = [];
 	var propSeen = [];
 	var i, j, k, currNode;
-	var bypass = { nodes: { }, edges: { } };
+	//var bypass = { nodes: { }, edges: { } };
+	var multicolor, cShape;
+
+	switch(type)
+	{
+		case 'gene':
+			multicolor = $("#multicolor_gene_check").is(":checked") ? true : false;
+			cShape = "ELLIPSE";
+			break;
+		case 'mirna':
+			multicolor = $("#multicolor_mirna_check").is(":checked") ? true : false;
+			cShape = "RECTANGLE";
+			break;
+		default:
+			multicolor = false;
+			cShape = "ELLIPSE";
+	}
 
 	// Not the best implementation, but we have to check for multiply present genes since
 	// we are able to select multiple datasets
 	for (i=0; i<noA; i++) // First initialize
 	{
-		seen[ajaxData[i].entrez_id] = 0;
+		seen[ajaxData[i].entrez_id] = [];
 	}
 	for (i=0; i<noA; i++) // Now hash
 	{
-		seen[ajaxData[i].entrez_id]++;
+		seen[ajaxData[i].entrez_id].unshift(i);
 	}
 	
 	// Construct the array of entrez_id in ajaxData;
@@ -59,6 +75,7 @@ function bypassNodeColors(ajaxData)
 		{
 			if (ajaxData[i].expression !== '' && ajaxData[i].expression !== null) // DE expression exists
 			{
+				ajaxData[i].expression = capFirst(ajaxData[i].expression);
 				if ($("#sig_size_check").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 				{
 					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
@@ -72,6 +89,7 @@ function bypassNodeColors(ajaxData)
 			{
 				if ($("#sig_size_check").is(":checked") && ajaxData[i].strength !== '' && ajaxData[i].strength !== null) // Expression strength exists
 				{
+					ajaxData[i].strength = capFirst(ajaxData[i].strength);
 					if (ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 					{
 						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
@@ -79,7 +97,6 @@ function bypassNodeColors(ajaxData)
 					else
 					{
 						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength) });
-						//visProps.push({ color: { discreteMapper: nodeMapper.strengthMapper } });
 					}
 				}
 			}
@@ -89,9 +106,9 @@ function bypassNodeColors(ajaxData)
 	}
 
 	dataSeen = { strength: "Multiple", expression: "Multiple", ratio: 999, pvalue: 999, fdr: 999 };
-	if ($("#multicolor_check").is(":checked"))
+	if (multicolor)
 	{
-		propSeen = { compoundColor: "#2B2B2B", compoundBorderWidth: 5, compoundBorderColor: "#ECBD00", compoundLabelFontColor: "#0000FF", compoundLabelFontWeight: "bold", compoundShape: "ELLIPSE" };
+		propSeen = { compoundColor: "#7A7A7A", compoundBorderWidth: 5, compoundBorderColor: "#ECBD00", compoundLabelFontColor: "#0000FF", compoundLabelFontWeight: "bold", compoundShape: cShape, compoundOpacity: 0.5 };
 	}
 	else
 	{
@@ -104,27 +121,27 @@ function bypassNodeColors(ajaxData)
 		if (ii !== -1) // Node in KUPKB expression data
 		{
 			currNode = nodes[i];
-			if (seen[currNode.data.entrez_id]>1)
+			if (seen[currNode.data.entrez_id].length>1)
 			{
-				if ($("#multicolor_check").is(":checked"))
+				if (multicolor)
 				{
-					for (j=0; j<seen[currNode.data.entrez_id]; j++)
+					for (j=0; j<seen[currNode.data.entrez_id].length; j++)
 					{
 						k = j+1;
 						cdata = {
-									id: currNode.data.id + "_" + j,
-									label: newData[ii].custom + " (" + k + ")",
-									strength: newData[ii].strength,
-									expression: newData[ii].expression,
-									ratio: newData[ii].ratio,
-									pvalue: newData[ii].pvalue,
-									fdr: newData[ii].fdr,
+									id: currNode.data.id + "_" + k,
+									label: newData[seen[currNode.data.entrez_id][j]].custom + " (" + k + ")",
+									strength: newData[seen[currNode.data.entrez_id][j]].strength,
+									expression: newData[seen[currNode.data.entrez_id][j]].expression,
+									ratio: newData[seen[currNode.data.entrez_id][j]].ratio,
+									pvalue: newData[seen[currNode.data.entrez_id][j]].pvalue,
+									fdr: newData[seen[currNode.data.entrez_id][j]].fdr,
 									entrez_id: currNode.data.entrez_id,
-									object_type: "gene",
+									object_type: type,
 									parent: currNode.data.id
 								};
 						visObject.addNode(randomFromTo(350,450),randomFromTo(350,450),cdata,true);
-						bypass["nodes"][cdata.id] = visProps[ii];
+						bypass["nodes"][cdata.id] = visProps[seen[currNode.data.entrez_id][j]];
 					}
 					visObject.updateData([currNode.data.id],dataSeen);
 					bypass[currNode.group][currNode.data.id] = propSeen;
@@ -143,6 +160,7 @@ function bypassNodeColors(ajaxData)
 		}
 	}
 
+	setData("cytoscapeweb","bypass",bypass);
 	visObject.visualStyleBypass(bypass);
 }
 
@@ -329,6 +347,7 @@ function removeMeta(what,howmany,cat)
                     }
 					break;
 			}
+			removeMiRNAData(toRemove);
 			break;
 	}
     
@@ -394,7 +413,8 @@ function updateLayout(layopt)
 		return;
 	}
 
-	var layoutOpts = $("#cytoscapeweb").data("layout");
+	var layoutOpts = getData("cytoscapeweb","layout");
+	//var layoutOpts = $("#cytoscapeweb").data("layout");
 	switch(layopt)
 	{
 		case 'ForceDirected':
@@ -611,13 +631,23 @@ function gimmeMirnaData(staticData,ajaxData)
 	var nodeData = {};
 
 	nodeData.id = "miRNA ID: <a class=\"infolink\" href=\"http://www.mirbase.org/cgi-bin/mirna_entry.pl?acc=" + staticData['id'] + "\" target=\"_blank\">" + staticData['id'] + "</a><br/>";
-	nodeData.label = "miRNA name: <span style=\"color:#FF0000\">" + staticData['label'] + "</span><br/>";
-	nodeData.other = "";
+	nodeData.strength = staticData['strength']==="" ? "" : "Expression strength: <span style=\"color:#FF0000\">" + staticData['strength'] + "</span><br/>";
+	nodeData.expression = staticData['expression']==="" ? "" : "Differential expression: <span style=\"color:#FF0000\">" + staticData['expression'] + "</span><br/>";
+	nodeData.ratio = (staticData['ratio']===999 || staticData['ratio']===null) ? "" : "Fold change: <span style=\"color:#FF0000\">" + staticData['ratio'] + "</span><br/>";
+	nodeData.pvalue = (staticData['pvalue']===999 || staticData['pvalue']===null) ? "" : "p-value: <span style=\"color:#FF0000\">" + Math.pow(10,-staticData['pvalue']) + "</span><br/>";
+	nodeData.fdr = (staticData['fdr']===999 || staticData['fdr']===null) ? "" : "FDR: <span style=\"color:#FF0000\">" + staticData['fdr'] + "</span><br/>";
 
+	if (nodeData.strength === '' && nodeData.expression === '' && nodeData.ratio === '' && nodeData.pvalue === '' && nodeData.fdr === '')
+	{
+		nodeData.label = "miRNA name: <span style=\"color:#FF0000\">" + staticData['label'] + "</span><br/>";
+	}
+	else { nodeData.label = ""; }
+	
 	if ($.isEmptyObject(ajaxData)) { /*Stub, we might add something in the future*/ }
 
 	msg = "<span style=\"color:#000000; font-weight:bold\">miRNA data</span><br/>" +
-		  nodeData.id + nodeData.label + nodeData.other;
+		  nodeData.id + nodeData.label + nodeData.strength + nodeData.expression +
+		  nodeData.ratio + nodeData.pvalue + nodeData.fdr;
 
 	return(msg);
 }
@@ -768,17 +798,18 @@ function gimmeNodeBorder(val)
 
 function mapRatioColor(val)
 {
-	var mm = 3;
+	var mm = 5; // mm = 3;
 	if (val<0) // We need to down-interpolate R
 	{
-		val = log2(Math.abs(val));
+		//val = log2(Math.abs(val));
+		val = Math.abs(val);
 		val = val>mm ? val=mm : val=val;
 		r = Math.round((1-val/mm)*255);
 		g = 255;
 	}
 	else if (val>0) // We need to down-interpolate G
 	{
-		val = log2(val);
+		//val = log2(val);
 		val = val>mm ? val=mm : val=val;
 		r = 255;
 		g = Math.round((1-val/mm)*255);
@@ -862,57 +893,120 @@ function showLabels(group)
 	}
 }
 
-function resetGeneData()
+function resetNodeData(type)
 {
 	var visObject = getVisData("cytoscapeweb");
+	var bypass = getData("cytoscapeweb","bypass");
 	var nodes = visObject.nodes();
 	var n = nodes.length;
-	var genes = [];
+	var reset = [];
 	var i = 0;
-	var bypass = { nodes: { }, edges: { } };
+	//var bypass = { nodes: { }, edges: { } };
 	var redata = { strength: "", expression: "", ratio: 999, pvalue: 999, fdr: 999 };
+	var pNodes = [];
+	var cNodes = [];
 
-	// Reset normal nodes
-	for (i=0; i<n; i++)
-	{
-		if (nodes[i].data.object_type === "gene")
-		{
-			genes.push(nodes[i].data.id)
-			bypass["nodes"][nodes[i].data.id] = { color: "#F7F7F7", borderWidth: 1, borderColor: "#000000" };
-		}
+	switch(type)
+	{	
+		case 'gene':
+			// Reset normal nodes
+			for (i=0; i<n; i++)
+			{
+				if (nodes[i].data.object_type === "gene")
+				{
+					reset.push(nodes[i].data.id)
+					bypass["nodes"][nodes[i].data.id] = { color: "#F7F7F7", borderWidth: 1, borderColor: "#000000" };
+				}
+			}
+			// Now, find any children nodes, we will add an if to check if this is allowed by the application
+			if ($("#multicolor_gene_check").is(":checked"))
+			{
+				pNodes = visObject.parentNodes();
+				cNodes = [];
+				for (i=0; i<pNodes.length; i++)
+				{
+					if (pNodes[i].data.object_type === "gene")
+					{
+						cNodes = visObject.childNodes(pNodes[i]);
+						visObject.removeElements("nodes",cNodes);
+					}
+				}
+			}
+			break;
+		case 'mirna':
+			for (i=0; i<n; i++)
+			{
+				if (nodes[i].data.object_type === "mirna")
+				{
+					reset.push(nodes[i].data.id)
+					bypass["nodes"][nodes[i].data.id] = { color: "#6E86D6", borderWidth: 1, borderColor: "#000000" };
+				}
+			}
+			// Now, find any children nodes, we will add an if to check if this is allowed by the application
+			if ($("#multicolor_mirna_check").is(":checked"))
+			{
+				pNodes = visObject.parentNodes();
+				cNodes = [];
+				for (i=0; i<pNodes.length; i++)
+				{
+					if (pNodes[i].data.object_type === "mirna")
+					{
+						cNodes = visObject.childNodes(pNodes[i]);
+						visObject.removeElements("nodes",cNodes);
+					}
+				}
+			}
+			break;
 	}
-	// Now, find any children nodes, we will add an if to check if this is allowed by the application
-	if ($("#multicolor_check").is(":checked"))
-	{
-		var pNodes = visObject.parentNodes();
-		var cNodes = [];
-		for (i=0; i<pNodes.length; i++)
-		{
-			cNodes = visObject.childNodes(pNodes[i]);
-			visObject.removeElements("nodes",cNodes);
-		}
-	}
-	
-	visObject.updateData(genes,redata);
+
+	setData("cytoscapeweb","bypass",bypass);
+	visObject.updateData(reset,redata);
 	visObject.visualStyleBypass(bypass);
 }
 
-function checkMultiColor()
+function checkMultiColor(type)
 {
 	var visObject = getVisData("cytoscapeweb");
-	if (!$("#multicolor_check").is(":checked"))
+	var pNodes = visObject.parentNodes();
+	var cNodes = [];
+	switch(type)
 	{
-		var pNodes = visObject.parentNodes();
-		var cNodes = [];
-		for (i=0; i<pNodes.length; i++)
-		{
-			cNodes = visObject.childNodes(pNodes[i]);
-			visObject.removeElements("nodes",cNodes);
-		}
-	}
-	else
-	{
-		colorNodes();
+		case 'gene':
+			if (!$("#multicolor_gene_check").is(":checked"))
+			{
+				for (i=0; i<pNodes.length; i++)
+				{
+					if (pNodes[i].data.object_type === "gene")
+					{
+						cNodes = visObject.childNodes(pNodes[i]);
+						visObject.removeElements("nodes",cNodes);
+					}
+				}
+				colorNodes(type);
+			}
+			else
+			{
+				colorNodes(type);
+			}
+			break;
+		case 'mirna':
+			if (!$("#multicolor_mirna_check").is(":checked"))
+			{
+				for (i=0; i<pNodes.length; i++)
+				{
+					if (pNodes[i].data.object_type === "mirna")
+					{
+						cNodes = visObject.childNodes(pNodes[i]);
+						visObject.removeElements("nodes",cNodes);
+					}
+				}
+				colorNodes(type);
+			}
+			else
+			{
+				colorNodes(type);
+			}
+			break;
 	}
 }
 
@@ -1175,12 +1269,12 @@ function setVisData(container,data)
 
 function getData(container,name)
 {
-	return($(container).data(name));
+	return($("#"+container).data(name));
 }
 
 function setData(container,name,data)
 {
-	$(container).data(name,data);
+	$("#"+container).data(name,data);
 }
 
 

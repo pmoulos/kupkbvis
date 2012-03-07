@@ -28,5 +28,6 @@ INTERACTION_PATH: download
 GENE_PATH: download
 MIRNA_PATH: download
 CURATORS: /media/HD5/Work/TestGround/contr_emails.txt
+INDEX_PATH: /etc/sphinxsearch/kupkbvis_sphinx.conf
 #INTERACTION_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB
 #GENE_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB

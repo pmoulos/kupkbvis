@@ -24,6 +24,9 @@ our $silent = 0; # Display verbose messages
 our $waitbar;    # Use the waitbar feature of sub-scripts?
 our $help = 0;   # Help?
 
+# This script must be run as root in order to effectively create the index
+die "\n\nYou must run this script as root or sudoer!\n\n" if ($> != 0);
+
 # Check for the presence of required modules
 &tryModule("YAML");
 # Check inputs
@@ -53,8 +56,8 @@ if ($paramfile)
 }
 else { $phref = &loadDefaultParams(); } # Not given
 
-my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$keggOK,$mirnaOK);
-$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $keggOK = $mirnaOK = -1;
+my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$keggOK,$mirnaOK,$indexOK,$daemonOK);
+$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $keggOK = $mirnaOK = $indexOK = $daemonOK = -1;
 
 # Do the job... -create the schema first
 $schemaOK = system("perl createSchema.pl --dbdata $dbdata[0] $dbdata[1]");
@@ -93,8 +96,27 @@ if ($keggOK==0)
 	$mirnaOK = system("perl mirna2table.pl --input $phref->{\"MIRNA_PATH\"} --param $paramfile --dbdata $dbdata[0] $dbdata[1]");
 	disp("================================================================================\n");
 }
+# Finally, build the index and relaunch the search daemon
+if ($mirnaOK==0)
+{
+	if (!-e $phref->{"INDEX_PATH"}) { &createIndexConf($phref->{"INDEX_PATH"}); }
+	$indexOK = system("/usr/local/bin/indexer --config $phref->{\"INDEX_PATH\"} --all");
+	if ($indexOK==0)
+	{
+		$daemonOK = system("/usr/bin/searchd --stop");
+		if ($daemonOK==0) # Daemon was running, let's restart it with new index file
+		{
+			$daemonOK = system("/usr/bin/searchd -c $phref->{\"INDEX_PATH\"}");
+		}
+		else # Error, daemon was not running, start it anyway
+		{
+			$daemonOK = system("/usr/bin/searchd -c $phref->{\"INDEX_PATH\"}");
+		}
+	}
+	disp("================================================================================\n");
+}
 $date = &now;
-($datasetOK==0) ? (disp("$date - Finished!\n\n")) : (disp("$date - Error occurred!\n\n")) ;
+($datasetOK==0 && $indexOK==0 && $daemonOK==0) ? (disp("$date - Finished!\n\n")) : (disp("$date - Error occurred!\n\n")) ;
 
 
 # Process inputs
@@ -158,9 +180,170 @@ sub loadDefaultParams
 			 "DATA" => "/media/HD5/Work/TestGround/datasets",
 			 "INTERACTION_PATH" => "download",
 			 "GENE_PATH" => "download",
-			 "MIRNA_PATH" => "download"
+			 "MIRNA_PATH" => "download",
+			 "INDEX_PATH" => "/etc/sphinxsearch/kupkbvis_sphinx.conf",
+			 "CURATORS" => "/media/HD5/Work/TestGround/contr_emails.txt"
 		);
 	return(\%h);
+}
+
+sub createIndexConf
+{
+	my $confile = $_;
+	open(CONF,">$confile");
+	my $conf =
+	"source kupkbvis_entrez\n".
+	"{\n".
+	"\ttype = mysql\n".
+	"\tsql_host = localhost\n".
+	"\tsql_user = $dbdata[0]\n".
+	"\tsql_pass = $dbdata[1]\n".
+	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_port = 3306\n".
+	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
+	"\tmysql_connect_flags\t= 32\n".
+	"\tsql_query = \\\n".
+	"\t\tSELECT entrez_id, \\\n".
+	"\t\t\tCONVERT(entrez_id,CHAR(16)) AS entrez_str, \\\n".
+	"\t\t\tgene_symbol, description, species.tax_id AS species \\\n".
+	"\t\tFROM genes INNER JOIN species \\\n".
+	"\t\tON genes.species=species.tax_id\n".
+	"\tsql_attr_uint = species\n".
+	"\tsql_query_info = \\\n".
+	"\t\tSELECT entrez_id, gene_symbol, description, species.name AS name \\\n".
+	"\t\tFROM genes INNER JOIN species ON genes.species=species.tax_id \\\n".
+	"\t\tWHERE entrez_id=\$id\n".
+	"}\n\n".
+	"source kupkbvis_ensembl\n".
+	"{\n".
+	"\ttype = mysql\n".
+	"\tsql_host = localhost\n".
+	"\tsql_user = $dbdata[0]\n".
+	"\tsql_pass = $dbdata[1]\n".
+	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_port = 3306\n".
+	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
+	"\tmysql_connect_flags\t= 32\n".
+	"\tsql_query = \\\n".
+	"\t\tSELECT id, \\\n".
+	"\t\t\tCONVERT(entrez_id,CHAR(16)) AS entrez_str, \\\n".
+	"\t\t\tensembl_gene, ensembl_protein, species \\\n".
+	"\t\tFROM entrez_to_ensembl\n".
+	"\tsql_attr_uint = species\n".
+	"\tsql_query_info = \\\n".
+	"\t\tSELECT * FROM entrez_to_ensembl WHERE id=\$id\n".
+	"}\n\n".
+	"source kupkbvis_mirna\n".
+	"{\n".
+	"\ttype = mysql\n".
+	"\tsql_host = localhost\n".
+	"\tsql_user = $dbdata[0]\n".
+	"\tsql_pass = $dbdata[1]\n".
+	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_port = 3306\n".
+	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
+	"\tmysql_connect_flags\t= 32\n".
+	"\tsql_query = \\\n".
+	"\t\tSELECT id, \\\n".
+	"\t\t\tmirna_id, species.name AS name \\\n".
+	"\t\tFROM mirna_to_ensembl INNER JOIN species \n".
+	"\t\tGROUP BY mirna_id ORDER BY id\n".
+	"\tsql_attr_uint = species\n".
+	"\tsql_query_info = \\\n".
+	"\t\tSELECT mirna_id, species FROM mirna_to_ensembl ON mirna_to_ensembl.species=species.tax_id \\\n".
+	"\t\tWHERE mirna_to_ensembl.id=\$id\n".
+	"}\n\n".
+	"source kupkbvis_uniprot\n".
+	"{\n".
+	"\ttype = mysql\n".
+	"\tsql_host = localhost\n".
+	"\tsql_user = $dbdata[0]\n".
+	"\tsql_pass = $dbdata[1]\n".
+	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_port = 3306\n".
+	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
+	"\tmysql_connect_flags\t= 32\n".
+	"\tsql_query = \\\n".
+	"\t\tSELECT id, \\\n".
+	"\t\t\tCONVERT(entrez_id,CHAR(16)) AS entrez_str, uniprot_id \\\n".
+	"\t\tFROM entrez_to_uniprot\n".
+	"\tsql_query_info = \\\n".
+	"\t\tSELECT * FROM entrez_to_uniprot WHERE id=\$id\n".
+	"}\n\n".
+	"index kupkbvis_entrez\n".
+	"{\n".
+	"\tsource = kupkbvis_entrez\n".
+	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_entrez\n".
+	"\tdocinfo = extern\n".
+	"\tmlock = 0\n".
+	"\tmorphology = stem_en\n".
+	"\tmin_stemming_len = 2\n".
+	"\tmin_word_len = 2\n".
+	"\tmin_prefix_len = 0\n".
+	"\tmin_infix_len = 3\n".
+	"\tcharset_type = sbcs\n".
+	"\tenable_star = 1\n".
+	"\thtml_strip = 0\n".
+	"}\n\n".
+	"index kupkbvis_ensembl\n".
+	"{\n".
+	"\tsource = kupkbvis_ensembl\n".
+	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_ensembl\n".
+	"\tdocinfo = extern\n".
+	"\tmlock = 0\n".
+	"\tmorphology = stem_en\n".
+	"\tmin_stemming_len = 3\n".
+	"\tmin_word_len = 3\n".
+	"\tmin_prefix_len = 0\n".
+	"\tmin_infix_len = 5\n".
+	"\tcharset_type = sbcs\n".
+	"\tenable_star = 1\n".
+	"\thtml_strip = 0\n".
+	"}\n\n".
+	"index kupkbvis_mirna\n".
+	"{\n".
+	"\tsource = kupkbvis_mirna\n".
+	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_mirna\n".
+	"\tdocinfo = extern\n".
+	"\tmlock = 0\n".
+	"\tmorphology = stem_en\n".
+	"\tmin_stemming_len = 3\n".
+	"\tmin_word_len = 3\n".
+	"\tmin_prefix_len = 0\n".
+	"\tmin_infix_len = 4\n".
+	"\tcharset_type = sbcs\n".
+	"\tenable_star = 1\n".
+	"\thtml_strip = 0\n".
+	"}\n\n".
+	"index kupkbvis_uniprot\n".
+	"{\n".
+	"\tsource = kupkbvis_uniprot\n".
+	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_uniprot\n".
+	"\tdocinfo = extern\n".
+	"\tmlock = 0\n".
+	"\tmorphology = stem_en\n".
+	"\tmin_stemming_len = 2\n".
+	"\tmin_word_len = 2\n".
+	"\tmin_prefix_len = 0\n".
+	"\tmin_infix_len = 3\n".
+	"\tcharset_type = sbcs\n".
+	"\tenable_star = 1\n".
+	"\thtml_strip = 0\n".
+	"}\n\n".
+	"indexer\n".
+	"{\n".
+	"\tmem_limit = 1024M\n".
+	"\tmax_iops = 256\n".
+	"}\n\n".
+	"searchd\n".
+	"{\n".
+	"\tlog = /media/HD2/mysql/sphinx_index/searchd.log\n".
+	"\tquery_log = /var/log/sphinxsearch/query.log\n".
+	"\tlisten = 60000\n".
+	"\tpid_file = /var/run/searchd.pid\n".
+	"}\n";
+	print CONF $conf;
+	close(CONF);
 }
 
 sub now
