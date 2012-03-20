@@ -176,6 +176,8 @@ a.toggler:hover
 	padding: 2px;
     vertical-align: middle;
     text-align: left;
+    /*border-width: 1px;
+    border-style: dashed;*/
 }
 
 .goLabel
@@ -214,7 +216,7 @@ a.toggler:hover
 	margin-top: 20px;
     margin-bottom: 20px;
 	/*height: 100%;*/
-    width: 80%;
+    width: 85%;
 }
 
 .fieldSetTitle
@@ -249,7 +251,7 @@ a.toggler:hover
 #graphContainer 
 {		
 	width: 75%;
-	height: 640px;
+	height: 100%;
 	border: solid;
 	border-width: 1px;
 	border-color: #000000;
@@ -340,7 +342,7 @@ a.toggler:hover
 	width: 100%;
 	height: 100%;
 	text-align: center;
-    display: block;
+	vertical-align: middle;
 }
 
 #errorText

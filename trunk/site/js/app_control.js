@@ -1207,8 +1207,6 @@ function initNetwork(networkJSON)
 	// callback when Cytoscape Web has finished drawing
 	vis.ready(function()
 	{
-		// Start with only the selected edges
-		//filterEdges();
 		// Add click listeners
 		vis
 		.addListener("click","nodes",function(event)
@@ -1258,9 +1256,7 @@ function initNetwork(networkJSON)
 		})
 		.addContextMenuItem("Restore network",function(event)
 		{
-			vis.removeFilter();
-			filterEdges();
-			updateInfo();
+			restoreNetwork();
 		});
 
 		// Store the network and layout object so it can be accessible to other functions
@@ -1381,171 +1377,6 @@ function initNetwork(networkJSON)
 				  "Genes: <span style=\"color:#FF0000\">" + selNodes.length + "</span><br/>" +
 				  "Relationships: <span style=\"color:#FF0000\">" + selEdges.length + "</span><br/>";
 			showInfo(msg);
-		}
-
-		function hideElements(group,action)
-		{
-			var selElems = vis.selected(group);
-			var selElemIDs = [];
-			var toHide = [];
-			var i, allElems;
-
-			if (group === "nodes")
-			{
-				allElems = vis.nodes();
-			}
-			else
-			{
-				allElems = vis.edges();
-			}
-
-			for (i=0; i<selElems.length; i++)
-			{
-				selElemIDs.push(selElems[i].data.id);
-			}
-			
-			for (i=0; i<allElems.length; i++)
-			{
-				if ($.inArray(allElems[i].data.id,selElemIDs) === -1)
-				{
-					toHide.push(allElems[i].data.id);
-				}
-			}
-
-			if (action === "hide")
-			{
-				if (group === "nodes") { vis.filter(group,toHide); }
-				if (group === "edges") { hideSomeEdges(selElemIDs); }
-			}
-			else if (action === "delete")
-			{
-				// We additionally need to see if there any miRNAs to be deleted in order
-				// to update the relative datasets
-				hasmirna = false;
-				if (group === "nodes")
-				{
-					for (i=0; i<selElems.length; i++)
-					{
-						if (selElems[i].data.object_type === "mirna")
-						{
-							hasmirna = true;
-							break;
-						}
-					}
-				}
-
-				vis.removeElements(selElems);
-
-				if (hasmirna)
-				{
-					for (i=0; i<selElems.length; i++)
-					{
-						if (selElems[i].data.object_type === "mirna")
-						{
-							selElemIDs.push(selElems[i].data.id);
-						}
-					}
-					removeMiRNAData(selElemIDs);
-				}
-			}
-			updateInfo();
-		}
-
-		function fetchNeighbors(level)
-		{
-			var urlBase = initMe();
-	
-			var selNodes = vis.selected("nodes");
-			var allNodes = vis.nodes();
-			var selNodeIDs = [];
-			var allNodeIDs = [];
-			var sn = selNodes.length;
-			var an = allNodes.length;
-			var i = 0;
-
-			if (sn === 0) // Nothing selected
-			{
-				modalAlert("Please select at least one node.","Attention!");
-				return;
-			}
-
-			for (i=0; i<sn; i++)
-			{
-				selNodeIDs.push(selNodes[i].data.id);
-			}
-			for (i=0; i<an; i++)
-			{
-				allNodeIDs.push(allNodes[i].data.id);
-			}
-			
-			$.ajax(
-			{
-				type: 'POST',
-				url: urlBase+'php/control.php',
-				data: { level: level, node: $.toJSON(selNodeIDs), nodes: $.toJSON(allNodeIDs) },
-				beforeSend: function() { $('#loadingCircle').show(); },
-				complete: function() { $('#loadingCircle').hide(); },
-				success: function(data)
-				{						
-					var nodes;
-					var entrezID = [];
-					var i = 0;
-					
-					if ($.isEmptyObject(data)) // Not likely...
-					{
-						displayError('Sorry! No neighbors found :-(');
-					}
-					else
-					{
-						nodes = vis.nodes();
-						for (i=0; i<nodes.length; i++)
-						{
-							entrezID.push(nodes[i].data.entrez_id);
-						}
-						for (i=0; i<data.length; i++)
-						{
-							if (data[i].group === "nodes")
-							{
-								entrezID.push(data[i].data.entrez_id);
-							}
-						}
-						addElements(data);
-						filterEdges();
-						search(entrezID);
-					}
-				},
-				error: function(data,error)
-				{												
-					displayError('Ooops! ' + error + ' ' + data.responseText);
-				},
-				dataType: "json"
-			});
-		}
-
-		// Only for level 1 for the moment...
-		function showNeighbors(level)
-		{
-			var selNodes = vis.selected("nodes");
-			var selNodeIDs = [];
-			var sn = selNodes.length;
-			var i = 0;
-
-			if (sn === 0) // Nothing selected
-			{
-				modalAlert("Please select at least one node.","Attention!");
-				return;
-			}
-
-			for (i=0; i<sn; i++)
-			{
-				selNodeIDs.push(selNodes[i].data.id);
-			}
-
-			var nObj = vis.firstNeighbors(selNodeIDs,true);
-
-			// Now highlight neighboring nodes and edges
-			vis.select("nodes",nObj.neighbors);
-			vis.select("edges",nObj.edges);
 		}	
 	});
 
@@ -1558,6 +1389,79 @@ function initNetwork(networkJSON)
 	};
 		
 	vis.draw(draw_options);
+}
+
+function fetchNeighbors(level)
+{
+	var urlBase = initMe();
+
+	var vis = getVisData('cytoscapeweb');
+	var selNodes = vis.selected("nodes");
+	var allNodes = vis.nodes();
+	var selNodeIDs = [];
+	var allNodeIDs = [];
+	var sn = selNodes.length;
+	var an = allNodes.length;
+	var i = 0;
+
+	if (sn === 0) // Nothing selected
+	{
+		modalAlert("Please select at least one node.","Attention!");
+		return;
+	}
+
+	for (i=0; i<sn; i++)
+	{
+		selNodeIDs.push(selNodes[i].data.id);
+	}
+	for (i=0; i<an; i++)
+	{
+		allNodeIDs.push(allNodes[i].data.id);
+	}
+	
+	$.ajax(
+	{
+		type: 'POST',
+		url: urlBase+'php/control.php',
+		data: { level: level, node: $.toJSON(selNodeIDs), nodes: $.toJSON(allNodeIDs) },
+		timeout: 600000,
+		beforeSend: function() { $('#loadingCircle').show(); },
+		complete: function() { $('#loadingCircle').hide(); },
+		success: function(data)
+		{						
+			var nodes;
+			var entrezID = [];
+			var i = 0;
+			
+			if ($.isEmptyObject(data)) // Not likely...
+			{
+				displayError('Sorry! No neighbors found :-(');
+			}
+			else
+			{
+				nodes = vis.nodes();
+				for (i=0; i<nodes.length; i++)
+				{
+					entrezID.push(nodes[i].data.entrez_id);
+				}
+				for (i=0; i<data.length; i++)
+				{
+					if (data[i].group === "nodes")
+					{
+						entrezID.push(data[i].data.entrez_id);
+					}
+				}
+				addElements(data);
+				filterEdges();
+				search(entrezID);
+			}
+		},
+		error: function(data,error)
+		{												
+			displayError('Ooops! ' + error + ' ' + data.responseText);
+		},
+		dataType: "json"
+	});
 }
 
 function addMiRNAData()
@@ -1776,7 +1680,7 @@ function modalSifForm(tit)
 	$("#dialog")
 	.html(
 		"<fieldset><legend>SIF nodes</legend>" +
-		"<input type=\"radio\" name=\"sif_node\" id=\"radio_ensembl\" onclick=\"infoSifDiv()\"/> Ensembl protein ID<br/>" +
+		"<input type=\"radio\" name=\"sif_node\" id=\"radio_ensembl\" onclick=\"infoSifDiv()\" checked/> Ensembl protein ID<br/>" +
 		"<input type=\"radio\" name=\"sif_node\" id=\"radio_entrez\" onclick=\"infoSifDiv()\"/> Entrez gene ID<br/>" +
 		"<input type=\"radio\" name=\"sif_node\" id=\"radio_symbol\" onclick=\"infoSifDiv()\"/> Gene symbol<br/></fieldset><br/>" +
 		"<div class=\"modalsif\" id=\"what_go_with_sif\">Gene Ontology nodes will be exported with their GO ID.</div>" +
@@ -2110,6 +2014,7 @@ function allowedNumberOfTerms(terms,x)
 function loadingSmall()
 {
 	$('#loadingCircle').show();
+	$('#filterCircle').show();
 	disable(['search_button','clear_button',
 			 'species_list','disease_list','location_list','dataset_list',
 			 'reset_gene_data_button','color_network_button',
@@ -2118,18 +2023,23 @@ function loadingSmall()
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
 			 'binding_check','ptmod_check','expression_check','activation_check',
 			 'go_check','kegg_check','mirna_check',
+			 'disease_mirna_list','location_mirna_list','dataset_mirna_list',
+			 'reset_mirna_data_button','color_mirna_button',
 			 'multicolor_gene_check','multicolor_mirna_check',
 			 'restrict_gene_check','restrict_mirna_check',
 			 'disease_gene_check','location_gene_check',
 			 'disease_mirna_check','location_mirna_check',
 			 'node_labels_check','edge_labels_check','sig_size_check','allow_click_color_check',
-			 'layout_list']);
+			 'fetch_neighbors_1','fetch_neighbors_2',
+			 'hide_node','hide_edge','delete_node','delete_edge',
+			 'mark_neighbors','restore_network']);
 	$("#layoutOptionContainer").find("input, button, select").attr("disabled","disabled");
 }
 
 function unloadingSmall()
 {
 	$('#loadingCircle').hide();
+	$('#filterCircle').hide();
 	enable(['search_button','clear_button',
 			'species_list','disease_list','location_list','dataset_list',
 			'reset_gene_data_button','color_network_button',
@@ -2138,12 +2048,16 @@ function unloadingSmall()
 			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
 			'binding_check','ptmod_check','expression_check','activation_check',
 			'go_check','kegg_check','mirna_check',
+			'disease_mirna_list','location_mirna_list','dataset_mirna_list',
+			'reset_mirna_data_button','color_mirna_button',
 			'multicolor_gene_check','multicolor_mirna_check',
 			'restrict_gene_check','restrict_mirna_check',
 			'disease_gene_check','location_gene_check',
 			'disease_mirna_check','location_mirna_check',
 			'node_labels_check','edge_labels_check','sig_size_check','allow_click_color_check',
-			'layout_list']);
+			'fetch_neighbors_1','fetch_neighbors_2',
+			'hide_node','hide_edge','delete_node','delete_edge',
+			'mark_neighbors','restore_network']);
 	$("#layoutOptionContainer").find("input, button, select").removeAttr("disabled");
 
 	// There is an extreme case (dog) of not finding any KUPKB data... In this case,
@@ -2484,7 +2398,7 @@ function capFirst(str)
     return str.charAt(0).toUpperCase() + str.substr(1);
 }
 
-function debugMessage(msg)
+/*function debugMessage(msg)
 {
 	$('#debugContainer').html(msg);
 	$('#debugContainer').show("fast");
@@ -2509,4 +2423,4 @@ function postDebugMessage(msg)
 		},
 		dataType: "json"
 	});
-}
+}*/

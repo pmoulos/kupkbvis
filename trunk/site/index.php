@@ -83,7 +83,7 @@ include('php/queries.php');
 				<div id="cytoscapeweb">
 					<table class="innerTable">
 						<tr>
-						<td>
+						<td class="innerCell">
 							<div id="hello_kidney"><img src="images/netInitPic.png" alt="Your network will appear here."/></div>
 							<div id="loading_big" style="display:none;"><img src="images/loading.gif"/></div>
 						</td>
@@ -98,7 +98,7 @@ include('php/queries.php');
 				following types: Entrez gene ID, gene symbol, Ensembl gene or protein, Uniprot ID or simple text search (multiple IDs are supported!).
 				You can then select the species to seek interactions from or just click 'GO' and the queried genes with their relationships will be
 				displayed in the panel on the left. The 'KUPKB data' panel below will be filled with the respective data from KUPKB. You can use the
-				lists to filter the results and color the netwrok according to expression data stored in the KUPKB.</div>
+				lists to filter the results and color the network according to expression data stored in the KUPKB.</div>
 			</td>
 			</tr>
 			<tr>
@@ -399,7 +399,7 @@ include('php/queries.php');
 				<table class="innerTable"><tr><td id="advancedContainer">
 					<table class="innerTable" style="table-layout:fixed">
 						<tr>
-						<td class="optsCell" style="width:40%">           
+						<td class="optsCell" style="width:35%">           
 							<fieldset class="optsGroup"><legend class="fieldSetTitle">KUPKB miRNA data</legend>
 								<table class="innerTable">
 									<?php										
@@ -436,7 +436,7 @@ include('php/queries.php');
 								</table>
 							</fieldset>
 						</td>
-						<td class="optsCell" style="width:30%">
+						<td class="optsCell" style="width:35%">
 						<div>
 							<fieldset class="optsGroup"><legend class="fieldSetTitle">Node coloring</legend>
 								<table class="innerTable" style="height:50%">
@@ -489,12 +489,54 @@ include('php/queries.php');
 						<td class="optsCell" style="width:30%">
 						<div>
 							<fieldset class="optsGroup"><legend class="fieldSetTitle">Other</legend>
-								<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"> show node labels<br/>
+								<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"> show node labels&nbsp;&nbsp;&nbsp;
 								<input type="checkbox" id="edge_labels_check" disabled onclick="showLabels('edges')"> show edge labels<br/>
 								<input type="checkbox" id="sig_size_check" onclick="sigSizeChange()" checked disabled> border relative to significance
 								<span class="hint"><img id="sigsize_tip" src="images/questionmark.png" title="Check this box to make the nodes outline thickness relative to a gene/miRNA's p-value, if the latter exists in the selected KUPKB dataset(s)."/></span><br/>
 								<input type="checkbox" id="allow_click_color_check" onclick="toggleClickColor()" checked disabled> allow coloring on dataset(s) click
 								<span class="hint"><img id="allowclickcolor_tip" src="images/questionmark.png" title="Check this box to allow the coloring of network nodes simply by clicking on the dataset name(s) in the list. Otherwise, the respective button must be pressed. Use this option to explore the datasets without excessive workload for the server."/></span>
+								<hr>
+								<table class="innerTable">
+									<tr>
+									<td class="layoptCell" style="width:60%; border-bottom-style:dotted; border-bottom-width:1px"><span class="boldText">Nodes</span></td>
+									<td class="layoptCell" style="width:40%; border-bottom-style:dotted; border-bottom-width:1px"><span class="boldText">Edges</span></td>
+									</tr>
+									<tr>
+									<td class="layoptCell" style="border-right-style:dotted; border-right-width:1px">
+										<label><span style="font-size:0.9em">Get neighbors</span></label>
+										<button id="fetch_neighbors_1" class="secondaryButton" style="float:none" onclick="fetchNeighbors(1)" disabled>L1</button>
+										<button id="fetch_neighbors_2" class="secondaryButton" style="float:none" onclick="fetchNeighbors(2)" disabled>L2</button>
+									</td>
+									<td class="layoptCell">&nbsp;</td>
+									</tr>
+									<tr>
+									<td class="layoptCell" style="border-right-style:dotted; border-right-width:1px">
+										<button id="hide_node" class="secondaryButton" onclick="hideElements('nodes','hide')" disabled>Hide selected</button>
+									</td>
+									<td class="layoptCell">
+										<button id="hide_edge" class="secondaryButton" onclick="hideElements('edges','hide')" disabled>Hide selected</button>
+									</td>
+									</tr>
+									<tr>
+									<td class="layoptCell" style="border-right-style:dotted; border-right-width:1px">
+										<button id="delete_node" class="secondaryButton" onclick="hideElements('nodes','delete')" disabled>Delete selected</button>
+									</td>
+									<td class="layoptCell">
+										<button id="delete_edge" class="secondaryButton" onclick="hideElements('edges','delete')" disabled>Delete selected</button>
+									</td>
+									</tr>
+									<tr>
+									<td class="layoptCell" style="border-right-style:dotted; border-right-width:1px">
+										<button id="mark_neighbors" class="secondaryButton" onclick="showNeighbors(1)" disabled>Mark neighbors</button>
+									</td>
+									<td class="layoptCell">&nbsp;</td>
+									</tr>
+									<tr>
+									<td colspan=2 class="layoptCell" style="text-align:center; border-top-style:dotted; border-top-width:1px">
+										<button id="restore_network" class="secondaryButton" style="font-size:1em; width:90%; float:none" onclick="restoreNetwork()" disabled>Restore network</button>
+									</td>
+									</tr>
+								</table>
 							</fieldset>								
 						</div>
 						</td>
