@@ -796,6 +796,110 @@ function gimmeNodeBorder(val)
 	return(Math.floor(from+(to-from+1)*p));
 }
 
+function restoreNetwork()
+{
+	var visObject = getVisData('cytoscapeweb');
+	visObject.removeFilter();
+	filterEdges();
+	updateInfo();
+}
+
+function hideElements(group,action)
+{
+	var vis = getVisData('cytoscapeweb');
+	var selElems = vis.selected(group);
+	var selElemIDs = [];
+	var toHide = [];
+	var i, allElems;
+
+	if (group === "nodes")
+	{
+		allElems = vis.nodes();
+	}
+	else
+	{
+		allElems = vis.edges();
+	}
+
+	for (i=0; i<selElems.length; i++)
+	{
+		selElemIDs.push(selElems[i].data.id);
+	}
+	
+	for (i=0; i<allElems.length; i++)
+	{
+		if ($.inArray(allElems[i].data.id,selElemIDs) === -1)
+		{
+			toHide.push(allElems[i].data.id);
+		}
+	}
+
+	if (action === "hide")
+	{
+		if (group === "nodes") { vis.filter(group,toHide); }
+		if (group === "edges") { hideSomeEdges(selElemIDs); }
+	}
+	else if (action === "delete")
+	{
+		// We additionally need to see if there any miRNAs to be deleted in order
+		// to update the relative datasets
+		hasmirna = false;
+		if (group === "nodes")
+		{
+			for (i=0; i<selElems.length; i++)
+			{
+				if (selElems[i].data.object_type === "mirna")
+				{
+					hasmirna = true;
+					break;
+				}
+			}
+		}
+
+		vis.removeElements(selElems);
+
+		if (hasmirna)
+		{
+			for (i=0; i<selElems.length; i++)
+			{
+				if (selElems[i].data.object_type === "mirna")
+				{
+					selElemIDs.push(selElems[i].data.id);
+				}
+			}
+			removeMiRNAData(selElemIDs);
+		}
+	}
+	updateInfo();
+}
+
+// Only for level 1 for the moment...
+function showNeighbors(level)
+{
+	var visObject = getVisData('cytoscapeweb');
+	var selNodes = visObject.selected("nodes");
+	var selNodeIDs = [];
+	var sn = selNodes.length;
+	var i = 0;
+	
+	if (sn === 0) // Nothing selected
+	{
+		modalAlert("Please select at least one node.","Attention!");
+		return;
+	}
+
+	for (i=0; i<sn; i++)
+	{
+		selNodeIDs.push(selNodes[i].data.id);
+	}
+
+	var nObj = visObject.firstNeighbors(selNodeIDs,true);
+
+	// Now highlight neighboring nodes and edges
+	visObject.select("nodes",nObj.neighbors);
+	visObject.select("edges",nObj.edges);
+}
+
 function mapRatioColor(val)
 {
 	var mm = 5; // mm = 3;
