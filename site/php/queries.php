@@ -51,6 +51,11 @@ $dataset_id_2 = ' UNION '.
 				'FROM data INNER JOIN `entrez_to_uniprot` '.
 				'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
 				'WHERE entrez_to_uniprot.entrez_id IN ';
+$dataset_id_3 = ' UNION '.
+				'SELECT `dataset_id` '.
+				'FROM `data` INNER JOIN `genes` '.
+				'ON data.gene_symbol=genes.gene_symbol '.
+				'WHERE genes.entrez_id IN ';
 
 /* Fill the disease drop-down using the intermediate result */
 $init_disease = 'SELECT DISTINCT `disease_0`,`disease_1` '.
@@ -86,69 +91,61 @@ $init_mirna = 'SELECT DISTINCT `mirna_id` '.
 			  'ON mirna_to_ensembl.ensembl_gene=entrez_to_ensembl.ensembl_gene '.
 			  'WHERE entrez_to_ensembl.entrez_id IN ';
 
-/* Update location and datasets based on disease */
-$update_locdata_disease_1 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
-							'FROM `data` INNER JOIN `genes` '.
-							'ON data.entrez_gene_id=genes.entrez_id '.
-							'INNER JOIN `datasets` '.
-							'ON data.dataset_id=datasets.experiment_id '.
-							'INNER JOIN `dataset_descriptions` '.
-							'ON data.dataset_id=dataset_descriptions.experiment_name '.
-							'WHERE genes.entrez_id IN ';
-$update_locdata_disease_2_1 = ' AND (datasets.disease_0=\'';
-$update_locdata_disease_2_2 = '\' OR datasets.disease_1=\'';
-$update_locdata_disease_3 = '\') UNION ';
-$update_locdata_disease_4 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
-							'FROM `data` INNER JOIN `entrez_to_uniprot` '.
-							'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
-							'INNER JOIN `datasets` '.
-							'ON data.dataset_id=datasets.experiment_id '.
-							'INNER JOIN `dataset_descriptions` '.
-							'ON data.dataset_id=dataset_descriptions.experiment_name '.
-							'WHERE entrez_to_uniprot.entrez_id IN ';
-$update_locdata_disease_5_1 = ' AND (datasets.disease_0=\'';
-$update_locdata_disease_5_2 = '\' OR datasets.disease_1=\'';
-$update_locdata_disease_6 = '\')';
-
-/* Update disease and datasets based on location */
-$update_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
-							 'FROM `data` INNER JOIN `genes` '.
-							 'ON data.entrez_gene_id=genes.entrez_id '.
-							 'INNER JOIN `datasets` '.
-							 'ON data.dataset_id=datasets.experiment_id '.
-							 'INNER JOIN `dataset_descriptions` '.
-							 'ON data.dataset_id=dataset_descriptions.experiment_name '.
-							 'WHERE genes.entrez_id IN ';
-$update_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
-$update_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
-$update_disdata_location_3 = '\') UNION ';
-$update_disdata_location_4 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
-							 'FROM `data` INNER JOIN `entrez_to_uniprot` '.
-							 'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
-							 'INNER JOIN `datasets` '.
-							 'ON data.dataset_id=datasets.experiment_id '.
-							 'INNER JOIN `dataset_descriptions` '.
-							 'ON data.dataset_id=dataset_descriptions.experiment_name '.
-							 'WHERE entrez_to_uniprot.entrez_id IN ';
-$update_disdata_location_5_1 = ' AND (datasets.biomaterial_0=\'';
-$update_disdata_location_5_2 = '\' OR datasets.biomaterial_1=\'';
-$update_disdata_location_6 = '\')';
-/*WHERE biomaterial_0 LIKE '%kidney%' OR biomaterial_1 LIKE '%kidney%'*/
+/* Update datasets, locations, diseases */
+$update_locdisdata_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1` '.
+					   'FROM `data` INNER JOIN `genes` '.
+					   'ON data.entrez_gene_id=genes.entrez_id '.
+					   'INNER JOIN `datasets` '.
+					   'ON data.dataset_id=datasets.experiment_id '.
+					   'INNER JOIN `dataset_descriptions` '.
+					   'ON data.dataset_id=dataset_descriptions.experiment_name '.
+					   'WHERE genes.entrez_id IN ';
+$update_locdisdata_2_1 = ' AND (datasets.disease_0 IN ';
+$update_locdisdata_2_2 = ' OR datasets.disease_1 IN ';
+$update_locdisdata_2_3 = ') AND (datasets.biomaterial_0 IN ';
+$update_locdisdata_2_4 = ' OR datasets.biomaterial_1 IN ';
+$update_locdisdata_3 = ') UNION '.
+					   'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1` '.
+					   'FROM `data` INNER JOIN `entrez_to_uniprot` '.
+					   'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+					   'INNER JOIN `datasets` '.
+					   'ON data.dataset_id=datasets.experiment_id '.
+					   'INNER JOIN `dataset_descriptions` '.
+					   'ON data.dataset_id=dataset_descriptions.experiment_name '.
+					   'WHERE entrez_to_uniprot.entrez_id IN ';
+$update_locdisdata_4_1 = ' AND (datasets.disease_0 IN ';
+$update_locdisdata_4_2 = ' OR datasets.disease_1 IN ';
+$update_locdisdata_4_3 = ') AND (datasets.biomaterial_0 IN ';
+$update_locdisdata_4_4 = ' OR datasets.biomaterial_1 IN ';
+$update_locdisdata_5 = ') UNION '.
+					   'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1` '.
+					   'FROM `data` INNER JOIN `genes` '.
+					   'ON data.gene_symbol=genes.gene_symbol '.
+					   'INNER JOIN `datasets` '.
+					   'ON data.dataset_id=datasets.experiment_id '.
+					   'INNER JOIN `dataset_descriptions` '.
+					   'ON data.dataset_id=dataset_descriptions.experiment_name '.
+					   'WHERE genes.entrez_id IN ';
+$update_locdisdata_6_1 = ' AND (datasets.disease_0 IN ';
+$update_locdisdata_6_2 = ' OR datasets.disease_1 IN ';
+$update_locdisdata_6_3 = ') AND (datasets.biomaterial_0 IN ';
+$update_locdisdata_6_4 = ' OR datasets.biomaterial_1 IN ';
+$update_locdisdata_7 = ')';
 
 /* Select the gene regulation for a selected dataset for both cases */
-$get_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`entrez_gene_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+$get_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,`entrez_gene_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM `data` INNER JOIN `datasets` '.
 				  'ON data.dataset_record_id = datasets.record_id '.
 				  'INNER JOIN `dataset_descriptions` '.
 				  'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
 				  'WHERE `entrez_gene_id` IN ';
 $get_coloring_2_1 = ' AND `dataset_id` IN ';
-$get_coloring_2_2 = ' AND (datasets.disease_0=';
-$get_coloring_2_3 = ' OR datasets.disease_1=';
-$get_coloring_2_4 = ') AND (datasets.biomaterial_0=';
-$get_coloring_2_5 = ' OR datasets.biomaterial_1=';
+$get_coloring_2_2 = ' AND (datasets.disease_0 IN ';
+$get_coloring_2_3 = ' OR datasets.disease_1 IN ';
+$get_coloring_2_4 = ') AND (datasets.biomaterial_0 IN ';
+$get_coloring_2_5 = ' OR datasets.biomaterial_1 IN ';
 $get_coloring_3 = ') UNION '.
-				  'SELECT datasets.record_id,`dataset_id`,`display_name`,entrez_to_uniprot.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,entrez_to_uniprot.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM `data` INNER JOIN `datasets` '.
 				  'ON data.dataset_record_id = datasets.record_id '.
 				  'INNER JOIN `dataset_descriptions` '.
@@ -157,11 +154,25 @@ $get_coloring_3 = ') UNION '.
 				  'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
 				  'WHERE entrez_to_uniprot.entrez_id IN ';
 $get_coloring_4_1 = ' AND `dataset_id` IN ';
-$get_coloring_4_2 = ' AND (datasets.disease_0=';
-$get_coloring_4_3 = ' OR datasets.disease_1=';
-$get_coloring_4_4 = ') AND (datasets.biomaterial_0=';
-$get_coloring_4_5 = ' OR datasets.biomaterial_1=';
-$get_coloring_5 = ')';
+$get_coloring_4_2 = ' AND (datasets.disease_0 IN ';
+$get_coloring_4_3 = ' OR datasets.disease_1 IN ';
+$get_coloring_4_4 = ') AND (datasets.biomaterial_0 IN ';
+$get_coloring_4_5 = ' OR datasets.biomaterial_1 IN ';
+$get_coloring_5 = ') UNION '.
+				  'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,genes.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'FROM `data` INNER JOIN `datasets` '.
+				  'ON data.dataset_record_id = datasets.record_id '.
+				  'INNER JOIN `dataset_descriptions` '.
+				  'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
+				  'INNER JOIN `genes` '.
+				  'ON data.gene_symbol=genes.gene_symbol '.
+				  'WHERE genes.entrez_id IN ';
+$get_coloring_6_1 = ' AND `dataset_id` IN ';
+$get_coloring_6_2 = ' AND (datasets.disease_0 IN ';
+$get_coloring_6_3 = ' OR datasets.disease_1 IN ';
+$get_coloring_6_4 = ') AND (datasets.biomaterial_0 IN ';
+$get_coloring_6_5 = ' OR datasets.biomaterial_1 IN ';
+$get_coloring_7 = ')';
 
 /* Autocomplete gene names */
 $auto_genes_1 = 'SELECT `gene_symbol`,`description`,species.name '.
@@ -293,42 +304,63 @@ $init_mirna_dataset = 'SELECT `experiment_name`,`display_name` '.
 					  'FROM `dataset_descriptions` '.
 					  'WHERE `experiment_name` IN ';
 
-/* Update location and datasets based on disease for miRNAs */
-$update_mirna_locdata_disease_1 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
-								  'FROM `data` INNER JOIN `datasets` '.
-								  'ON data.dataset_id=datasets.experiment_id '.
-								  'INNER JOIN `dataset_descriptions` '.
-								  'ON data.dataset_id=dataset_descriptions.experiment_name '.
-								  'WHERE data.microcosm_id IN ';
-$update_mirna_locdata_disease_2_1 = ' AND (datasets.disease_0=\'';
-$update_mirna_locdata_disease_2_2 = '\' OR datasets.disease_1=\'';
-$update_mirna_locdata_disease_3 = '\')';
+$update_mirna_dislocdata_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1` '.
+						     'FROM `data` INNER JOIN `datasets` '.
+						     'ON data.dataset_id=datasets.experiment_id '.
+						     'INNER JOIN `dataset_descriptions` '.
+						     'ON data.dataset_id=dataset_descriptions.experiment_name '.
+						     'WHERE data.microcosm_id IN ';
+$update_mirna_dislocdata_2_1 = ' AND (datasets.disease_0 IN ';
+$update_mirna_dislocdata_2_2 = ' OR datasets.disease_1 IN ';
+$update_mirna_dislocdata_2_3 = ') AND (datasets.biomaterial_0 IN ';
+$update_mirna_dislocdata_2_4 = ' OR datasets.biomaterial_1 IN ';
+$update_mirna_dislocdata_3 = ')';
 
-/* Update disease and datasets based on location */
-$update_mirna_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
-								   'FROM `data` INNER JOIN `datasets` '.
-								   'ON data.dataset_id=datasets.experiment_id '.
-								   'INNER JOIN `dataset_descriptions` '.
-								   'ON data.dataset_id=dataset_descriptions.experiment_name '.
-								   'WHERE data.microcosm_id IN ';
-$update_mirna_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
-$update_mirna_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
-$update_mirna_disdata_location_3 = '\')';
-
-$get_mirna_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`microcosm_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+$get_mirna_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`microcosm_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 						'FROM `data` INNER JOIN `datasets` '.
 						'ON data.dataset_record_id = datasets.record_id '.
 						'INNER JOIN `dataset_descriptions` '.
 						'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
 						'WHERE `microcosm_id` IN ';
 $get_mirna_coloring_2_1 = ' AND `dataset_id` IN ';
-$get_mirna_coloring_2_2 = ' AND (datasets.disease_0=';
-$get_mirna_coloring_2_3 = ' OR datasets.disease_1=';
-$get_mirna_coloring_2_4 = ') AND (datasets.biomaterial_0=';
-$get_mirna_coloring_2_5 = ' OR datasets.biomaterial_1=';
+$get_mirna_coloring_2_2 = ' AND (datasets.disease_0 IN ';
+$get_mirna_coloring_2_3 = ' OR datasets.disease_1 IN ';
+$get_mirna_coloring_2_4 = ') AND (datasets.biomaterial_0 IN ';
+$get_mirna_coloring_2_5 = ' OR datasets.biomaterial_1 IN ';
 $get_mirna_coloring_3 = ')';
 
+/* Get all KUPKB genes as Ensembl proteins to be used when calling only for KUPKB neighbors */
+$allkupkb2protein_1 = 'SELECT DISTINCT `ensembl_protein` '.
+					  'FROM `entrez_to_ensembl` '.
+					  'WHERE `entrez_id` IN ('.
+					  'SELECT genes.entrez_id '.
+					  'FROM `genes` INNER JOIN `data` '.
+					  'ON genes.entrez_id=data.entrez_gene_id '.
+					  'WHERE data.entrez_gene_id<>\'NULL\' AND data.entrez_gene_id<>\'\' '.
+					  ' AND data.dataset_id IN ';
+$allkupkb2protein_2	= ' AND genes.species=';
+$allkupkb2protein_3 = ' UNION '.
+					  'SELECT entrez_to_uniprot.entrez_id '.
+					  'FROM `entrez_to_uniprot` INNER JOIN `data` '.
+					  'ON entrez_to_uniprot.uniprot_id=data.uniprot_id '.
+					  'INNER JOIN `genes` '.
+					  'ON entrez_to_uniprot.entrez_id=genes.entrez_id '.
+					  'WHERE (data.uniprot_id<>\'NULL\' AND data.uniprot_id<>\'\') '.
+					  ' AND data.dataset_id IN ';
+$allkupkb2protein_4 = 'AND genes.species=';
+$allkupkb2protein_5 = ')';
 
+$allkupkbsymbols2protein = 'SELECT DISTINCT `ensembl_protein` '.
+						   'FROM `entrez_to_ensembl` '.
+						   'WHERE `entrez_id` IN ';
+
+/* Speed hacks */
+$allkupkb_symbols = 'SELECT DISTINCT data.gene_symbol '.
+				    'FROM `data` '.
+				    'WHERE data.gene_symbol<>\'NULL\' AND data.gene_symbol<>\'\'';
+$allkupkb_symbols2entrez = 'SELECT `entrez_id`,`species` '.
+						   'FROM `genes` '.
+						   'WHERE `gene_symbol` IN ';
 # LEGACY
 /* Get data for coloring this is slower than the UNION below above but we are keeping it for legacy reasons */
 /*$get_coloring_1 = 'SELECT `dataset_id`,`entrez_gene_id`,`uniprot_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
@@ -339,4 +371,75 @@ $get_coloring_2 = 'OR `uniprot_id` IN ('.
 				  'FROM `entrez_to_uniprot` '.
 				  'WHERE `entrez_id` IN ';
 $get_coloring_3 = ')) AND `dataset_id`=';*/
+
+/* Update location and datasets based on disease */
+/*$update_locdata_disease_1 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
+							'FROM `data` INNER JOIN `genes` '.
+							'ON data.entrez_gene_id=genes.entrez_id '.
+							'INNER JOIN `datasets` '.
+							'ON data.dataset_id=datasets.experiment_id '.
+							'INNER JOIN `dataset_descriptions` '.
+							'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							'WHERE genes.entrez_id IN ';
+$update_locdata_disease_2_1 = ' AND (datasets.disease_0=\'';
+$update_locdata_disease_2_2 = '\' OR datasets.disease_1=\'';
+$update_locdata_disease_3 = '\') UNION ';
+$update_locdata_disease_4 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
+							'FROM `data` INNER JOIN `entrez_to_uniprot` '.
+							'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+							'INNER JOIN `datasets` '.
+							'ON data.dataset_id=datasets.experiment_id '.
+							'INNER JOIN `dataset_descriptions` '.
+							'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							'WHERE entrez_to_uniprot.entrez_id IN ';
+$update_locdata_disease_5_1 = ' AND (datasets.disease_0=\'';
+$update_locdata_disease_5_2 = '\' OR datasets.disease_1=\'';
+$update_locdata_disease_6 = '\')';*/
+
+/* Update disease and datasets based on location */
+/*$update_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
+							 'FROM `data` INNER JOIN `genes` '.
+							 'ON data.entrez_gene_id=genes.entrez_id '.
+							 'INNER JOIN `datasets` '.
+							 'ON data.dataset_id=datasets.experiment_id '.
+							 'INNER JOIN `dataset_descriptions` '.
+							 'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							 'WHERE genes.entrez_id IN ';
+$update_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
+$update_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
+$update_disdata_location_3 = '\') UNION ';
+$update_disdata_location_4 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
+							 'FROM `data` INNER JOIN `entrez_to_uniprot` '.
+							 'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+							 'INNER JOIN `datasets` '.
+							 'ON data.dataset_id=datasets.experiment_id '.
+							 'INNER JOIN `dataset_descriptions` '.
+							 'ON data.dataset_id=dataset_descriptions.experiment_name '.
+							 'WHERE entrez_to_uniprot.entrez_id IN ';
+$update_disdata_location_5_1 = ' AND (datasets.biomaterial_0=\'';
+$update_disdata_location_5_2 = '\' OR datasets.biomaterial_1=\'';
+$update_disdata_location_6 = '\')';*/
+/*WHERE biomaterial_0 LIKE '%kidney%' OR biomaterial_1 LIKE '%kidney%'*/
+
+/* Update location and datasets based on disease for miRNAs */
+/*$update_mirna_locdata_disease_1 = 'SELECT `dataset_id`,`display_name`,`biomaterial_0`,`biomaterial_1` '.
+								  'FROM `data` INNER JOIN `datasets` '.
+								  'ON data.dataset_id=datasets.experiment_id '.
+								  'INNER JOIN `dataset_descriptions` '.
+								  'ON data.dataset_id=dataset_descriptions.experiment_name '.
+								  'WHERE data.microcosm_id IN ';
+$update_mirna_locdata_disease_2_1 = ' AND (datasets.disease_0=\'';
+$update_mirna_locdata_disease_2_2 = '\' OR datasets.disease_1=\'';
+$update_mirna_locdata_disease_3 = '\')';*/
+
+/* Update disease and datasets based on location */
+/*$update_mirna_disdata_location_1 = 'SELECT `dataset_id`,`display_name`,`disease_0`,`disease_1` '.
+								   'FROM `data` INNER JOIN `datasets` '.
+								   'ON data.dataset_id=datasets.experiment_id '.
+								   'INNER JOIN `dataset_descriptions` '.
+								   'ON data.dataset_id=dataset_descriptions.experiment_name '.
+								   'WHERE data.microcosm_id IN ';
+$update_mirna_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
+$update_mirna_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
+$update_mirna_disdata_location_3 = '\')';*/
 ?>

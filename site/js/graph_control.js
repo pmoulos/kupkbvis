@@ -29,21 +29,24 @@ function bypassNodeColors(ajaxData,type)
 	var propSeen = [];
 	var i, j, k, currNode;
 	//var bypass = { nodes: { }, edges: { } };
-	var multicolor, cShape;
+	var multicolor, cShape, iShape;
 
 	switch(type)
 	{
 		case 'gene':
 			multicolor = $("#multicolor_gene_check").is(":checked") ? true : false;
 			cShape = "ELLIPSE";
+			iShape = "ELLIPSE";
 			break;
 		case 'mirna':
 			multicolor = $("#multicolor_mirna_check").is(":checked") ? true : false;
 			cShape = "RECTANGLE";
+			iShape = "DIAMOND";
 			break;
 		default:
 			multicolor = false;
 			cShape = "ELLIPSE";
+			iShape = "ELLIPSE";
 	}
 
 	// Not the best implementation, but we have to check for multiply present genes since
@@ -60,15 +63,39 @@ function bypassNodeColors(ajaxData,type)
 	// Construct the array of entrez_id in ajaxData;
 	for (i=0; i<noA; i++)
 	{
+		if (multicolor) // Aarrghhh...
+		{
+			if (ajaxData[i].type === "protein" && seen[ajaxData[i].entrez_id].length == 1)
+			{
+				iShape = "ELLIPSE";
+			}
+			else if (ajaxData[i].type === "protein" && seen[ajaxData[i].entrez_id].length > 1)
+			{
+				iShape = "ROUNDRECT";
+			}
+			else if (ajaxData[i].type === "gene" && seen[ajaxData[i].entrez_id].length >= 1)
+			{
+				iShape = "ELLIPSE";
+			}
+			else if (ajaxData[i].type === "mirna" && seen[ajaxData[i].entrez_id].length == 1)
+			{
+				iShape = "DIAMOND";
+			}
+			else if (ajaxData[i].type === "mirna" && seen[ajaxData[i].entrez_id].length > 1)
+			{
+				iShape = "ROUNDRECT";
+			}
+		}
+
 		if (ajaxData[i].ratio !== 999 && ajaxData[i].ratio !== null) // Ratio exists
 		{
 			if ($("#sig_size_check").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 			{
-				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
+				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666", shape: iShape });
 			}
 			else
 			{
-				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio) });
+				visProps.push({ color: gimmeNodeColor("ratio",ajaxData[i].ratio), shape: iShape });
 			}
 		}
 		else
@@ -78,11 +105,11 @@ function bypassNodeColors(ajaxData,type)
 				ajaxData[i].expression = capFirst(ajaxData[i].expression);
 				if ($("#sig_size_check").is(":checked") && ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 				{
-					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
+					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666", shape: iShape });
 				}
 				else
 				{
-					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression) });
+					visProps.push({ color: gimmeNodeColor("expression",ajaxData[i].expression), shape: iShape });
 				}
 			}
 			else
@@ -92,11 +119,11 @@ function bypassNodeColors(ajaxData,type)
 					ajaxData[i].strength = capFirst(ajaxData[i].strength);
 					if (ajaxData[i].pvalue !== 999 && ajaxData[i].pvalue !== null)
 					{
-						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666" });
+						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), borderWidth: gimmeNodeBorder(ajaxData[i].pvalue), borderColor: "#666666", shape: iShape });
 					}
 					else
 					{
-						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength) });
+						visProps.push({ color: gimmeNodeColor("strength",ajaxData[i].strength), shape: iShape });
 					}
 				}
 			}
@@ -130,7 +157,7 @@ function bypassNodeColors(ajaxData,type)
 						k = j+1;
 						cdata = {
 									id: currNode.data.id + "_" + k,
-									label: newData[seen[currNode.data.entrez_id][j]].custom + " (" + k + ")",
+									label: newData[seen[currNode.data.entrez_id][j]].custom, // + " (" + k + ")",
 									strength: newData[seen[currNode.data.entrez_id][j]].strength,
 									expression: newData[seen[currNode.data.entrez_id][j]].expression,
 									ratio: newData[seen[currNode.data.entrez_id][j]].ratio,
@@ -140,7 +167,7 @@ function bypassNodeColors(ajaxData,type)
 									object_type: type,
 									parent: currNode.data.id
 								};
-						visObject.addNode(randomFromTo(350,450),randomFromTo(350,450),cdata,true);
+						visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),cdata,true);
 						bypass["nodes"][cdata.id] = visProps[seen[currNode.data.entrez_id][j]];
 					}
 					visObject.updateData([currNode.data.id],dataSeen);
@@ -868,6 +895,18 @@ function hideElements(group,action)
 				}
 			}
 			removeMiRNAData(selElemIDs);
+		}
+
+		// Now we have to re-fill all the lists (arrghhh!...)
+		if (group === "nodes")
+		{
+			var entrezID = [];
+			remnodes = vis.nodes();
+			for (i=0; i<remnodes.length; i++)
+			{
+				entrezID.push(remnodes[i].data.entrez_id);
+			}
+			search(entrezID);
 		}
 	}
 	updateInfo();

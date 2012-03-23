@@ -55,8 +55,8 @@ textarea
 	font-family: Arial Unicode MS, Arial, sans-serif;
     font-size: small;
     color: #000000;
-    width: 80%;
-    height: 15em;
+    width: 90%;
+    height: 16em;
     margin-left: 2px;
     resize: none;
     border-radius: 5px;
@@ -79,6 +79,7 @@ textarea.info
 select
 {
     width: 100%;
+    font-size: 0.9em;
 }
 
 input, text
@@ -233,19 +234,18 @@ a.toggler:hover
 
 #welcome
 {
-	display: fixed;
-	margin-left: 1px;
-	margin-right: 1px;
-	height: 220px;
-	padding-top: 2px;
-	padding-bottom: 2px;
-	padding-left: 3px;
-	padding-right: 3px;
-	background-color: #FFFFDA;
+	margin: 2px;
+	height: 95%;
+	padding: 5px;
 	border-style: none;
+	color: #373737;
 	font-size: 0.9em;
-	line-height: 1.15em;
+	line-height: 1.3em;
 	text-align: left;
+	/*background-color: #F3F3F3;
+	border-radius: 7px;
+	-webkit-border-radius: 7px;
+	-moz-border-radius: 7px;*/
 }
 
 #graphContainer 
@@ -258,6 +258,21 @@ a.toggler:hover
 }
 
 #functionContainer
+{    
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+    background-color: #E0E0E0;
+    border: solid;
+    border-color: #000000;
+    border-top-width: 0px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    vertical-align: text-top;    
+}
+
+#kupkbdataContainer
 {    
     width: 100%;
     height: 100%;
@@ -406,6 +421,8 @@ a.toggler:hover
     overflow: visible;
 }
 
+.loadingCircle { display: none; }
+
 .footer 
 {
 	padding-left:30px;
@@ -452,7 +469,7 @@ a.toggler:hover
 {
 	position: relative;	
 	max-height: 200px;
-	max-width: 13em;
+	max-width: 17em;
 	overflow-y: auto;
 	overflow-x: hidden;
 	padding-right: 20px;
