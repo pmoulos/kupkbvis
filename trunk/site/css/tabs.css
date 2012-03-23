@@ -21,13 +21,29 @@ ul.tabs li.mol {
 	float:left;
 	text-indent:0;
 	padding:0;
+	width: 25%;
 	margin:0 !important;
 	list-style-image:none !important;
 	background-color:#505050;
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
-	-moz-border-radius-topleft: 5px;
-	-moz-border-radius-topright: 5px;
+	border-top-left-radius: 7px;
+	border-top-right-radius: 7px;
+	-moz-border-radius-topleft: 7px;
+	-moz-border-radius-topright: 7px;
+}
+
+/* KUPKB data */
+ul.tabs li.kupkb { 
+	float:left;
+	text-indent:0;
+	padding:0;
+	width: 25%;
+	margin:0 !important;
+	list-style-image:none !important;
+	background-color:#505050;
+	border-top-left-radius: 7px;
+	border-top-right-radius: 7px;
+	-moz-border-radius-topleft: 7px;
+	-moz-border-radius-topright: 7px;
 }
 
 /* Meta data */
@@ -35,13 +51,14 @@ ul.tabs li.meta {
 	float:left;
 	text-indent:0;
 	padding:0;
+	width: 25%;
 	margin:0 !important;
 	list-style-image:none !important;
 	background-color:#505050;
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
-	-moz-border-radius-topleft: 5px;
-	-moz-border-radius-topright: 5px;
+	border-top-left-radius: 7px;
+	border-top-right-radius: 7px;
+	-moz-border-radius-topleft: 7px;
+	-moz-border-radius-topright: 7px;
 }
 
 /* Advanced */
@@ -49,33 +66,35 @@ ul.tabs li.advanced {
 	float:left;
 	text-indent:0;
 	padding:0;
+	width: 25%;
 	margin:0 !important;
 	list-style-image:none !important;
 	background-color:#505050;
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
-	-moz-border-radius-topleft: 5px;
-	-moz-border-radius-topright: 5px;
+	border-top-left-radius: 7px;
+	border-top-right-radius: 7px;
+	-moz-border-radius-topleft: 7px;
+	-moz-border-radius-topright: 7px;
 }
 
 /* link inside the tab. uses a background image */
 ul.tabs a { 
 	/*background: url(images/blue.png) no-repeat -420px 0;*/
 	font-family: Verdana;
-	font-size:12px;
+	font-size: 12px;
 	font-weight: bold;
 	letter-spacing: 0.5px;
-	display:block;
-	height:30px;  
-	line-height:30px;
-	width:134px;
-	text-align:center;	
-	text-decoration:none;
-	color:#F0F0F0;
-	padding:0px;
-	margin:0px;	
-	position:relative;
-	top:1px;
+	display: block;
+	height: 30px;  
+	line-height: 30px;
+	width: 100%;
+	text-align: center;	
+	text-decoration: none;
+	color: #F0F0F0;
+	padding: 0px;
+	margin: 0px;	
+	position: relative;
+	top: 1px;
+	overflow: hidden;
 }
 
 ul.tabs a:active {
@@ -98,10 +117,10 @@ ul.tabs a.current, ul.tabs a.current:hover, ul.tabs li.current a {
 	border-right-width: 1px;
 	border-left-width: 1px;
 	background-color:#E0E0E0;
-	border-top-left-radius: 5px;
-	border-top-right-radius: 5px;
-	-moz-border-radius-topleft: 5px;
-	-moz-border-radius-topright: 5px;
+	border-top-left-radius: 7px;
+	border-top-right-radius: 7px;
+	-moz-border-radius-topleft: 7px;
+	-moz-border-radius-topright: 7px;
 }
 
 /* Different widths for tabs: use a class name: s, l, xl */

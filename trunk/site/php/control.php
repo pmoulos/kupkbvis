@@ -5,6 +5,13 @@ session_start();
 include('connection.php');
 include('queries.php');
 include('sphinxapi.php');
+include('utils.php');
+
+if ($_REQUEST['test'])
+{
+	$test = allKUPKBSymbols2Entrez();
+	print_r($test);
+}
 
 # Response to Select species dropdown list or the GO button
 if ($_REQUEST['species'])
@@ -80,18 +87,28 @@ if ($_REQUEST['species'])
 			$result = array_merge($resultKUPKB,$resultOther);
 			echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 		}*/
+
+		# The proteins right now so as to assign to session (useful for calling neighbors)
+		$proteins = getEnsemblFromEntrez($entrez);
+		# A hack for later speed
+		$kupkb_sym2ent = allKUPKBSymbols2Entrez();
 	}
     
 	$_SESSION['species'] = $species;
 	$_SESSION['entrez'] = $entrez;
 	$_SESSION['mirna'] = $mirna_in;
+	$_SESSION['proteins'] = $proteins;
+	$_SESSION['symbol2entrez'] = $kupkb_sym2ent[$species];
 }
 
 # Response to Select disease dropdown list
 if ($_REQUEST['disease'])
 {
 	$disease = $_REQUEST['disease'];
+	$loc = $_REQUEST['loc'];
 	$entrez = $_SESSION['entrez'];
+	$ehack = $_SESSION['symbol2entrez'];
+	if (empty($loc) || is_null($loc) || $loc == "") { $loc = ""; }
 	if (empty($entrez))
 	{
 		$result = array();
@@ -99,7 +116,10 @@ if ($_REQUEST['disease'])
 	}
 	else 
 	{
-		$result = updateLocDataDisease($entrez,$disease);
+		//$result = updateLocDataDisease($entrez,$disease);
+		$tmp = array_intersect($entrez,$ehack);
+		$flag = empty($tmp) ? FALSE : TRUE;
+		$result = updateDataOnLocationAndDisease($entrez,$disease,$loc,$flag);
 		echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 	}
 }
@@ -108,7 +128,10 @@ if ($_REQUEST['disease'])
 if ($_REQUEST['location'])
 {
 	$location = $_REQUEST['location'];
+	$dis = $_REQUEST['dis'];
 	$entrez = $_SESSION['entrez'];
+	$ehack = $_SESSION['symbol2entrez'];
+	if (empty($dis) || is_null($dis) || $dis == "") { $dis = ""; }
 	if (empty($entrez))
 	{
 		$result = array();
@@ -116,7 +139,10 @@ if ($_REQUEST['location'])
 	}
 	else 
 	{
-		$result = updateDisDataLocation($entrez,$location);
+		//$result = updateDisDataLocation($entrez,$location);
+		$tmp = array_intersect($entrez,$ehack);
+		$flag = empty($tmp) ? FALSE : TRUE;
+		$result = updateDataOnLocationAndDisease($entrez,$dis,$location,$flag);
 		echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 	}
 }
@@ -126,8 +152,9 @@ if ($_REQUEST['dataset'])
 	$dataset = $_REQUEST['dataset'];
 	$location = $_REQUEST['location_data'];
 	$disease = $_REQUEST['disease_data'];
+	$annotation = $_REQUEST['annotation'];
 	$genes = $_SESSION['entrez'];
-	$result = getRegulation($genes,$dataset,$disease,$location);
+	$result = getRegulation($genes,$dataset,$disease,$location,$annotation);
 	//echo json_encode($result | JSON_NUMERIC_CHECK);
 	echo json_encode($result);
 }
@@ -136,7 +163,9 @@ if ($_REQUEST['dataset'])
 if ($_REQUEST['disease_mirna'])
 {
 	$disease = $_REQUEST['disease_mirna'];
+	$loc = $_REQUEST['loc_mirna'];
 	$mirna = $_SESSION['mirna'];
+	if (empty($loc) || is_null($loc) || $loc == "") { $loc = ""; }
 	if (empty($mirna))
 	{
 		$result = array();
@@ -144,7 +173,8 @@ if ($_REQUEST['disease_mirna'])
 	}
 	else 
 	{
-		$result = updateMiRNALocDataDisease($mirna,$disease);
+		//$result = updateMiRNALocDataDisease($mirna,$disease);
+		$result = updateMiRNADataOnLocationAndDisease($mirna,$disease,$loc);
 		echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 	}
 }
@@ -153,7 +183,9 @@ if ($_REQUEST['disease_mirna'])
 if ($_REQUEST['location_mirna'])
 {
 	$location = $_REQUEST['location_mirna'];
+	$dis = $_REQUEST['dis_mirna'];
 	$mirna = $_SESSION['mirna'];
+	if (empty($dis) || is_null($dis) || $dis == "") { $dis = ""; }
 	if (empty($mirna))
 	{
 		$result = array();
@@ -161,7 +193,8 @@ if ($_REQUEST['location_mirna'])
 	}
 	else 
 	{
-		$result = updateMiRNADisDataLocation($mirna,$location);
+		//$result = updateMiRNADisDataLocation($mirna,$location);
+		$result = updateMiRNADataOnLocationAndDisease($mirna,$dis,$location);
 		echo json_encode($result,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 	}
 }
@@ -171,8 +204,9 @@ if ($_REQUEST['dataset_mirna'])
 	$dataset = $_REQUEST['dataset_mirna'];
 	$location = $_REQUEST['location_mirna_data'];
 	$disease = $_REQUEST['disease_mirna_data'];
+	$annotation = $_REQUEST['annotation'];
 	$mirnas = $_SESSION['mirna'];
-	$result = getMiRNARegulation($mirnas,$dataset,$disease,$location);
+	$result = getMiRNARegulation($mirnas,$dataset,$disease,$location,$annotation);
 	echo json_encode($result);
 }
 
@@ -246,7 +280,7 @@ if ($_REQUEST['network']) // The network!
 {
 	$entrez = $_SESSION['entrez'];
 	$mirna = $_SESSION['mirna'];
-	$proteins = getEnsemblFromEntrez($entrez);
+	$proteins = $_SESSION['proteins'];
 	$schema = initDataSchema();
 	$nodes = initNodes($entrez,$mirna);
 	$edges = initEdges($proteins);
@@ -267,8 +301,6 @@ if ($_REQUEST['network']) // The network!
 	$resultNetwork = array("dataSchema" => $schema, "data" => array("nodes" => $nodes, "edges" => $edges));
 	#echo json_encode($resultNetwork,JSON_NUMERIC_CHECK);
 	echo json_encode($resultNetwork);
-
-	$_SESSION['proteins'] = $proteins;
 }
 
 # Response to Select GO terms multi-select list
@@ -307,14 +339,15 @@ if ($_REQUEST['level'])
 	$level = $_REQUEST['level'];
 	$node = $_REQUEST['node'];
 	$nodes = $_REQUEST['nodes'];
+	$ns = $_REQUEST['ns'];
+	$es = $_REQUEST['es'];
+	$cdata = $_REQUEST['currset'];
 	$node = json_decode($node,$assoc=TRUE);
 	$nodes = json_decode($nodes,$assoc=TRUE);
-	$elements = getNeighbors($node,$nodes,$level);
+	$cdata = json_decode($cdata,$assoc=TRUE);
+	$elements = getNeighbors($node,$nodes,$level,$ns,$es,$cdata);
 	echo json_encode($elements);
 	//echo json_encode($elements['elements']);
-
-	//$new_entrez = array_merge($_SESSION['entrez'],$elements['entrez']);
-	//$_SESSION['entrez'] = $entrez;
 }
 
 # Response to gene node selection
@@ -339,8 +372,14 @@ if ($_REQUEST['suggest_term'])
 {		
 	$term = $_REQUEST['suggest_term'];
 	$species = (int)$_REQUEST['suggest_species'];
-	//$result = getAutocompGenes($term,$species);
-	$result = getIndexedGenes($term,$species);
+	try
+	{
+		$result = getIndexedGenes($term,$species);
+	}
+	catch(Exception $e) // Safety swicth in case the indexer fails!
+	{
+		$result = getAutocompGenes($term,$species);
+	}
 	echo json_encode($result,JSON_FORCE_OBJECT);
 }
 
@@ -495,13 +534,13 @@ function getEntrezFromProtein() {}
 
 function getDatasetID($entrez)
 {
-	global $dataset_id_1,$dataset_id_2;
+	global $dataset_id_1,$dataset_id_2,$dataset_id_3;
 	$dataset = array();		
 	if(is_array($entrez) && !empty($entrez))
 	{
 		$conn = open_connection();			
 		$tmp_list = '('.implode(", ",$entrez).')';			
-		$query = $dataset_id_1.$tmp_list.$dataset_id_2.$tmp_list;
+		$query = $dataset_id_1.$tmp_list.$dataset_id_2.$tmp_list.$dataset_id_3.$tmp_list;
 		$result = mysql_query($query,$conn);
 		while ($row = mysql_fetch_array($result,MYSQL_NUM))
 		{
@@ -532,139 +571,209 @@ function getMiRNADatasetID($mirna)
 	return($dataset);
 }
 
-function updateLocDataDisease($genes,$disease) 
+function updateDataOnLocationAndDisease($genes,$disease,$location,$hackflag) 
 {
-	global $update_locdata_disease_1,$update_locdata_disease_2_1,$update_locdata_disease_2_2,$update_locdata_disease_3;
-	global $update_locdata_disease_4,$update_locdata_disease_5_1,$update_locdata_disease_5_2,$update_locdata_disease_6;
+	global $update_locdisdata_1,$update_locdisdata_3,$update_locdisdata_5,$update_locdisdata_7;
+	global $update_locdisdata_2_1,$update_locdisdata_2_2,$update_locdisdata_2_3,$update_locdisdata_2_4;
+	global $update_locdisdata_4_1,$update_locdisdata_4_2,$update_locdisdata_4_3,$update_locdisdata_4_4;
+	global $update_locdisdata_6_1,$update_locdisdata_6_2,$update_locdisdata_6_3,$update_locdisdata_6_4;
 	$dataset_name = array("none" => "---no dataset selected---");
 	
-	if(is_array($genes) && !empty($genes))
+	if(!empty($genes))
 	{
 		$conn = open_connection();
-		#$gene_list = '(\''.implode("', '",$genes).'\')';
-		$gene_list = '('.implode(", ",$genes).')';
-		$query = $update_locdata_disease_1.$gene_list.$update_locdata_disease_2_1.$disease.$update_locdata_disease_2_2.$disease.
-				 $update_locdata_disease_3.$update_locdata_disease_4.$gene_list.
-				 $update_locdata_disease_5_1.$disease.$update_locdata_disease_5_2.$disease.$update_locdata_disease_6;
-		$result = mysql_query($query,$conn);
-		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
-		{
-			$dataset_name[$id] = utf8_encode($name);
-			$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
-			$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
-			$loc_0[$b_0] = $bc_0;
-			$loc_1[$b_1] = $bc_1;
+		$gene_list = is_array($genes) ? '('.implode(", ",$genes).')' : '('.$genes.')';
+		$disease_list = is_array($disease) ? '(\''.implode("', '",$disease).'\')' : '(\''.$disease.'\')';
+		$location_list = is_array($location) ? '(\''.implode("', '",$location).'\')' : '(\''.$location.'\')';
+		if (!empty($disease) && !empty($location))
+		{	
+			$query = $update_locdisdata_1.$gene_list.
+					 $update_locdisdata_2_1.$disease_list.$update_locdisdata_2_2.$disease_list.
+					 $update_locdisdata_2_3.$location_list.$update_locdisdata_2_4.$location_list.
+					 $update_locdisdata_3.$gene_list.
+					 $update_locdisdata_4_1.$disease_list.$update_locdisdata_4_2.$disease_list.
+					 $update_locdisdata_4_3.$location_list.$update_locdisdata_4_4.$location_list;
+			if ($hackflag)
+			{
+				$query = $query.
+						 $update_locdisdata_5.$gene_list.
+						 $update_locdisdata_6_1.$disease_list.$update_locdisdata_6_2.$disease_list.
+						 $update_locdisdata_6_3.$location_list.$update_locdisdata_6_4.$location_list;
+			}
+			$query = $query.$update_locdisdata_7;
+			$result = mysql_query($query,$conn);
+			while (list($id,$name,$d_0,$d_1,$b_0,$b_1) = mysql_fetch_array($result))
+			{
+				$dataset_name[$id] = utf8_encode($name);
+				$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
+				$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
+				$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
+				$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
+				$loc_0[$b_0] = $bc_0;
+				$loc_1[$b_1] = $bc_1;
+				$dis_0[$d_0] = $dc_0;
+				$dis_1[$d_1] = $dc_1;
+			}
+			$location_return = array_merge($loc_0,$loc_1);
+			$disease_return = array_merge($dis_0,$dis_1);
+			return(array("dataset" => $dataset_name, "disease" => $disease_return, "location" => $location_return));
 		}
+		else if (!empty($disease) && empty($location))
+		{
+			$query = $update_locdisdata_1.$gene_list.
+					 $update_locdisdata_2_1.$disease_list.$update_locdisdata_2_2.$disease_list.
+					 $update_locdisdata_3.$gene_list.
+					 $update_locdisdata_4_1.$disease_list.$update_locdisdata_4_2.$disease_list;
+			if ($hackflag)
+			{
+				$query = $query.
+						 $update_locdisdata_5.$gene_list.
+						 $update_locdisdata_6_1.$disease_list.$update_locdisdata_6_2.$disease_list;
+			}
+			$query = $query.$update_locdisdata_7;
+			$result = mysql_query($query,$conn);
+			while (list($id,$name,$d_0,$d_1,$b_0,$b_1) = mysql_fetch_array($result))
+			{
+				$dataset_name[$id] = utf8_encode($name);
+				$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
+				$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
+				$loc_0[$b_0] = $bc_0;
+				$loc_1[$b_1] = $bc_1;
+			}
+			$location_return = array_merge($loc_0,$loc_1);
+			return(array("dataset" => $dataset_name, "location" => $location_return));
+		}
+		else if (empty($disease) && !empty($location))
+		{
+			$update_locdisdata_2_3 = substr($update_locdisdata_2_3,1,strlen($update_locdisdata_2_3)-1);
+			$update_locdisdata_4_3 = substr($update_locdisdata_4_3,1,strlen($update_locdisdata_4_3)-1);
+			$update_locdisdata_6_3 = substr($update_locdisdata_6_3,1,strlen($update_locdisdata_6_3)-1);
+			$query = $update_locdisdata_1.$gene_list.
+					 $update_locdisdata_2_3.$location_list.$update_locdisdata_2_4.$location_list.
+					 $update_locdisdata_3.$gene_list.
+					 $update_locdisdata_4_3.$location_list.$update_locdisdata_4_4.$location_list;
+			if ($hackflag)
+			{
+				$query = $query.
+						 $update_locdisdata_5.$gene_list.
+						 $update_locdisdata_6_3.$location_list.$update_locdisdata_6_4.$location_list;
+			}
+			$query = $query.$update_locdisdata_7;
+			$result = mysql_query($query,$conn);
+			while (list($id,$name,$d_0,$d_1,$b_0,$b_1) = mysql_fetch_array($result))
+			{
+				$dataset_name[$id] = utf8_encode($name);
+				$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
+				$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
+				$dis_0[$d_0] = $dc_0;
+				$dis_1[$d_1] = $dc_1;
+			}
+			$disease_return = array_merge($dis_0,$dis_1);
+			return(array("dataset" => $dataset_name, "disease" => $disease_return));
+		}
+		/*else
+		{
+			$update_locdisdata_3 = substr($update_locdisdata_3,1,strlen($update_locdisdata_3)-1);
+			$update_locdisdata_5 = substr($update_locdisdata_5,1,strlen($update_locdisdata_5)-1);
+			$query = $update_locdisdata_1.$gene_list.
+					 $update_locdisdata_3.$gene_list;
+			if ($hackflag)
+			{
+				$query = $query.$update_locdisdata_5.$gene_list;
+			}
+		}*/
 		close_connection($conn);
 	}
-		
-	# Remove empty rows for each of $loc_0, $loc_1 and merge
-	//$location = array_merge(array_filter($loc_0),array_filter($loc_1));
-	$location = array_merge($loc_0,$loc_1);
-	return(array("dataset" => $dataset_name, "location" => $location)); 
 }
 
-function updateDisDataLocation($genes,$location)
+function updateMiRNADataOnLocationAndDisease($mirnas,$disease,$location) 
 {
-	global $update_disdata_location_1,$update_disdata_location_2_1,$update_disdata_location_2_2,$update_disdata_location_3;
-	global $update_disdata_location_4,$update_disdata_location_5_1,$update_disdata_location_5_2,$update_disdata_location_6;
-	$dataset_name = array("none" => "---no dataset selected---");
-	
-	if(is_array($genes) && !empty($genes))
-	{
-		$conn = open_connection();
-		#$gene_list = '(\''.implode("', '",$genes).'\')';
-		$gene_list = '('.implode(", ",$genes).')';
-		$query = $update_disdata_location_1.$gene_list.$update_disdata_location_2_1.$location.$update_disdata_location_2_2.$location.
-				 $update_disdata_location_3.$update_disdata_location_4.$gene_list.
-				 $update_disdata_location_5_1.$location.$update_disdata_location_5_2.$location.$update_disdata_location_6;
-		$result = mysql_query($query,$conn);
-		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
-		{
-			$dataset_name[$id] = utf8_encode($name);
-			$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
-			$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
-			$dis_0[$d_0] = $dc_0;
-			$dis_1[$d_1] = $dc_1;
-		}
-		close_connection($conn);
-	}
-		
-	# Remove empty rows for each of $dis_0, $dis_1 and merge
-	//$disease = array_merge(array_filter($dis_0),array_filter($dis_1));
-	$disease = array_merge($dis_0,$dis_1);
-	return(array("dataset" => $dataset_name, "disease" => $disease));
-}
+	global $update_mirna_dislocdata_1,$update_mirna_dislocdata_3;
+	global $update_mirna_dislocdata_2_1,$update_mirna_dislocdata_2_2;
+	global $update_mirna_dislocdata_2_3,$update_mirna_dislocdata_2_4;
 
-function updateMiRNALocDataDisease($mirnas,$disease) 
-{
-	global $update_mirna_locdata_disease_1;
-	global $update_mirna_locdata_disease_2_1,$update_mirna_locdata_disease_2_2;
-	global $update_mirna_locdata_disease_3;
 	$dataset_name = array("none" => "---no dataset selected---");
 	if (!is_array($mirnas)) { $mirnas = array($mirnas); }
-	
+
 	if(!empty($mirnas))
 	{
 		$conn = open_connection();
-		$mirna_list = '(\''.implode("', '",$mirnas).'\')';
-		$query = $update_mirna_locdata_disease_1.$mirna_list.
-				 $update_mirna_locdata_disease_2_1.$disease.
-				 $update_mirna_locdata_disease_2_2.$disease.
-				 $update_mirna_locdata_disease_3;
-		$result = mysql_query($query,$conn);
-		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
-		{
-			$dataset_name[$id] = utf8_encode($name);
-			$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
-			$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
-			$loc_0[$b_0] = $bc_0;
-			$loc_1[$b_1] = $bc_1;
+		$mirna_list = is_array($mirnas) ? '(\''.implode("', '",$mirnas).'\')' : '(\''.$mirnas.'\')';
+		$disease_list = is_array($disease) ? '(\''.implode("', '",$disease).'\')' : '(\''.$disease.'\')';
+		$location_list = is_array($location) ? '(\''.implode("', '",$location).'\')' : '(\''.$location.'\')';
+		if (!empty($disease) && !empty($location))
+		{	
+			$query = $update_mirna_dislocdata_1.$mirna_list.
+					 $update_mirna_dislocdata_2_1.$disease_list.$update_mirna_dislocdata_2_2.$disease_list.
+					 $update_mirna_dislocdata_2_3.$location_list.$update_mirna_dislocdata_2_4.$location_list.
+					 $update_mirna_dislocdata_3;
+			$result = mysql_query($query,$conn);
+			while (list($id,$name,$d_0,$d_1,$b_0,$b_1) = mysql_fetch_array($result))
+			{
+				$dataset_name[$id] = utf8_encode($name);
+				$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
+				$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
+				$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
+				$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
+				$loc_0[$b_0] = $bc_0;
+				$loc_1[$b_1] = $bc_1;
+				$dis_0[$d_0] = $dc_0;
+				$dis_1[$d_1] = $dc_1;
+			}
+			$location_return = array_merge($loc_0,$loc_1);
+			$disease_return = array_merge($dis_0,$dis_1);
+			return(array("dataset" => $dataset_name, "disease" => $disease_return, "location" => $location_return));
 		}
+		else if (!empty($disease) && empty($location))
+		{
+			$query = $update_mirna_dislocdata_1.$mirna_list.
+					 $update_mirna_dislocdata_2_1.$disease_list.$update_mirna_dislocdata_2_2.$disease_list.
+					 $update_mirna_dislocdata_3;
+			$result = mysql_query($query,$conn);
+			while (list($id,$name,$d_0,$d_1,$b_0,$b_1) = mysql_fetch_array($result))
+			{
+				$dataset_name[$id] = utf8_encode($name);
+				$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
+				$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
+				$loc_0[$b_0] = $bc_0;
+				$loc_1[$b_1] = $bc_1;
+			}
+			$location_return = array_merge($loc_0,$loc_1);
+			return(array("dataset" => $dataset_name, "location" => $location_return));
+		}
+		else if (empty($disease) && !empty($location))
+		{
+			$update_mirna_dislocdata_2_3 = substr($update_mirna_dislocdata_2_3,1,strlen($update_mirna_dislocdata_2_3)-1);
+			$query = $update_mirna_dislocdata_1.$mirna_list.
+					 $update_mirna_dislocdata_2_3.$location_list.$update_mirna_dislocdata_2_4.$location_list.
+					 $update_mirna_dislocdata_3;
+			$result = mysql_query($query,$conn);
+			while (list($id,$name,$d_0,$d_1,$b_0,$b_1) = mysql_fetch_array($result))
+			{
+				$dataset_name[$id] = utf8_encode($name);
+				$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
+				$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
+				$dis_0[$d_0] = $dc_0;
+				$dis_1[$d_1] = $dc_1;
+			}
+			$disease_return = array_merge($dis_0,$dis_1);
+			return(array("dataset" => $dataset_name, "disease" => $disease_return));
+		}
+		/*else
+		{
+			$update_mirna_dislocdata_3 = substr($update_mirna_dislocdata_3,1,strlen($update_mirna_dislocdata_3)-1);
+			$query = $update_mirna_dislocdata_1.$mirna_list.$update_mirna_dislocdata_3;
+		}*/
 		close_connection($conn);
 	}
-
-	$location = array_merge($loc_0,$loc_1);
-	return(array("dataset" => $dataset_name, "location" => $location)); 
 }
 
-function updateMiRNADisDataLocation($mirnas,$location)
+function getRegulation($genes,$dataset,$disease,$location,$annotation)
 {
-	global $update_mirna_disdata_location_1;
-	global $update_mirna_disdata_location_2_1,$update_mirna_disdata_location_2_2;
-	global $update_mirna_disdata_location_3;
-	$dataset_name = array("none" => "---no dataset selected---");
-	if (!is_array($mirnas)) { $mirnas = array($mirnas); }
-	
-	if(!empty($mirnas))
-	{
-		$conn = open_connection();
-		$mirna_list = '(\''.implode("', '",$mirnas).'\')';
-		$query = $update_mirna_disdata_location_1.$mirna_list.
-				 $update_mirna_disdata_location_2_1.$location.
-				 $update_mirna_disdata_location_2_2.$location.
-				 $update_mirna_disdata_location_3;
-		$result = mysql_query($query,$conn);
-		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
-		{
-			$dataset_name[$id] = utf8_encode($name);
-			$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
-			$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
-			$dis_0[$d_0] = $dc_0;
-			$dis_1[$d_1] = $dc_1;
-		}
-		close_connection($conn);
-	}
-
-	$disease = array_merge($dis_0,$dis_1);
-	return(array("dataset" => $dataset_name, "disease" => $disease));
-}
-
-function getRegulation($genes,$dataset,$disease,$location)
-{
-	global $get_coloring_1,$get_coloring_3,$get_coloring_5;
+	global $get_coloring_1,$get_coloring_3,$get_coloring_5,$get_coloring_7;
 	global $get_coloring_2_1,$get_coloring_2_2,$get_coloring_2_3,$get_coloring_2_4,$get_coloring_2_5;
 	global $get_coloring_4_1,$get_coloring_4_2,$get_coloring_4_3,$get_coloring_4_4,$get_coloring_4_5;
+	global $get_coloring_6_1,$get_coloring_6_2,$get_coloring_6_3,$get_coloring_6_4,$get_coloring_6_5;
 	$color_data = array();
 
 	if(!empty($genes) && !empty($dataset))
@@ -674,46 +783,77 @@ function getRegulation($genes,$dataset,$disease,$location)
 		$dataset = '(\''.implode("', '",$dataset).'\')';
 
 		$conn = open_connection();
-		$gene_list = is_array($genes) ? implode(", ",$genes) : $genes;
+		$gene_list = is_array($genes) ? '('.implode(", ",$genes).')' : '('.$genes.')';
+		$disease_list = is_array($disease) ? '(\''.implode("', '",$disease).'\')' : '(\''.$disease.'\')';
+		$location_list = is_array($location) ? '(\''.implode("', '",$location).'\')' : '(\''.$location.'\')';
 		if (!empty($disease) && !empty($location))
 		{	
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
-					 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
-					 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset.
-					 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
-					 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
-					 $get_coloring_5;
+			$query = $get_coloring_1.$gene_list.$get_coloring_2_1.$dataset.
+					 $get_coloring_2_2.$disease_list.$get_coloring_2_3.$disease_list.
+					 $get_coloring_2_4.$location_list.$get_coloring_2_5.$location_list.
+					 $get_coloring_3.$gene_list.$get_coloring_4_1.$dataset.
+					 $get_coloring_4_2.$disease_list.$get_coloring_4_3.$disease_list.
+					 $get_coloring_4_4.$location_list.$get_coloring_4_5.$location_list.
+					 $get_coloring_5.$gene_list.$get_coloring_6_1.$dataset.
+					 $get_coloring_6_2.$disease_list.$get_coloring_6_3.$disease_list.
+					 $get_coloring_6_4.$location_list.$get_coloring_6_5.$location_list.
+					 $get_coloring_7;
 		}
 		else if (!empty($disease) && empty($location))
 		{
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
-					 $get_coloring_2_2.'\''.$disease.'\''.$get_coloring_2_3.'\''.$disease.'\''.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset.
-					 $get_coloring_4_2.'\''.$disease.'\''.$get_coloring_4_3.'\''.$disease.'\''.
-					 $get_coloring_5;
+			$query = $get_coloring_1.$gene_list.$get_coloring_2_1.$dataset.
+					 $get_coloring_2_2.$disease_list.$get_coloring_2_3.$disease_list.
+					 $get_coloring_3.$gene_list.$get_coloring_4_1.$dataset.
+					 $get_coloring_4_2.$disease_list.$get_coloring_4_3.$disease_list.
+					 $get_coloring_5.$gene_list.$get_coloring_6_1.$dataset.
+					 $get_coloring_6_2.$disease_list.$get_coloring_6_3.$disease_list.
+					 $get_coloring_7;
 		}
 		else if (empty($disease) && !empty($location))
 		{
 			$get_coloring_2_4 = substr($get_coloring_2_4,1,strlen($get_coloring_2_4)-1);
 			$get_coloring_4_4 = substr($get_coloring_4_4,1,strlen($get_coloring_4_4)-1);
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
-					 $get_coloring_2_4.'\''.$location.'\''.$get_coloring_2_5.'\''.$location.'\''.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset.
-					 $get_coloring_4_4.'\''.$location.'\''.$get_coloring_4_5.'\''.$location.'\''.
-					 $get_coloring_5;
+			$get_coloring_6_4 = substr($get_coloring_6_4,1,strlen($get_coloring_6_4)-1);
+			$query = $get_coloring_1.$gene_list.$get_coloring_2_1.$dataset.
+					 $get_coloring_2_4.$location_list.$get_coloring_2_5.$location_list.
+					 $get_coloring_3.$gene_list.$get_coloring_4_1.$dataset.
+					 $get_coloring_4_4.$location_list.$get_coloring_4_5.$location_list.
+					 $get_coloring_5.$gene_list.$get_coloring_6_1.$dataset.
+					 $get_coloring_6_4.$location_list.$get_coloring_6_5.$location_list.
+					 $get_coloring_7;
 		}
 		else
 		{
 			$get_coloring_3 = substr($get_coloring_3,1,strlen($get_coloring_3)-1);
-			$query = $get_coloring_1.'('.$gene_list.')'.$get_coloring_2_1.$dataset.
-					 $get_coloring_3.'('.$gene_list.')'.$get_coloring_4_1.$dataset;
+			$get_coloring_5 = substr($get_coloring_5,1,strlen($get_coloring_5)-1);
+			$query = $get_coloring_1.$gene_list.$get_coloring_2_1.$dataset.
+					 $get_coloring_3.$gene_list.$get_coloring_4_1.$dataset;
+					 $get_coloring_5.$gene_list.$get_coloring_6_1.$dataset;
 		}
 		$result = mysql_query($query,$conn);
-		while (list($record_id,$dataset_id,$display_name,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
+		while (list($record_id,$dataset_id,$display_name,$d0,$d1,$b0,$b1,$cpl,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
 		{
+			if ($annotation['disease'] == 1)
+			{
+				$dep1 = empty($d0) ? $d1 : $d0;
+				$dep1 = empty($dep1) ? "" : $dep1."\n";
+			}
+			else { $dep1 = ""; }
+			if ($annotation['location'] == 1)
+			{
+				$dep2 = empty($b0) ? $b1 : $b0;
+				$dep2 = empty($dep2) ? "" : $dep2."\n";
+			} else { $dep2 = ""; }
+			if ($annotation['type'] == 1)
+			{
+				$dep3 = preg_match('/protein/i',$cpl) ? "protein" : "gene";
+				$dep3 = $dep3."\n";
+			} else { $dep3 = ""; }
+			$dep4 = $annotation['dataset'] == 1 ? utf8_encode($display_name) : "";
+			$desc = $dep1.$dep2.$dep3.$dep4;
+			$type = preg_match('/protein/i',$cpl) ? "protein" : "gene";
 			$color_data[] = array("entrez_id" => $entrez_id, "strength" => $expr_strength, "expression" => $expr_de,
-								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "custom" => utf8_encode($display_name));
+								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "custom" => $desc, "type" => $type);
 		}
 		close_connection($conn);
 	}
@@ -721,7 +861,7 @@ function getRegulation($genes,$dataset,$disease,$location)
 	return($color_data);
 }
 
-function getMiRNARegulation($mirnas,$dataset,$disease,$location)
+function getMiRNARegulation($mirnas,$dataset,$disease,$location,$annotation)
 {
 	global $get_mirna_coloring_1,$get_mirna_coloring_3;
 	global $get_mirna_coloring_2_1,$get_mirna_coloring_2_2,$get_mirna_coloring_2_3,$get_mirna_coloring_2_4,$get_mirna_coloring_2_5;
@@ -734,38 +874,55 @@ function getMiRNARegulation($mirnas,$dataset,$disease,$location)
 		$dataset = '(\''.implode("', '",$dataset).'\')';
 
 		$conn = open_connection();
-		$mirna_list = is_array($mirnas) ? implode("', '",$mirnas) : $mirnas;
+		$mirna_list = is_array($mirnas) ? '(\''.implode("', '",$mirnas).'\')' : '(\''.$mirnas.'\')';
+		$disease_list = is_array($disease) ? '(\''.implode("', '",$disease).'\')' : '(\''.$disease.'\')';
+		$location_list = is_array($location) ? '(\''.implode("', '",$location).'\')' : '(\''.$location.'\')';
 		if (!empty($disease) && !empty($location))
 		{	
-			$query = $get_mirna_coloring_1.'(\''.$mirna_list.'\')'.$get_mirna_coloring_2_1.$dataset.
-					 $get_mirna_coloring_2_2.'\''.$disease.'\''.$get_mirna_coloring_2_3.'\''.$disease.'\''.
-					 $get_mirna_coloring_2_4.'\''.$location.'\''.$get_mirna_coloring_2_5.'\''.$location.'\''.
+			$query = $get_mirna_coloring_1.$mirna_list.$get_mirna_coloring_2_1.$dataset.
+					 $get_mirna_coloring_2_2.$disease_list.$get_mirna_coloring_2_3.$disease_list.
+					 $get_mirna_coloring_2_4.$location_list.$get_mirna_coloring_2_5.$location_list.
 					 $get_mirna_coloring_3;
 		}
 		else if (!empty($disease) && empty($location))
 		{
-			$query = $get_mirna_coloring_1.'(\''.$mirna_list.'\')'.$get_mirna_coloring_2_1.$dataset.
-					 $get_mirna_coloring_2_2.'\''.$disease.'\''.$get_mirna_coloring_2_3.'\''.$disease.'\''.
+			$query = $get_mirna_coloring_1.$mirna_list.$get_mirna_coloring_2_1.$dataset.
+					 $get_mirna_coloring_2_2.$disease_list.$get_mirna_coloring_2_3.$disease_list.
 					 $get_mirna_coloring_3;
 		}
 		else if (empty($disease) && !empty($location))
 		{
 			$get_mirna_coloring_2_4 = substr($get_mirna_coloring_2_4,1,strlen($get_mirna_coloring_2_4)-1);
-			$query = $get_mirna_coloring_1.'(\''.$mirna_list.'\')'.$get_mirna_coloring_2_1.$dataset.
-					 $get_mirna_coloring_2_4.'\''.$location.'\''.$get_mirna_coloring_2_5.'\''.$location.'\''.
+			$query = $get_mirna_coloring_1.$mirna_list.$get_mirna_coloring_2_1.$dataset.
+					 $get_mirna_coloring_2_4.$location_list.$get_mirna_coloring_2_5.$location_list.
 					 $get_mirna_coloring_3;
 		}
 		else
 		{
 			$get_mirna_coloring_3 = substr($get_mirna_coloring_3,1,strlen($get_mirna_coloring_3)-1);
-			$query = $get_mirna_coloring_1.'(\''.$mirna_list.'\')'.$get_mirna_coloring_2_1.$dataset.
+			$query = $get_mirna_coloring_1.$mirna_list.$get_mirna_coloring_2_1.$dataset.
 					 $get_mirna_coloring_3;
 		}
 		$result = mysql_query($query,$conn);
-		while (list($record_id,$dataset_id,$display_name,$microcosm_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
+		while (list($record_id,$dataset_id,$display_name,$d0,$d1,$b0,$b1,$microcosm_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
 		{
+			if ($annotation['disease'] == 1)
+			{
+				$dep1 = empty($d0) ? $d1 : $d0;
+				$dep1 = empty($dep1) ? "" : $dep1."\n";
+			}
+			else { $dep1 = ""; }
+			if ($annotation['location'] == 1)
+			{
+				$dep2 = empty($b0) ? $b1 : $b0;
+				$dep2 = empty($dep2) ? "" : $dep2."\n";
+			} else { $dep2 = ""; }
+			$dep3 = $annotation['type'] == 1 ? "miRNA\n" : "";
+			$dep4 = $annotation['dataset'] == 1 ? utf8_encode($display_name) : "";
+			$desc = $dep1.$dep2.$dep3.$dep4;
+			$type = "mirna";
 			$color_data[] = array("entrez_id" => $microcosm_id, "strength" => $expr_strength, "expression" => $expr_de,
-								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "custom" => utf8_encode($display_name));
+								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "custom" => $desc, "type" => $type);
 		}
 		close_connection($conn);
 	}
@@ -773,6 +930,8 @@ function getMiRNARegulation($mirnas,$dataset,$disease,$location)
 	return($color_data);
 }
 
+# Old function but we are keeping it for possible future or machine based incompatibilities
+# with the sphinx indexer
 function getAutocompGenes($term,$species)
 {		
 	global $auto_genes_1,$auto_genes_2;
@@ -809,7 +968,7 @@ function getGOElements($gots,$ensembl)
 		{
 			if ($visited_go[$go_id] != 1)
 			{
-				$go_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+				$go_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
 									"data" => array("id" => $go_id, "label" => $go_term, "entrez_id" => $go_id,
 													"strength" => "", "expression" => "",
 													"ratio" => 999, "pvalue" => 999, "fdr" => 999,
@@ -850,7 +1009,7 @@ function getKEGGElements($keggs,$ensembl)
             {
 				// OK, I am exploiting the text type of "strength" to avoid an AJAX call just to get
 				// the KEGG class for displaying KEGG node properties
-                $kegg_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+                $kegg_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
                                       "data" => array("id" => $kegg_id, "label" => $kegg_name, "entrez_id" => $kegg_id,
                                                       "strength" => $kegg_class, "expression" => "",
                                                       "ratio" => 999, "pvalue" => 999, "fdr" => 999,
@@ -889,7 +1048,7 @@ function getmirnaElements($mirnas,$ensembl)
         {
             if ($visited_mirna[$mirna_id] != 1)
             {
-                $mirna_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+                $mirna_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
                                        "data" => array("id" => $mirna_id, "label" => $mirna_id, "entrez_id" => $mirna_id,
                                                        "strength" => "", "expression" => "",
                                                        "ratio" => 999, "pvalue" => 999, "fdr" => 999,
@@ -915,7 +1074,7 @@ function getmirnaElements($mirnas,$ensembl)
 # node: the selected ones to fetch their neighbors
 # nodes: all the current nodes in the network
 # level: the depth of neighborhood
-function getNeighbors($node,$nodes,$level)
+function getNeighbors($node,$nodes,$level,$ns,$es,$datasets)
 {
 	global $get_neighbors_1,$get_neighbors_2,$get_neighbors_3;
 	global $get_add_nodes,$get_add_edges_1,$get_add_edges_2;
@@ -927,6 +1086,8 @@ function getNeighbors($node,$nodes,$level)
 							  "expression" => "expression", "activation" => "activation");
 
 	if (!isset($level)) { $level = 1; }
+	if (!isset($ns)) { $ns = "kupkb"; }
+	if (!isset($es)) { $es = "all"; }
 	
 	if(!empty($node) && !empty($nodes))
 	{
@@ -968,6 +1129,14 @@ function getNeighbors($node,$nodes,$level)
 				$lev++;
 			}
 		}
+
+		# Although there is nothing gained as KUPKB contains microarray datasets, therefore
+		# whole genomes so neighbors will exist anyway, unless we make them dataset specific
+		if ($ns == "kupkb")
+		{
+			$kupkbprots = getAllKUPKBGenesAsProteins($datasets,$conn);
+			$neighbors = array_intersect($neighbors,$kupkbprots);
+		}
 		
 		# Keep in mind! The cytoscapeweb node and edge queries need to be run only once!
 		# Now fire more queries to get the network elements
@@ -976,7 +1145,7 @@ function getNeighbors($node,$nodes,$level)
 		$result = mysql_query($query,$conn);
 		while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
 		{
-			$add_nodes[] = array("group" => "nodes", "x" => rand(50,450), "y" => rand(50,450),
+			$add_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
 								 "data" => array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
 												 "strength" => "", "expression" => "",
 												 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
@@ -985,8 +1154,17 @@ function getNeighbors($node,$nodes,$level)
 
 		if ($level == 1) { $nodes = array_merge($nodes,$neighbors); } // Else already done
 		$all_list = implode("', '",$nodes); // Must be redefined, $_SESSION['proteins'] no longer enough...
-		#$query = $get_add_edges_1.'(\''.$neighbor_list.'\')'.$get_add_edges_2.'(\''.$all_list.'\')';
-		$query = $get_add_edges_1.'(\''.$all_list.'\')'.$get_add_edges_2.'(\''.$all_list.'\')';
+		if ($es == "all")
+		{
+			$query = $get_add_edges_1.'(\''.$all_list.'\')'.$get_add_edges_2.'(\''.$all_list.'\')';
+		}
+		else if ($es == "selected")
+		{
+			$query = $get_add_edges_1.'(\''.$selected_list.'\')'.$get_add_edges_2.'(\''.$neighbor_list.'\')'.
+					 ' UNION '.
+					 $get_add_edges_1.'(\''.$neighbor_list.'\')'.$get_add_edges_2.'(\''.$selected_list.'\')';
+		}
+		
 		$result = mysql_query($query,$conn);
 		while (list($target,$source,$interaction) = mysql_fetch_array($result))
 		{
@@ -1559,7 +1737,196 @@ function getIndexedGenes($term,$species)
 	return($suggestions);
 }
 
-/*function initEdges($ensembl)
+function allKUPKBSymbols2Entrez()
+{
+	global $allkupkb_symbols,$allkupkb_symbols2entrez;
+	$symbols = array();
+	$kupkb_s2e = array();
+	
+	$conn = open_connection();
+	$query = $allkupkb_symbols;
+	$result = mysql_query($query,$conn);
+	while ($row = mysql_fetch_array($result,MYSQL_NUM))
+	{
+		$symbols[] = $row[0];
+	}
+
+	$symbol_list = '(\''.implode("', '",$symbols).'\')';
+	$query = $allkupkb_symbols2entrez.$symbol_list;
+	$result = mysql_query($query,$conn);
+	while (list($e,$s) = mysql_fetch_array($result))
+	{
+		$kupkb_s2e[$s][] = $e;
+	}
+	close_connection($conn);
+
+	return($kupkb_s2e);
+}
+
+function getAllKUPKBGenesAsProteins($did,$conn)
+{
+	global $allkupkb2protein_1,$allkupkb2protein_2,$allkupkb2protein_3,$allkupkb2protein_4,$allkupkb2protein_5;
+	global $allkupkbsymbols2protein;
+	$species = $_SESSION['species'];
+	$ks2e = $_SESSION['symbol2entrez'];
+	$prots = array();
+	$outside = TRUE;
+	if (!$conn) { $outside = FALSE; }
+
+	$d_list = is_array($did) ? '(\''.implode("', '",$did).'\')' : '\''.$did.'\'';
+	if (!$outside) { $conn = open_connection(); } # else opened, called from outside
+	$query = $allkupkb2protein_1.$d_list.$allkupkb2protein_2.$species.
+			 $allkupkb2protein_3.$d_list.$allkupkb2protein_4.$species.
+			 $allkupkb2protein_5;
+	$result = mysql_query($query,$conn);
+	while ($row = mysql_fetch_array($result,MYSQL_NUM))
+	{
+		$prots[] = $row[0];
+	}
+	
+	if (!empty($k2se))
+	{
+		$query = $allkupkbsymbols2protein;
+		while ($row = mysql_fetch_array($result,MYSQL_NUM))
+		{
+			$prots[] = $row[0];
+		}
+	}
+
+	if (!$outside) { close_connection($conn); }
+	return($prots);
+}
+
+/*
+function updateLocDataDisease($genes,$disease) 
+{
+	global $update_locdata_disease_1,$update_locdata_disease_2_1,$update_locdata_disease_2_2,$update_locdata_disease_3;
+	global $update_locdata_disease_4,$update_locdata_disease_5_1,$update_locdata_disease_5_2,$update_locdata_disease_6;
+	$dataset_name = array("none" => "---no dataset selected---");
+	
+	if(is_array($genes) && !empty($genes))
+	{
+		$conn = open_connection();
+		#$gene_list = '(\''.implode("', '",$genes).'\')';
+		$gene_list = '('.implode(", ",$genes).')';
+		$query = $update_locdata_disease_1.$gene_list.$update_locdata_disease_2_1.$disease.$update_locdata_disease_2_2.$disease.
+				 $update_locdata_disease_3.$update_locdata_disease_4.$gene_list.
+				 $update_locdata_disease_5_1.$disease.$update_locdata_disease_5_2.$disease.$update_locdata_disease_6;
+		$result = mysql_query($query,$conn);
+		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
+		{
+			$dataset_name[$id] = utf8_encode($name);
+			$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
+			$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
+			$loc_0[$b_0] = $bc_0;
+			$loc_1[$b_1] = $bc_1;
+		}
+		close_connection($conn);
+	}
+		
+	# Remove empty rows for each of $loc_0, $loc_1 and merge
+	//$location = array_merge(array_filter($loc_0),array_filter($loc_1));
+	$location = array_merge($loc_0,$loc_1);
+	return(array("dataset" => $dataset_name, "location" => $location)); 
+}
+
+function updateDisDataLocation($genes,$location)
+{
+	global $update_disdata_location_1,$update_disdata_location_2_1,$update_disdata_location_2_2,$update_disdata_location_3;
+	global $update_disdata_location_4,$update_disdata_location_5_1,$update_disdata_location_5_2,$update_disdata_location_6;
+	$dataset_name = array("none" => "---no dataset selected---");
+	
+	if(is_array($genes) && !empty($genes))
+	{
+		$conn = open_connection();
+		#$gene_list = '(\''.implode("', '",$genes).'\')';
+		$gene_list = '('.implode(", ",$genes).')';
+		$query = $update_disdata_location_1.$gene_list.$update_disdata_location_2_1.$location.$update_disdata_location_2_2.$location.
+				 $update_disdata_location_3.$update_disdata_location_4.$gene_list.
+				 $update_disdata_location_5_1.$location.$update_disdata_location_5_2.$location.$update_disdata_location_6;
+		$result = mysql_query($query,$conn);
+		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
+		{
+			$dataset_name[$id] = utf8_encode($name);
+			$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
+			$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
+			$dis_0[$d_0] = $dc_0;
+			$dis_1[$d_1] = $dc_1;
+		}
+		close_connection($conn);
+	}
+		
+	# Remove empty rows for each of $dis_0, $dis_1 and merge
+	//$disease = array_merge(array_filter($dis_0),array_filter($dis_1));
+	$disease = array_merge($dis_0,$dis_1);
+	return(array("dataset" => $dataset_name, "disease" => $disease));
+}
+
+function updateMiRNALocDataDisease($mirnas,$disease) 
+{
+	global $update_mirna_locdata_disease_1;
+	global $update_mirna_locdata_disease_2_1,$update_mirna_locdata_disease_2_2;
+	global $update_mirna_locdata_disease_3;
+	$dataset_name = array("none" => "---no dataset selected---");
+	if (!is_array($mirnas)) { $mirnas = array($mirnas); }
+	
+	if(!empty($mirnas))
+	{
+		$conn = open_connection();
+		$mirna_list = '(\''.implode("', '",$mirnas).'\')';
+		$query = $update_mirna_locdata_disease_1.$mirna_list.
+				 $update_mirna_locdata_disease_2_1.$disease.
+				 $update_mirna_locdata_disease_2_2.$disease.
+				 $update_mirna_locdata_disease_3;
+		$result = mysql_query($query,$conn);
+		while (list($id,$name,$b_0,$b_1) = mysql_fetch_array($result))
+		{
+			$dataset_name[$id] = utf8_encode($name);
+			$bc_0 = $b_0 === "" ? "-data with no location associated-" : $b_0;
+			$bc_1 = $b_1 === "" ? "-data with no location associated-" : $b_1;
+			$loc_0[$b_0] = $bc_0;
+			$loc_1[$b_1] = $bc_1;
+		}
+		close_connection($conn);
+	}
+
+	$location = array_merge($loc_0,$loc_1);
+	return(array("dataset" => $dataset_name, "location" => $location)); 
+}
+
+function updateMiRNADisDataLocation($mirnas,$location)
+{
+	global $update_mirna_disdata_location_1;
+	global $update_mirna_disdata_location_2_1,$update_mirna_disdata_location_2_2;
+	global $update_mirna_disdata_location_3;
+	$dataset_name = array("none" => "---no dataset selected---");
+	if (!is_array($mirnas)) { $mirnas = array($mirnas); }
+	
+	if(!empty($mirnas))
+	{
+		$conn = open_connection();
+		$mirna_list = '(\''.implode("', '",$mirnas).'\')';
+		$query = $update_mirna_disdata_location_1.$mirna_list.
+				 $update_mirna_disdata_location_2_1.$location.
+				 $update_mirna_disdata_location_2_2.$location.
+				 $update_mirna_disdata_location_3;
+		$result = mysql_query($query,$conn);
+		while (list($id,$name,$d_0,$d_1) = mysql_fetch_array($result))
+		{
+			$dataset_name[$id] = utf8_encode($name);
+			$dc_0 = $d_0 === "" ? "-data with no disease associated-" : $d_0;
+			$dc_1 = $d_1 === "" ? "-data with no disease associated-" : $d_1;
+			$dis_0[$d_0] = $dc_0;
+			$dis_1[$d_1] = $dc_1;
+		}
+		close_connection($conn);
+	}
+
+	$disease = array_merge($dis_0,$dis_1);
+	return(array("dataset" => $dataset_name, "disease" => $disease));
+}
+
+function initEdges($ensembl)
 {
 	global $init_edges_1,$init_edges_2;
 	$seen = array();

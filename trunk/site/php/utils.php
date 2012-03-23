@@ -37,11 +37,44 @@ function html_selectbox($name, $values, $selected=NULL, $attributes=array())
 	return $output;
 }
 
-function array_unshift_assoc(&$arr, $key, $val) 
+function array_unshift_assoc(&$arr,$key,$val) 
 { 
 	$arr = array_reverse($arr,true); 
 	$arr[$key] = $val;
 	$arr = array_reverse($arr,true); 
 	return $arr; 
+}
+
+function array_intersect_fixed($array1,$array2)
+{ 
+	$result = array();
+	foreach ($array1 as $val)
+	{ 
+		if (($key = array_search($val,$array2,TRUE))!==false)
+		{ 
+			$result[] = $val; 
+			unset($array2[$key]); 
+		} 
+	} 
+	return $result; 
+}
+function my_array_intersect($a,$b) 
+{ 
+        for($i=0;$i<sizeof($a);$i++) 
+        { 
+                $m[]=$a[$i]; 
+        } 
+        for($i=0;$i<sizeof($a);$i++) 
+        { 
+                $m[]=$b[$i]; 
+        } 
+        sort($m); 
+        $get=array(); 
+        for($i=0;$i<sizeof($m);$i++) 
+        { 
+                if($m[$i]==$m[$i+1]) 
+                $get[]=$m[$i]; 
+        } 
+        return $get; 
 } 
 ?>
