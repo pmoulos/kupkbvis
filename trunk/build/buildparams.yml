@@ -4,6 +4,7 @@
 # of the datasets, dataset descriptions etc. as well as the address to download the
 # STRING raw file... Quite human readable and can be edited by anyone,as long as very
 # basic YAML syntax rules are maintained...
+DBNAME: KUPKB_Vis
 FTP: ftp.ncbi.nlm.nih.gov
 gene:
  DATA:
@@ -29,5 +30,6 @@ GENE_PATH: download
 MIRNA_PATH: download
 CURATORS: /media/HD5/Work/TestGround/contr_emails.txt
 INDEX_PATH: /etc/sphinxsearch/kupkbvis_sphinx.conf
+INDEX_HOME: /media/HD2/mysql/sphinx_index/
 #INTERACTION_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB
 #GENE_PATH: /media/HD5/Work/e-lico/KUPKBVis/SubKB

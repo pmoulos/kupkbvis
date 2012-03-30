@@ -16,6 +16,7 @@ include('php/queries.php');
 	<link type="text/css" rel="stylesheet" href="css/menu.css" />
 	<link type="text/css" rel="stylesheet" href="css/tabs.css" />
 	<link type="text/css" rel="stylesheet" href="css/kupkb.css" />
+	<link type="text/css" rel="stylesheet" href="css/dataset.css" />
 	<script type="text/javascript" src="js/json2.min.js"></script>
 	<script type="text/javascript" src="js/AC_OETags.min.js"></script>
 	<script type="text/javascript" src="js/cytoscapeweb.min.js"></script>
@@ -34,6 +35,8 @@ include('php/queries.php');
 
 	<!-- Our modal dialog div -->
 	<div id="dialog"></div>
+	<!-- The dataset description popup div -->
+	<div id="dataset_popup" class="tooltip-dataset"></div>
 
 	<div class="mainContainer">
 
@@ -74,6 +77,7 @@ include('php/queries.php');
 						</li>
 					</ul>
 				</li>
+				<!--<li><a onclick="toggleFullScreen()" class="parent"><span>Fullscreen</span></a></li>-->
 			</ul>
 		</div>
 
@@ -92,7 +96,7 @@ include('php/queries.php');
 				</div>
 			</td>
 			<td class="innerCell">
-				<div id="color_legend" style="visibility:hidden;">
+				<div id="color_legend" style="visibility:hidden; height:160px;">
 				<table class="innerTable">
 					<tr>
 					<td colspan=4 class="colorTableCellText" style="height:20%;">
@@ -101,7 +105,7 @@ include('php/queries.php');
 					</tr>
 					<tr>
 					<td rowspan=5 class="colorTableCellColor" style="text-align:center; width:10%; height:80%">
-						<table class="innerTable"><tr><td style="background:url(images/colorbar.png);"></td></tr></table>
+						<table class="innerTable"><tr><td style="background:url(images/colorbar.png) no-repeat center;"></td></tr></table>
 					</td>
 					<td class="colorTableCellText" style="width:40%; height:16%">Up</td>
 					<td class="colorTableCellColor" style="width:10%; height:16%">
@@ -119,7 +123,7 @@ include('php/queries.php');
 					</tr>
 					<tr>
 					<!--<td class="colorTableCellColor" style="width:10%;"></td>-->
-					<td class="colorTableCellText" style="width:40%; height:16%">Unmodified*</td>
+					<td class="colorTableCellText" style="width:40%; height:16%">Unmodified</td>
 					<td class="colorTableCellColor" style="width:10%; height:16%">
 						<table class="innerTable"><tr><td style="background-color:#A4C9EB"></td></tr></table>
 					</td>
@@ -147,14 +151,15 @@ include('php/queries.php');
 					</td>
 					</tr>-->
 				</table>
-				<table class="innerTable">
+				</div>
+				<!--<table class="innerTable">
 				<tr>
 				<td class="colorTableCellText" style="font-size:0.8em; line-height:1.3em; padding-top:5px; padding-bottom:0px; vertical-align:bottom;">
 					*Relative to highest Up and Down values in the network. E.g. if the highest Up value is 12, a value of 2.8 might be close to the Unmodified level.
 				</td>
 				</tr>
-				</table>
-				<!--<table class="innerTable" style="table-layout:fixed"><tr><td style="background:url(images/basic_shapes.png);"></td></tr></table>-->
+				</table>-->
+				<div id="shape_legend" style="visibility:hidden; height:60px">
 				<table class="innerTable"><tr><td class="innerCell" style="padding:0px; border-style:dashed; border-width:1px;"><img src="images/basic_shapes.png" alt="" width="100%" height="100%" style="display: block; margin-top:auto; margin-bottom:auto;"></td></tr></table>
 				</div>
 			</td>
@@ -238,35 +243,26 @@ include('php/queries.php');
 						</td>
 						<td class="innerCell" style="vertical-align:top; width:75%">
 							<div id="welcome" style="overflow:auto;">
-							The KUPKB Network Explorer will help you visualize the relationships among molecules stored in the KUPKB using publicly available 
-							repositories. You can start by typing your molecules in the search and select the preferred species to seek interactions from or 
-							just click 'GO' and the queried genes with their relationships will be displayed in the panel on top. Tabs 2 and 3 will be filled with
-							data from KUPKB. You can navigate through the lists displayed in different tabs to filter the results and color the network according 
-							to expression data stored in the KUPKB.
+							The KUPKB Network Explorer will help you visualize the relationships among molecules stored in the KUPKB. Type your molecules in the search area
+							and click 'GO' to display the network in the panel on top. Tabs 2 and 3 will be filled with data from KUPKB. Navigate through the in different tabs
+							to filter the results and map expression data stored in the KUPKB.
 							<ol>
 								<li>
 								Enter your molecules in the search area to the left, using any of the following types: Entrez gene ID, gene symbol, Ensembl gene or protein ID,
-								Uniprot ID, mirBase miRNA IDs or simple text search (multiple ID types are supported!). Depending on the selected species, you will get suggestion 
-								that possibly auto-complete your entered molecule(s).
+								Uniprot ID, mirBase miRNA IDs or simple text search (multiple ID types are supported!). You will also get auto-complete suggestions.
 								</li>
 								<li>
-								Navigate to the "Add KUPKB data". There you will find lists containing kidney locations and diseases together with datasets included in the
-								KUPKB. These datasets were found to contain at least one of your entered genes/proteins in step 1. From there and according to your preferences
-								you can select single or multiple criteria to color the nodes of the network based on gene expression data included in the KUPKB. If you have
-								entered miRNA IDs in step 1, the KUPKB miRNA data panel will also be filled. The same functionalities described above apply also there. Several
-								tooltips (the small questionmark picture) explain the processes. Just move your mouse over these tips to see the help text.
+								Select KUPKB datasets based on kidney locations and diseases criteria to color the nodes of the network. The displayed datasets were found to contain at
+								least one of your searched molecules and are limited to the selected species. Filter the displayed edges and fetch neighbors of selected genes/proteins.
 								</li>
 								<li>
-								Navigate to the "Add GO, KEGG or miRNA data". From there, you can add to the network GO terms and KEGG pathways connected to your queried genes/proteins
-								from Step 1. Similarly, you can add miRNAs that target your queried genes/proteins. Use the buttons below each list to perform the repsective functions
-								or double-click a selection to display it on the network.
+								Add GO terms and KEGG pathways containing the queried genes or add miRNAs that target your queried molecules to the network.
 								</li>
-								<li>
-								The "Advanced" tab contains more advanced functionalities of the network browser, inlcuding filtering the protein-protein interaction types displayed
-								on the network and how the lists in the second tab behave upon selection. It contains also functionalities related to the nodes/edges appearance as well
-								as functionalities related to the neighboring genes of each node. The neighbor functions are also accesible by selecting and right-clicking on nodes/edges.
 								</li>
 							</ol>
+							The "Advanced" tab contains more advanced functionalities of the network browser related to the nodes/edges appearance, search modes, coloring options and
+							how the filtering lists (tab 2) behave. It also contains functionalities related to the neighbouring genes of each node. The neighbour functions are also
+							accessible by selecting and right-clicking on nodes/edges. Use the tooltips for guidance.
 							</div>
 						</td>
 						</tr>
@@ -388,14 +384,16 @@ include('php/queries.php');
 						<td class="optsCell" style="width:20%">
 							<div>
 								<fieldset class="optsGroup"><legend class="fieldSetTitle">Displayed interactions</legend>
-									<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges()"><span style="color:#028E9B; font-weight:bold;"> binding</span><br/>
-									<input type="checkbox" id="ptmod_check" checked disabled onclick="filterEdges()"><span style="color:#133CAC; font-weight:bold;"> modification</span><br/>
-									<input type="checkbox" id="expression_check" checked disabled onclick="filterEdges()"><span style="color:#FFAD00; font-weight:bold;"> expression</span><br/>
-									<input type="checkbox" id="activation_check" checked disabled onclick="filterEdges()"><span style="color:#FF7800; font-weight:bold;"> activation</span><br/>
-									<input type="checkbox" id="go_check" checked disabled onclick="filterEdges()"><span style="color:#9BA402; font-weight:bold;"> GO terms</span><br/>
-									<input type="checkbox" id="kegg_check" checked disabled onclick="filterEdges()"><span style="color:#D30068; font-weight:bold;"> KEGG pathways</span><br/>
-									<input type="checkbox" id="mirna_check" checked disabled onclick="filterEdges()"><span style="color:#A67D00; font-weight:bold;"> miRNAs</span><br/>
-									<hr>
+									<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges()"><label for="binding_check"><span style="color:#028E9B; font-weight:bold;"> binding &mdash;</span></label><br/>
+									<input type="checkbox" id="ptmod_check" checked disabled onclick="filterEdges()"><label for="ptmod_check"><span style="color:#133CAC; font-weight:bold;"> modification <span style="font-size:1.5em;">&rarr;</span></span></label><br/>
+									<input type="checkbox" id="expression_check" checked disabled onclick="filterEdges()"><label for="expression_check"><span style="color:#9BA402; font-weight:bold;"> expression (stimulation) <span class="condensed">&ndash;&#9679;</span></span></label><br/>
+									<input type="checkbox" id="inhibition_check" checked disabled onclick="filterEdges()"><label for="inhibition_check"><span style="color:#EE0000; font-weight:bold;"> expression (inhibition) <span class="condensed">&ndash;|</span></span></label><br/>
+									<input type="checkbox" id="activation_check" checked disabled onclick="filterEdges()"><label for="activation_check"><span style="color:#00A300; font-weight:bold;"> activation <span style="font-size:1.5em;">&rarr;</span></span></label><br/>
+									<input type="checkbox" id="go_check" checked disabled onclick="filterEdges()"><label for="go_check"><span style="color:#FFAD00; font-weight:bold;"> GO terms &mdash;</span></label><br/>
+									<input type="checkbox" id="kegg_check" checked disabled onclick="filterEdges()"><label for="kegg_check"><span style="color:#D30068; font-weight:bold;"> KEGG pathways &mdash;</span></label><br/>
+									<input type="checkbox" id="mirna_check" checked disabled onclick="filterEdges()"><label for="mirna_check"><span style="color:#F889FF; font-weight:bold;"> miRNAs &mdash;</span></label><br/>
+								</fieldset>
+								<fieldset class="optsGroup" style="margin-top:10px"><legend class="fieldSetTitle">Other</legend>
 									<table class="innerTable">
 										<tr>
 										<td class="layoptCell">
@@ -410,7 +408,15 @@ include('php/queries.php');
 										</td>
 										</tr>
 									</table>
-								</fieldset>									
+									<hr style="margin-top:2px; margin-bottom:2px">
+									<table class="innerTable">
+										<tr>
+										<td class="layoptCell">
+											<button id="toggle_fullscreen" class="secondaryButton" style="float:none" onclick="toggleFullScreen()" disabled>Toggle network fullscreen</button>
+										</td>
+										</tr>
+									</table>
+								</fieldset>				
 							</div>
 						</td>
 						</tr>
@@ -545,7 +551,7 @@ include('php/queries.php');
 									<td class="innerCell">
 										<table class="innerTable">
 											<tr>
-											<td colspan=3 class="layoptCell">Gene search mode 
+											<td colspan=3 class="layoptCell">Gene/protein search mode 
 											<img class="hint" id="gene_mode_tip" src="images/questionmark.png" title="Use these options to control how the disease/location lists are populated upon selections on any of the two for KUPKB genes/proteins. Free search displays all the diseases/locations for the queried genes constantly and only datasets are repopulated, re-populate refills the disease/location lists upon a selection in either, strict repopulates only once. Thus, to apply new criteria you must click the Reset button."/>
 											</td>
 											</tr>
@@ -581,7 +587,15 @@ include('php/queries.php');
 											</tr>
 											<tr>
 											<td class="layoptCell" style="width:33%"><input type="radio" id="edge_all_radio" name="edge_radio" disabled checked /><label for="edge_all_radio">all possible</label></td>
-											<td colspan=2 class="layoptCell" style="width:66%"><input type="radio" id="edge_one_radio" name="edge_radio" disabled /><label for="edge_one_radio">only with selected gene(s)</label></td>
+											<td colspan=2 class="layoptCell" style="width:66%"><input type="radio" id="edge_one_radio" name="edge_radio" disabled /><label for="edge_one_radio">with selected gene(s)/protein(s)</label></td>
+											</tr>
+											<td colspan=3 class="layoptCell">Interactions score threshold
+											<img class="hint" id="interaction_score_tip" src="images/questionmark.png" title="Enter the displayed interactions score threshold. For the description of this score please look at the website of the STRING database. You will have to reinitialize the network for the changes to be applied."/>
+											</td>
+											</tr>
+											<tr>
+											<td class="layoptCell" style="width:33%"><label for="score_threshold">Score&nbsp;&nbsp;&nbsp;</label><input type="text" id="score_threshold" name="score_threshold" value="0.4" size="3" onblur="mySimpleValidation(['score_threshold'])" /></td>
+											<td colspan=2 class="layoptCell" style="width:66%">&nbsp;</td>
 											</tr>
 											<tr>
 											<td colspan=3 class="layoptCell">
@@ -608,8 +622,8 @@ include('php/queries.php');
 											</td>
 											</tr>
 											<tr>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="allow_click_color_gene_check" onclick="toggleClickColor('gene')" disabled /> genes</td>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="allow_click_color_mirna_check" onclick="toggleClickColor('mirna')" disabled /> miRNAs</td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="allow_click_color_gene_check" onclick="toggleClickColor('gene')" disabled /><label for="allow_click_color_gene_check"> genes/proteins</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="allow_click_color_mirna_check" onclick="toggleClickColor('mirna')" disabled /><label for="allow_click_color_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
 											<td colspan=4 class="layoptCell">Allow multiple node coloring
@@ -617,8 +631,8 @@ include('php/queries.php');
 											</td>
 											</tr>
 											<tr>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multicolor_gene_check" onclick="checkMultiColor('gene')" checked disabled /> genes</td>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multicolor_mirna_check" onclick="checkMultiColor('mirna')" checked disabled /> miRNAs</td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multicolor_gene_check" onclick="checkMultiColor('gene')" checked disabled /><label for="multicolor_gene_check"> genes/proteins</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multicolor_mirna_check" onclick="checkMultiColor('mirna')" checked disabled /><label for="multicolor_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
 											<td colspan=4 class="layoptCell">Allow multiple disease selection
@@ -626,8 +640,8 @@ include('php/queries.php');
 											</td>
 											</tr>
 											<tr>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_gene_check" onclick="toggleMultiKidney('gene','disease')" disabled /> genes</td>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_mirna_check" onclick="toggleMultiKidney('mirna','disease')" disabled /> miRNAs</td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_gene_check" onclick="toggleMultiKidney('gene','disease')" disabled /><label for="multidisease_gene_check"> genes/proteins</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_mirna_check" onclick="toggleMultiKidney('mirna','disease')" disabled /><label for="multidisease_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
 											<td colspan=4 class="layoptCell">Allow multiple location selection
@@ -635,8 +649,8 @@ include('php/queries.php');
 											</td>
 											</tr>
 											<tr>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_gene_check" onclick="toggleMultiKidney('gene','location')" disabled /> genes</td>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_mirna_check" onclick="toggleMultiKidney('mirna','location')" disabled /> miRNAs</td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_gene_check" onclick="toggleMultiKidney('gene','location')" disabled /><label for="multilocation_gene_check"> genes/proteins</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_mirna_check" onclick="toggleMultiKidney('mirna','location')" disabled /><label for="multilocation_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
 											<td colspan=4 class="layoptCell">Multiply colored node annotation
@@ -647,7 +661,7 @@ include('php/queries.php');
 											<td class="layoptCell" style="width:25%"><input type="checkbox" id="multiannotation_gene_disease" checked disabled /><label for="multiannotation_gene_disease"> disease</label></td>
 											<td class="layoptCell" style="width:25%"><input type="checkbox" id="multiannotation_gene_location" checked disabled /><label for="multiannotation_gene_location"> location</label></td>
 											<td class="layoptCell" style="width:25%"><input type="checkbox" id="multiannotation_gene_dataset" disabled /><label for="multiannotation_gene_dataset"> dataset</label></td>
-											<td class="layoptCell" style="width:25%"><input type="checkbox" id="multiannotation_gene_type" checked disabled /><label for="multiannotation_gene_type"> type</label></td>
+											<td class="layoptCell" style="width:25%"><input type="checkbox" id="multiannotation_gene_type" disabled /><label for="multiannotation_gene_type"> type</label></td>
 											</tr>
 											<tr>
 											<td colspan=4 class="layoptCell">
@@ -667,15 +681,15 @@ include('php/queries.php');
 								<table class="innerTable">
 								<tr>
 								<td class="layoptCell" style="width:50%">
-									<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"> show node labels&nbsp;&nbsp;&nbsp;
+									<input type="checkbox" id="node_labels_check" checked disabled onclick="showLabels('nodes')"><label for="node_labels_check"> show node labels&nbsp;&nbsp;&nbsp;</label>
 								</td>
 								<td class="layoptCell" style="width:50%">
-									<input type="checkbox" id="edge_labels_check" disabled onclick="showLabels('edges')"> show edge labels<br/>
+									<input type="checkbox" id="edge_labels_check" disabled onclick="showLabels('edges')"><label for="edge_labels_check"> show edge labels</label><br/>
 								</td>
 								</tr>
 								<tr>
 								<td colspan=2 class="layoptCell" style="width:100%">
-									<input type="checkbox" id="sig_size_check" onclick="sigSizeChange()" checked disabled> border relative to significance
+									<input type="checkbox" id="sig_size_check" onclick="sigSizeChange()" checked disabled><label for="sig_size_check"> node border relative to significance</label>
 									<span class="hint"><img id="sigsize_tip" src="images/questionmark.png" title="Check this box to make the nodes outline thickness relative to a gene/miRNA's p-value, if the latter exists in the selected KUPKB dataset(s)."/></span><br/>
 								</td>
 								</tr>
@@ -764,7 +778,8 @@ include('php/queries.php');
 	bindAutoComplete('enter_genes');
 	initTooltip(['search_tip','elinfo_tip','allgenecrit_tip','allmirnacrit_tip','multicolor_tip',
 				 'sigsize_tip','gene_mode_tip','mirna_mode_tip','neighbor_tip','neighbor_edge_tip',
-				 'multidisease_tip','multilocation_tip','allowclickcolor_tip','multiannotation_gene_tip']);
+				 'multidisease_tip','multilocation_tip','allowclickcolor_tip',
+				 'multiannotation_gene_tip','interaction_score_tip']);
 </script>
 
 <!-- Here, PHP code for handling a call from the iKUP. It will receive the JSON, send it

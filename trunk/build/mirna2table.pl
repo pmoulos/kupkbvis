@@ -26,7 +26,7 @@ $|=1;
 our $scriptname = "mirna2table.pl";
 our $input; 	 # Input path containing downloaded files OR the bareword "download"
 our $paramfile;  # YAML parameters file
-our @dbdata;	 # Username and password for the DB to avoid hardcoding
+our @dbdata;	 # Database name, username and password for the DB to avoid hardcoding
 our $silent = 0; # Display verbose messages
 our $help = 0;   # Help?
 
@@ -40,7 +40,7 @@ our $help = 0;   # Help?
 # Record progress...
 my $date = &now;
 disp("$date - Started...");
-disp("Building the mirna to gene target table in KUPKB_Vis...");
+disp("Building the mirna to gene target table in $dbdata[0]...");
 
 # Read the parameters file
 use YAML qw(LoadFile Dump);
@@ -244,8 +244,8 @@ sub checkInputs
     }
     $stop .= "--- Please specify input path or download ---\n" if (!$input);
     $stop .= "--- Please provide database connection data ---\n" if (!@dbdata);
-    $stop .= "--- --dbdata should be consisted of two strings! ---\n"
-		if (@dbdata && $#dbdata+1 != 2);
+    $stop .= "--- --dbdata should be consisted of three strings! ---\n"
+		if (@dbdata && $#dbdata+1 != 3);
     if ($stop)
     {
             print "\n$stop\n";
@@ -263,7 +263,7 @@ sub insertTarget
 	
 	$fields{"mirna_id"} = $conn->quote($fields{"mirna_id"});
 	$fields{"ensembl_gene"} = $conn->quote($fields{"ensembl_gene"});
-	$fields{"ensembl_protein"} = $conn->quote($fields{"ensembl_protein"});
+	#$fields{"ensembl_protein"} = $conn->quote($fields{"ensembl_protein"});
 	
 	foreach my $key (keys(%fields))
 	{
@@ -357,7 +357,8 @@ sub listRecurse
 
 sub loadDefaultParams
 {
-	my %h = ("FTP" => "ftp.ncbi.nlm.nih.gov",
+	my %h = ("DBNAME" => "KUPKB_Vis",
+			 "FTP" => "ftp.ncbi.nlm.nih.gov",
 			 "gene" => {
 						"DATA" => [
 									"gene2accession.gz",
@@ -391,6 +392,7 @@ sub loadDefaultParams
 			 "GENE_PATH" => "download",
 			 "MIRNA_PATH" => "download",
 			 "INDEX_PATH" => "/etc/sphinxsearch/kupkbvis_sphinx.conf",
+			 "INDEX_HOME" => "/media/HD2/mysql/sphinx_index/",
 			 "CURATORS" => "/media/HD5/Work/TestGround/contr_emails.txt"
 		);
 	return(\%h);
@@ -400,9 +402,8 @@ sub openConnection
 {
     use DBI;
     
-    my ($username,$password) = @_;
+    my ($database,$username,$password) = @_;
     my $hostname = "localhost";
-    my $database = "KUPKB_Vis";
     
     my $conn = DBI->connect("dbi:mysql:database=$database;host=$hostname;port=3306",$username,$password);
     

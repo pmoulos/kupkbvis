@@ -22,6 +22,7 @@ our $paramfile;  # YAML parameters file including file locations etc.
 our @dbdata;	 # Username and password for the DB to avoid hardcoding
 our $silent = 0; # Display verbose messages
 our $waitbar;    # Use the waitbar feature of sub-scripts?
+our $dev = 0;	 # Build a development version, this affects the way the indexer is built
 our $help = 0;   # Help?
 
 # This script must be run as root in order to effectively create the index
@@ -35,7 +36,7 @@ die "\n\nYou must run this script as root or sudoer!\n\n" if ($> != 0);
 # Record progress...
 my $date = &now;
 disp("$date - Started...");
-disp("Building the KUPKB_Vis database...");
+disp("Building the KUPKB Network Visualization database...");
 
 # Read the parameters file
 use YAML qw(LoadFile Dump);
@@ -56,67 +57,105 @@ if ($paramfile)
 }
 else { $phref = &loadDefaultParams(); } # Not given
 
-my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$keggOK,$mirnaOK,$indexOK,$daemonOK);
-$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $keggOK = $mirnaOK = $indexOK = $daemonOK = -1;
+my ($schemaOK,$ncbiOK,$stringOK,$descriptionOK,$datasetOK,$keggOK,$mirnaOK,$dbindexOK,$indexOK,$daemonOK);
+$schemaOK = $ncbiOK = $stringOK = $descriptionOK = $datasetOK = $keggOK = $mirnaOK = $dbindexOK = $indexOK = $daemonOK = -1;
 
 # Do the job... -create the schema first
-$schemaOK = system("perl createSchema.pl --dbdata $dbdata[0] $dbdata[1]");
+$schemaOK = system("perl createSchema.pl --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1]");
 disp("================================================================================\n");
 # Build the sub-background knowledge
 if ($schemaOK==0)
 {
-	$ncbiOK = system("perl ncbi2table.pl --input $phref->{\"GENE_PATH\"} --param $paramfile --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar");
+	$ncbiOK = system("perl ncbi2table.pl --input $phref->{\"GENE_PATH\"} --param $paramfile --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1] --waitbar $waitbar");
 	disp("================================================================================\n");
 }
 if ($ncbiOK==0)
 {
-	$stringOK = system("perl string2table.pl --input $phref->{\"INTERACTION_PATH\"} --dbdata $dbdata[0] $dbdata[1] --waitbar $waitbar");
+	$stringOK = system("perl string2table.pl --input $phref->{\"INTERACTION_PATH\"} --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1] --waitbar $waitbar");
 	disp("================================================================================\n");
 }
 # Build the data tables
 if ($stringOK==0)
 {
-	$descriptionOK = system("perl data2table.pl --input $phref->{\"DESCRIPTION\"} --mode description --dbdata $dbdata[0] $dbdata[1] --curators $phref->{\"CURATORS\"}");
+	$descriptionOK = system("perl data2table.pl --input $phref->{\"DESCRIPTION\"} --mode description --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1] --curators $phref->{\"CURATORS\"}");
 	disp("================================================================================\n");
 }
 if ($descriptionOK==0)
 {
-	$datasetOK = system("perl data2table.pl --input $phref->{\"DATA\"} --mode dataset --dbdata $dbdata[0] $dbdata[1] --type excel");
+	$datasetOK = system("perl data2table.pl --input $phref->{\"DATA\"} --mode dataset --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1] --type excel");
 	disp("================================================================================\n");
 }
 # Build the KEGG tables
 if ($datasetOK==0)
 {
-	$keggOK = system("perl kegg2table.pl --param $paramfile --dbdata $dbdata[0] $dbdata[1]");
+	$keggOK = system("perl kegg2table.pl --param $paramfile --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1]");
 	disp("================================================================================\n");
 }
 # Build the miRNA tables
 if ($keggOK==0)
 {
-	$mirnaOK = system("perl mirna2table.pl --input $phref->{\"MIRNA_PATH\"} --param $paramfile --dbdata $dbdata[0] $dbdata[1]");
+	$mirnaOK = system("perl mirna2table.pl --input $phref->{\"MIRNA_PATH\"} --param $paramfile --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1]");
 	disp("================================================================================\n");
 }
-# Finally, build the index and relaunch the search daemon
+# Build the tables indexes
 if ($mirnaOK==0)
 {
-	if (!-e $phref->{"INDEX_PATH"}) { &createIndexConf($phref->{"INDEX_PATH"}); }
-	$indexOK = system("/usr/local/bin/indexer --config $phref->{\"INDEX_PATH\"} --all");
-	if ($indexOK==0)
+	$dbindexOK = system("perl dbIndexBuild.pl --dbdata $phref->{\"DBNAME\"} $dbdata[0] $dbdata[1]");
+	disp("================================================================================\n");
+}
+
+#Finally, build the index and relaunch the search daemon
+if ($dbindexOK==0)
+{	
+	my ($pidfile,$port,$qfile);
+	if ($dev)
 	{
-		$daemonOK = system("/usr/bin/searchd --stop");
-		if ($daemonOK==0) # Daemon was running, let's restart it with new index file
-		{
-			$daemonOK = system("/usr/bin/searchd -c $phref->{\"INDEX_PATH\"}");
-		}
-		else # Error, daemon was not running, start it anyway
-		{
-			$daemonOK = system("/usr/bin/searchd -c $phref->{\"INDEX_PATH\"}");
-		}
+		$pidfile = "/var/run/searchd-dev.pid";
+		$port = 60001;
+		$qfile = "/var/log/sphinxsearch/query-dev.log";
+	}
+	else
+	{
+		$pidfile = "/var/run/searchd.pid";
+		$port = 60000;
+		$qfile = "/var/log/sphinxsearch/query.log";
+	}
+	&createIndexConf($phref->{"INDEX_PATH"},$pidfile,$port,$qfile);
+	disp("Stopping search daemon...\n");
+	$daemonOK = system("/usr/bin/searchd --config $phref->{\"INDEX_PATH\"} --stop");
+	if ($daemonOK) # It stopped, let's rebuild
+	{	
+		disp("Building search index...\n");
+		$indexOK = system("/usr/bin/indexer --config $phref->{\"INDEX_PATH\"} --all");
+		disp("Finished building, (re)starting the search daemon...\n");
+		$daemonOK = system("/usr/bin/searchd --config $phref->{\"INDEX_PATH\"}");
+	}
+	else # Daemon was not running or config file did not exist anyay
+	{
+		disp("Building search index...\n");
+		$indexOK = system("/usr/bin/indexer --config $phref->{\"INDEX_PATH\"} --all");
+		disp("Finished building, (re)starting the search daemon...\n");
+		$daemonOK = system("/usr/bin/searchd --config $phref->{\"INDEX_PATH\"}");
 	}
 	disp("================================================================================\n");
 }
 $date = &now;
-($datasetOK==0 && $indexOK==0 && $daemonOK==0) ? (disp("$date - Finished!\n\n")) : (disp("$date - Error occurred!\n\n")) ;
+if ($schemaOK!=0 || $ncbiOK!=0 || $stringOK!=0 || $descriptionOK!=0 || $datasetOK!=0 ||
+	$keggOK!=0 || $mirnaOK!=0 || $dbindexOK!=0 || $indexOK!=0 || $daemonOK!=0)
+{
+	disp("Error occured in database schema creation!") if ($schemaOK!=0);
+	disp("Error occured in importing data from NCBI!") if ($ncbiOK!=0);
+	disp("Error occured in importing data from STRING!") if ($stringOK!=0);
+	disp("Error occured in importing dataset descriptions!") if ($descriptionOK!=0);
+	disp("Error occured in importing datasets!") if ($datasetOK!=0);
+	disp("Error occured in importing data from KEGG!") if ($keggOK!=0);
+	disp("Error occured in importing data from Microcosm!") if ($mirnaOK!=0);
+	disp("Error occured in table index creation!") if ($dbindexOK!=0);
+	disp("Error occured in search index creation!") if ($indexOK!=0);
+	disp("Error occured in search daemon launch!") if ($daemonOK!=0);
+	disp("$date - Finished with errors...\n\n");
+}
+else { disp("$date - Finished without errors!\n\n"); }
 
 
 # Process inputs
@@ -126,6 +165,7 @@ sub checkInputs
     GetOptions("param|p=s" => \$paramfile,
     		   "dbdata|d=s{,}" => \@dbdata,
     		   "waitbar|w" => \$waitbar,
+    		   "dev|v" => \$dev,
     		   "silent|s" => \$silent,
     		   "help|h" => \$help);
     # Check if the required arguments are set
@@ -148,7 +188,8 @@ sub checkInputs
 
 sub loadDefaultParams
 {
-	my %h = ("FTP" => "ftp.ncbi.nlm.nih.gov",
+	my %h = ("DBNAME" => "KUPKB_Vis",
+			 "FTP" => "ftp.ncbi.nlm.nih.gov",
 			 "gene" => {
 						"DATA" => [
 									"gene2accession.gz",
@@ -182,6 +223,7 @@ sub loadDefaultParams
 			 "GENE_PATH" => "download",
 			 "MIRNA_PATH" => "download",
 			 "INDEX_PATH" => "/etc/sphinxsearch/kupkbvis_sphinx.conf",
+			 "INDEX_HOME" => "/media/HD2/mysql/sphinx_index/",
 			 "CURATORS" => "/media/HD5/Work/TestGround/contr_emails.txt"
 		);
 	return(\%h);
@@ -189,7 +231,7 @@ sub loadDefaultParams
 
 sub createIndexConf
 {
-	my $confile = $_;
+	my ($confile,$pidfile,$port,$qfile) = @_;
 	open(CONF,">$confile");
 	my $conf =
 	"source kupkbvis_entrez\n".
@@ -198,7 +240,7 @@ sub createIndexConf
 	"\tsql_host = localhost\n".
 	"\tsql_user = $dbdata[0]\n".
 	"\tsql_pass = $dbdata[1]\n".
-	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_db = $phref->{\"DBNAME\"}\n".
 	"\tsql_port = 3306\n".
 	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
 	"\tmysql_connect_flags\t= 32\n".
@@ -220,7 +262,7 @@ sub createIndexConf
 	"\tsql_host = localhost\n".
 	"\tsql_user = $dbdata[0]\n".
 	"\tsql_pass = $dbdata[1]\n".
-	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_db = $phref->{\"DBNAME\"}\n".
 	"\tsql_port = 3306\n".
 	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
 	"\tmysql_connect_flags\t= 32\n".
@@ -239,18 +281,19 @@ sub createIndexConf
 	"\tsql_host = localhost\n".
 	"\tsql_user = $dbdata[0]\n".
 	"\tsql_pass = $dbdata[1]\n".
-	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_db = $phref->{\"DBNAME\"}\n".
 	"\tsql_port = 3306\n".
 	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
 	"\tmysql_connect_flags\t= 32\n".
 	"\tsql_query = \\\n".
 	"\t\tSELECT id, \\\n".
-	"\t\t\tmirna_id, species.name AS name \\\n".
-	"\t\tFROM mirna_to_ensembl INNER JOIN species \n".
+	"\t\t\tmirna_id, species \\\n".
+	"\t\tFROM mirna_to_ensembl \\\n".
 	"\t\tGROUP BY mirna_id ORDER BY id\n".
 	"\tsql_attr_uint = species\n".
 	"\tsql_query_info = \\\n".
-	"\t\tSELECT mirna_id, species FROM mirna_to_ensembl ON mirna_to_ensembl.species=species.tax_id \\\n".
+	"\t\tSELECT mirna_id, species.name AS name \\\n".
+	"\t\tFROM mirna_to_ensembl INNER JOIN species ON mirna_to_ensembl.species=species.tax_id \\\n".
 	"\t\tWHERE mirna_to_ensembl.id=\$id\n".
 	"}\n\n".
 	"source kupkbvis_uniprot\n".
@@ -259,7 +302,7 @@ sub createIndexConf
 	"\tsql_host = localhost\n".
 	"\tsql_user = $dbdata[0]\n".
 	"\tsql_pass = $dbdata[1]\n".
-	"\tsql_db = KUPKB_Vis\n".
+	"\tsql_db = $phref->{\"DBNAME\"}\n".
 	"\tsql_port = 3306\n".
 	"\tsql_sock = /var/run/mysqld/mysqld.sock\n".
 	"\tmysql_connect_flags\t= 32\n".
@@ -273,7 +316,7 @@ sub createIndexConf
 	"index kupkbvis_entrez\n".
 	"{\n".
 	"\tsource = kupkbvis_entrez\n".
-	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_entrez\n".
+	"\tpath = $phref->{\"INDEX_HOME\"}kupkbvis_entrez\n".
 	"\tdocinfo = extern\n".
 	"\tmlock = 0\n".
 	"\tmorphology = stem_en\n".
@@ -288,7 +331,7 @@ sub createIndexConf
 	"index kupkbvis_ensembl\n".
 	"{\n".
 	"\tsource = kupkbvis_ensembl\n".
-	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_ensembl\n".
+	"\tpath = $phref->{\"INDEX_HOME\"}kupkbvis_ensembl\n".
 	"\tdocinfo = extern\n".
 	"\tmlock = 0\n".
 	"\tmorphology = stem_en\n".
@@ -303,7 +346,7 @@ sub createIndexConf
 	"index kupkbvis_mirna\n".
 	"{\n".
 	"\tsource = kupkbvis_mirna\n".
-	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_mirna\n".
+	"\tpath = $phref->{\"INDEX_HOME\"}kupkbvis_mirna\n".
 	"\tdocinfo = extern\n".
 	"\tmlock = 0\n".
 	"\tmorphology = stem_en\n".
@@ -318,7 +361,7 @@ sub createIndexConf
 	"index kupkbvis_uniprot\n".
 	"{\n".
 	"\tsource = kupkbvis_uniprot\n".
-	"\tpath = /media/HD2/mysql/sphinx_index/kupkbvis_uniprot\n".
+	"\tpath = $phref->{\"INDEX_HOME\"}kupkbvis_uniprot\n".
 	"\tdocinfo = extern\n".
 	"\tmlock = 0\n".
 	"\tmorphology = stem_en\n".
@@ -337,10 +380,10 @@ sub createIndexConf
 	"}\n\n".
 	"searchd\n".
 	"{\n".
-	"\tlog = /media/HD2/mysql/sphinx_index/searchd.log\n".
-	"\tquery_log = /var/log/sphinxsearch/query.log\n".
-	"\tlisten = 60000\n".
-	"\tpid_file = /var/run/searchd.pid\n".
+	"\tlog = $phref->{\"INDEX_HOME\"}searchd.log\n".
+	"\tquery_log = $qfile\n".
+	"\tlisten = $port\n".
+	"\tpid_file = $pidfile\n".
 	"}\n";
 	print CONF $conf;
 	close(CONF);
