@@ -99,6 +99,7 @@ function search(input)
 	if (!$.isEmptyObject(enteredTerms))
 	{
 		var searchJSON = $.toJSON(enteredTerms);
+		var sorted = [];
 		$.ajax(
 		{
 			type: 'POST',
@@ -111,6 +112,7 @@ function search(input)
 				if ($.isEmptyObject(data))
 				{
 					$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+					$('#shape_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 					$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 					$('#element_info').animate({ opacity: 1.0 },250);
 					displayError('Sorry! Nothing found... :-(');
@@ -118,6 +120,7 @@ function search(input)
 				else //Enable and fill the rest of the lists
 				{																						
 					$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+					$('#shape_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 					$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 					$('#element_info').animate({ opacity: 1.0 },250);
 					var outerkey,innerkey,innermost;					
@@ -175,7 +178,7 @@ function search(input)
 									enable(['go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat']);
 									$("#go_list").data("values",data[outerkey]);
 									//Initialize with component
-									innerkey = 'Component';									
+									innerkey = 'Component';
 									for (innermost in data[outerkey][innerkey])
 									{
 										$("#go_list").append("<option title=\"" + data[outerkey][innerkey][innermost] + "\" value=" + innermost + ">" 
@@ -268,6 +271,7 @@ function search(input)
 			error: function(data,error)
 			{
 				$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+				$('#shape_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 				$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 				$('#element_info').animate({ opacity: 1.0 },250);
 				displayError('Ooops! ' + error + " " + data.responseText);						
@@ -361,6 +365,7 @@ function update(id)
 						if ($.isEmptyObject(data))
 						{
 							$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+							$('#shape_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 							$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 							$('#element_info').animate({ opacity: 1.0 },250);
 							displayError('Sorry! Nothing found... :-(');
@@ -510,6 +515,7 @@ function update(id)
 					error: function(data,error)
 					{
 						$('#color_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
+						$('#shape_legend').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 						$('#info_section').css({ opacity: 0.0, visibility: "visible" }).animate({ opacity: 1.0 },500);
 						$('#element_info').animate({ opacity: 1.0 },250);
 						displayError('Ooops! ' + error + " " + data.responseText);						
@@ -1188,6 +1194,47 @@ function colorNodes(type)
 	}		
 }
 
+function createDatasetDescription(dataset,type)
+{
+	var urlBase = initMe();
+
+	$.ajax(
+	{
+		type: 'POST',
+		url: urlBase+'php/control.php',
+		data: { dataset_report: dataset },
+		//beforeSend: function() { $('#dataset_popup').show(); },
+		complete: function() { $("#show_dataset").getTip().show(); },
+		success: function(data)
+		{						
+			if ($.isEmptyObject(data))
+			{
+				displayError('Sorry, no description found for the selected dataset.');
+			}
+			else
+			{
+				if (type === "page")
+				{
+					html = gimmeDatasetDescription(data,'page');
+					dWindow = window.open("","_blank");
+					dWindow.document.write(html);
+				}
+				else
+				{
+					html = gimmeDatasetDescription(data,'popup');
+					$("#dataset_popup").html(html);
+					//$("#show_dataset").tooltip({ tip: ".tooltip-dataset", effect: "fade" }).dynamic();
+				}
+			}
+		},
+		error: function(data,error)
+		{												
+			displayError('Ooops! ' + error + ' ' + data.responseText);
+		},
+		dataType: "json"
+	});
+}
+
 /* what: go, kegg, mirna
  * howmany: all, selected */
 function showMeta(what,howmany)
@@ -1354,11 +1401,12 @@ function clearMeta(what,howmany,flag)
 function fetchNetwork()
 {
 	var urlBase = initMe();
+	var score = $("#score_threshold").val();
 	$.ajax(
 	{
 		type: 'POST',
 		url: urlBase+'php/control.php',
-		data: { network: "network" }, //Some random word for posting...
+		data: { network: "network", score: score }, //Some random word for posting...
 		beforeSend: function()
 		{
 			$("#hello_kidney").empty(); // Remove the splash
@@ -1389,7 +1437,7 @@ function fetchNetwork()
 			{
 				initNetwork(data);
 				enable(['binding_check','ptmod_check','expression_check','activation_check',
-						'go_check','kegg_check','mirna_check']);
+						'inhibition_check','go_check','kegg_check','mirna_check']);
 			}
 		},
 		error: function(data,error)
@@ -1467,6 +1515,10 @@ function initNetwork(networkJSON)
 		.addContextMenuItem("Restore network",function(event)
 		{
 			restoreNetwork();
+		})
+		.addContextMenuItem("Toggle fullscreen",function(event)
+		{
+			toggleFullScreen();
 		});
 
 		// Store the network and layout object so it can be accessible to other functions
@@ -1616,6 +1668,7 @@ function fetchNeighbors(level)
 	var nSearch = "";
 	var eSearch = "";
 	var currDatasets = [];
+	var score = $("#score_threshold").val();
 
 	if (sn === 0) // Nothing selected
 	{
@@ -1658,9 +1711,13 @@ function fetchNeighbors(level)
 	{
 		type: 'POST',
 		url: urlBase+'php/control.php',
-		data: { level: level, node: $.toJSON(selNodeIDs), nodes: $.toJSON(allNodeIDs), ns: nSearch, es: eSearch, currset: $.toJSON(currDatasets) },
+		data: { level: level, node: $.toJSON(selNodeIDs), nodes: $.toJSON(allNodeIDs), ns: nSearch, es: eSearch, currset: $.toJSON(currDatasets), score: score },
 		timeout: 600000,
-		beforeSend: function() { $('.loadingCircle').show(); },
+		beforeSend: function()
+		{
+			$(".loadingCircle").show();
+			modalWaitOpen();
+		},
 		//complete: function() { $('.loadingCircle').hide(); },
 		success: function(data)
 		{						
@@ -1672,6 +1729,7 @@ function fetchNeighbors(level)
 			{
 				displayError('Sorry! No neighbors found :-(');
 				$('.loadingCircle').hide();
+				modalWaitClose();
 			}
 			else
 			{
@@ -1696,6 +1754,7 @@ function fetchNeighbors(level)
 		{												
 			displayError('Ooops! ' + error + ' ' + data.responseText);
 			$('.loadingCircle').hide();
+			modalWaitClose();
 		},
 		dataType: "json"
 	});
@@ -1897,6 +1956,7 @@ function modalAlert(msg,tit)
 		title: tit,
 		dialogClass: "attention",
 		resizable: false,
+		height: "auto",
 		buttons:
 		{
 			OK: function()
@@ -1908,6 +1968,33 @@ function modalAlert(msg,tit)
 	$("#dialog").dialog("open");
 
 	return(false);
+}
+
+function modalWaitOpen()
+{
+	var licon = "<img src=\"images/ajax-loader.gif\" alt=\"Loading...\" style=\"display:block; margin-top:8px; margin-left:auto; margin-right:auto;\">";
+
+	$("#dialog")
+	.html(licon)
+	.dialog(
+	{
+		modal: true,
+		autoOpen: false,
+		title: "Please wait...",
+		resizable: false,
+		width: 100,
+		height: 80,
+		closeOnEscape: false,
+		open: function(event,ui) { $(".ui-dialog-titlebar-close",ui.dialog).hide(); }
+	});
+	$("#dialog").dialog("open");
+
+	return(false);
+}
+
+function modalWaitClose()
+{
+	$("#dialog").dialog("close");
 }
 
 function modalSifForm(tit)
@@ -1935,6 +2022,7 @@ function modalSifForm(tit)
 		dialogClass: "attention",
 		resizable: false,
 		width: 400,
+		height: "auto",
 		buttons:
 		{
 			OK: function()
@@ -2034,6 +2122,7 @@ function modalLayoutParamForm(tit)
 		dialogClass: "attention",
 		resizable: false,
 		width: 400,
+		height: "auto",
 		buttons:
 		{
 			OK: function()
@@ -2366,6 +2455,7 @@ function restoreDefaults(what)
 			$("#mirna_mode_strict_radio").attr("checked","checked");
 			$("#neighbor_kupkb_radio").attr("checked","checked");
 			$("#edge_all_radio").attr("checked","checked");
+			$("#score_threshold").val(0.4);
 			break;
 		case 'color':
 			$("#allow_click_color_gene_check").attr("checked",false);
@@ -2382,6 +2472,11 @@ function restoreDefaults(what)
 			$("#multiannotation_gene_type").attr("checked","checked");
 			break;
 	}
+}
+
+function toggleFullScreen()
+{
+	$("#cytoscapeweb").toggleClass("fullscreen");
 }
 
 function showInfo(msg)
@@ -2405,7 +2500,7 @@ function loadingSmall()
 			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
-			 'binding_check','ptmod_check','expression_check','activation_check',
+			 'binding_check','ptmod_check','expression_check','activation_check','inhibition_check',
 			 'go_check','kegg_check','mirna_check',
 			 'disease_mirna_list','location_mirna_list','dataset_mirna_list',
 			 'reset_mirna_data_button','color_mirna_button',
@@ -2413,7 +2508,7 @@ function loadingSmall()
 			 'mirna_disease_radio','mirna_location_radio','mirna_both_radio',
 			 'gene_mode_free_radio','gene_mode_repop_radio','gene_mode_strict_radio',
 			 'mirna_mode_free_radio','mirna_mode_repop_radio','mirna_mode_strict_radio',
-			 'neighbor_all_radio','neighbor_kupkb_radio',
+			 'neighbor_all_radio','neighbor_kupkb_radio','score_threshold',
 			 'edge_all_radio','edge_one_radio',
 			 'allow_click_color_gene_check','allow_click_color_mirna_check',
 			 'multicolor_gene_check','multicolor_mirna_check',
@@ -2423,7 +2518,7 @@ function loadingSmall()
 			 'multiannotation_gene_dataset','multiannotation_gene_type',
 			 'node_labels_check','edge_labels_check','sig_size_check',
 			 'fetch_neighbors_1','fetch_neighbors_2',
-			 'fetch_neighbors_11','fetch_neighbors_22',
+			 'fetch_neighbors_11','fetch_neighbors_22','toggle_fullscreen',
 			 'hide_node','hide_edge','delete_node','delete_edge',
 			 'mark_neighbors','restore_network',
 			 'search_defaults','color_defaults']);
@@ -2433,14 +2528,14 @@ function loadingSmall()
 function unloadingSmall()
 {
 	$('.loadingCircle').hide();
-	$('#filterCircle').hide();
+	modalWaitClose();
 	enable(['search_button','clear_button',
 			'species_list','disease_list','location_list','dataset_list',
 			'reset_gene_data_button','color_network_button',
 			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
-			'binding_check','ptmod_check','expression_check','activation_check',
+			'binding_check','ptmod_check','expression_check','activation_check','inhibition_check',
 			'go_check','kegg_check','mirna_check',
 			'disease_mirna_list','location_mirna_list','dataset_mirna_list',
 			'reset_mirna_data_button','color_mirna_button',
@@ -2448,7 +2543,7 @@ function unloadingSmall()
 			'mirna_disease_radio','mirna_location_radio','mirna_both_radio',
 			'gene_mode_free_radio','gene_mode_repop_radio','gene_mode_strict_radio',
 			'mirna_mode_free_radio','mirna_mode_repop_radio','mirna_mode_strict_radio',
-			'neighbor_all_radio','neighbor_kupkb_radio',
+			'neighbor_all_radio','neighbor_kupkb_radio','score_threshold',
 			'edge_all_radio','edge_one_radio',
 			'allow_click_color_gene_check','allow_click_color_mirna_check',
 			'multicolor_gene_check','multicolor_mirna_check',
@@ -2458,7 +2553,7 @@ function unloadingSmall()
 			'multiannotation_gene_dataset','multiannotation_gene_type',
 			'node_labels_check','edge_labels_check','sig_size_check',
 			'fetch_neighbors_1','fetch_neighbors_2',
-			'fetch_neighbors_11','fetch_neighbors_22',
+			'fetch_neighbors_11','fetch_neighbors_22','toggle_fullscreen',
 			'hide_node','hide_edge','delete_node','delete_edge',
 			'mark_neighbors','restore_network',
 			'search_defaults','color_defaults']);
@@ -2568,12 +2663,12 @@ function resetSearch()
 	$("#go_function").css("background-color","#FFFFFF");
 	$("#go_process").css("background-color","#FFFFFF");
 	disable(['search_button','clear_button',
-			 'species_list','disease_list','location_list','dataset_list',
+			 'disease_list','location_list','dataset_list', //'species_list',
 			 'reset_gene_data_button','color_network_button',
 			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
 			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
 			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
-			 'binding_check','ptmod_check','expression_check','activation_check',
+			 'binding_check','ptmod_check','expression_check','activation_check','inhibition_check',
 			 'go_check','kegg_check','mirna_check',
 			 'disease_mirna_list','location_mirna_list','dataset_mirna_list',
 			 'reset_mirna_data_button','color_mirna_button',
@@ -2594,6 +2689,7 @@ function resetSearch()
 			 'hide_node','hide_edge','delete_node','delete_edge',
 			 'mark_neighbors','restore_network']);
 	$("#color_legend").css("visibility","hidden");
+	$("#shape_legend").css("visibility","hidden");
 	$("#info_section").css("visibility","hidden");
 	$("#disease_list").data("locked",false);
 	$("#location_list").data("locked",false);
@@ -2666,7 +2762,7 @@ function resetData(type)
 
 function split(val) { return val.split(/\n/); }
 
-function truncOrg(val) { return val.replace(/((\s+\-\s+)([\(\)\-,A-Za-z0-9]*\s*)*)+/,''); }
+function truncOrg(val) { return val.replace(/((\s+\-\s+)([\(\)\-\\\/,A-Za-z0-9]*\s*)*)+/,''); }
 
 function extractLast(term) { return split(term).pop(); }
 
@@ -2703,9 +2799,10 @@ function clearCache()
 function initMe()
 {
 	var urlBase = 'http://kupkbserver:81/';
-	//var urlBase = 'http://kupkbvis-dev:81/';
-    //var urlBase = 'http://localhost/kupkbvis/site/'
-	hideError(); //Hide previous errors
+    //var urlBase = 'http://194.57.225.115/kupkbvis/';
+    //var urlBase = 'http://kupkb-dev:81/vis/';
+    //var urlBase = 'http://www.kupkb.net/vis/';
+	//hideError(); //Hide previous errors
 	return(urlBase);
 }
 
@@ -2803,6 +2900,14 @@ function mySimpleValidation(ids)
 				{
 					msg.push("Angle width must be a number between 0 and 360 (not equal to 0)");
 					isvalid = false;
+				}
+				break;
+			case 'score_threshold':
+				if (!isNumber(cont) || cont<0 || cont>1)
+				{
+					msg.push("Interaction score threshold must be a number between 0 and 1");
+					isvalid = false;
+					$("#score_threshold").val(0.4);
 				}
 				break;
 		}

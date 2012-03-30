@@ -7,11 +7,11 @@ include('queries.php');
 include('sphinxapi.php');
 include('utils.php');
 
-if ($_REQUEST['test'])
+/*# Get the application root
+if ($_POST['root'])
 {
-	$test = allKUPKBSymbols2Entrez();
-	print_r($test);
-}
+	echo get_server_root();
+}*/
 
 # Response to Select species dropdown list or the GO button
 if ($_REQUEST['species'])
@@ -278,12 +278,13 @@ if ($_REQUEST['symbol'])
 # Response to AJAX network construction
 if ($_REQUEST['network']) // The network!
 {
+	$score = $_REQUEST['score'];
 	$entrez = $_SESSION['entrez'];
 	$mirna = $_SESSION['mirna'];
 	$proteins = $_SESSION['proteins'];
 	$schema = initDataSchema();
 	$nodes = initNodes($entrez,$mirna);
-	$edges = initEdges($proteins);
+	$edges = initEdges($proteins,$score);
 
 	# Add additional input miRNA edges if any
 	if (!empty($mirna))
@@ -342,10 +343,11 @@ if ($_REQUEST['level'])
 	$ns = $_REQUEST['ns'];
 	$es = $_REQUEST['es'];
 	$cdata = $_REQUEST['currset'];
+	$score = $_REQUEST['score'];
 	$node = json_decode($node,$assoc=TRUE);
 	$nodes = json_decode($nodes,$assoc=TRUE);
 	$cdata = json_decode($cdata,$assoc=TRUE);
-	$elements = getNeighbors($node,$nodes,$level,$ns,$es,$cdata);
+	$elements = getNeighbors($node,$nodes,$level,$ns,$es,$cdata,$score);
 	echo json_encode($elements);
 	//echo json_encode($elements['elements']);
 }
@@ -356,6 +358,14 @@ if ($_REQUEST['gene_data'])
     $the_gene = $_REQUEST['gene_data'];
     $gene_data = getGeneData($the_gene,$_SESSION['species']);
     echo json_encode($gene_data,JSON_NUMERIC_CHECK);
+}
+
+# Response to dataset report request
+if ($_REQUEST['dataset_report'])
+{
+    $the_dataset = $_REQUEST['dataset_report'];
+    $report = getDatasetReport($the_dataset);
+    echo json_encode($report);
 }
 
 # Response to gene to gene or pathway to gene edge selection
@@ -616,6 +626,9 @@ function updateDataOnLocationAndDisease($genes,$disease,$location,$hackflag)
 			}
 			$location_return = array_merge($loc_0,$loc_1);
 			$disease_return = array_merge($dis_0,$dis_1);
+			natcasesort($location_return);
+			natcasesort($disease_return);
+			natcasesort($dataset_name);
 			return(array("dataset" => $dataset_name, "disease" => $disease_return, "location" => $location_return));
 		}
 		else if (!empty($disease) && empty($location))
@@ -641,6 +654,8 @@ function updateDataOnLocationAndDisease($genes,$disease,$location,$hackflag)
 				$loc_1[$b_1] = $bc_1;
 			}
 			$location_return = array_merge($loc_0,$loc_1);
+			natcasesort($location_return);
+			natcasesort($dataset_name);
 			return(array("dataset" => $dataset_name, "location" => $location_return));
 		}
 		else if (empty($disease) && !empty($location))
@@ -669,6 +684,8 @@ function updateDataOnLocationAndDisease($genes,$disease,$location,$hackflag)
 				$dis_1[$d_1] = $dc_1;
 			}
 			$disease_return = array_merge($dis_0,$dis_1);
+			natcasesort($disease_return);
+			natcasesort($dataset_name);
 			return(array("dataset" => $dataset_name, "disease" => $disease_return));
 		}
 		/*else
@@ -722,6 +739,9 @@ function updateMiRNADataOnLocationAndDisease($mirnas,$disease,$location)
 			}
 			$location_return = array_merge($loc_0,$loc_1);
 			$disease_return = array_merge($dis_0,$dis_1);
+			natcasesort($location_return);
+			natcasesort($disease_return);
+			natcasesort($dataset_name);
 			return(array("dataset" => $dataset_name, "disease" => $disease_return, "location" => $location_return));
 		}
 		else if (!empty($disease) && empty($location))
@@ -739,6 +759,8 @@ function updateMiRNADataOnLocationAndDisease($mirnas,$disease,$location)
 				$loc_1[$b_1] = $bc_1;
 			}
 			$location_return = array_merge($loc_0,$loc_1);
+			natcasesort($location_return);
+			natcasesort($dataset_name);
 			return(array("dataset" => $dataset_name, "location" => $location_return));
 		}
 		else if (empty($disease) && !empty($location))
@@ -757,6 +779,8 @@ function updateMiRNADataOnLocationAndDisease($mirnas,$disease,$location)
 				$dis_1[$d_1] = $dc_1;
 			}
 			$disease_return = array_merge($dis_0,$dis_1);
+			natcasesort($disease_return);
+			natcasesort($dataset_name);
 			return(array("dataset" => $dataset_name, "disease" => $disease_return));
 		}
 		/*else
@@ -853,7 +877,8 @@ function getRegulation($genes,$dataset,$disease,$location,$annotation)
 			$desc = $dep1.$dep2.$dep3.$dep4;
 			$type = preg_match('/protein/i',$cpl) ? "protein" : "gene";
 			$color_data[] = array("entrez_id" => $entrez_id, "strength" => $expr_strength, "expression" => $expr_de,
-								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "custom" => $desc, "type" => $type);
+								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "dataset_id" => $dataset_id,
+								  "custom" => $desc, "type" => $type);
 		}
 		close_connection($conn);
 	}
@@ -922,7 +947,8 @@ function getMiRNARegulation($mirnas,$dataset,$disease,$location,$annotation)
 			$desc = $dep1.$dep2.$dep3.$dep4;
 			$type = "mirna";
 			$color_data[] = array("entrez_id" => $microcosm_id, "strength" => $expr_strength, "expression" => $expr_de,
-								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "custom" => $desc, "type" => $type);
+								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "dataset_id" => $dataset_id,
+								  "custom" => $desc, "type" => $type);
 		}
 		close_connection($conn);
 	}
@@ -1074,16 +1100,17 @@ function getmirnaElements($mirnas,$ensembl)
 # node: the selected ones to fetch their neighbors
 # nodes: all the current nodes in the network
 # level: the depth of neighborhood
-function getNeighbors($node,$nodes,$level,$ns,$es,$datasets)
+function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 {
-	global $get_neighbors_1,$get_neighbors_2,$get_neighbors_3;
+	global $get_neighbors_1,$get_neighbors_2,$get_neighbors_3,$get_neighbors_4;
 	global $get_add_nodes,$get_add_edges_1,$get_add_edges_2;
 	$neighbors = array();
 	$add_nodes = array();
 	$add_edges = array();
 	$adj = array();
 	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
-							  "expression" => "expression", "activation" => "activation");
+							  "expression" => "expression", "activation" => "activation",
+							  "inhibition" => "inhibition");
 
 	if (!isset($level)) { $level = 1; }
 	if (!isset($ns)) { $ns = "kupkb"; }
@@ -1102,7 +1129,7 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets)
 		// Correct in the case that the user calls 2nd neighbors after calling first neighbors
 		// We should always start finding neighbors by excluding the session genes
 		$all_list = implode("', '",$_SESSION['proteins']); 
-		$query = $get_neighbors_1.'(\''.$selected_list.'\')'.$get_neighbors_2.'(\''.$all_list.'\')'.$get_neighbors_3;
+		$query = $get_neighbors_1.'(\''.$selected_list.'\')'.$get_neighbors_2.'(\''.$all_list.'\')'.$get_neighbors_3.($score*1000).$get_neighbors_4;
 		$result = mysql_query($query,$conn);
 		while ($row = mysql_fetch_array($result,MYSQL_NUM))
 		{
@@ -1120,7 +1147,7 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets)
 				$node = $neighbors;
 				$selected_list = implode("', '",$node);
 				$all_list = implode("', '",$nodes);
-				$query = $get_neighbors_1.'(\''.$selected_list.'\')'.$get_neighbors_2.'(\''.$all_list.'\')'.$get_neighbors_3;
+				$query = $get_neighbors_1.'(\''.$selected_list.'\')'.$get_neighbors_2.'(\''.$all_list.'\')'.$get_neighbors_3.($score*100).$get_neighbors_4;
 				$result = mysql_query($query,$conn);
 				while ($row = mysql_fetch_array($result,MYSQL_NUM))
 				{
@@ -1290,20 +1317,24 @@ function getGeneData($gene,$species_id)
 
 function getGene2GeneData($source,$target)
 {
-	global $get_edge_1,$get_edge_2;
+	global $get_edge_1,$get_edge_2,$get_edge_3,$get_edge_4,$get_edge_5;
 	$response = array();
+	$score = array();
 	if (!empty($source) && !empty($target))
 	{	
 		$conn = open_connection();
-		$query = $get_edge_1.'\''.$source.'\''.$get_edge_2.'\''.$target.'\'';
+		$query = $get_edge_1.'\''.$source.'\''.$get_edge_2.'\''.$target.'\''.
+				 $get_edge_3.'\''.$source.'\''.$get_edge_4.'\''.$target.'\''.
+				 $get_edge_5;
 		$result = mysql_query($query,$conn);
 		while ($row = mysql_fetch_array($result,MYSQL_NUM))
 		{
 			$response[] = $row[0];
+			$score[] = $row[1];
 		}		
 		close_connection($conn);
 	}
-	return(array("source" => $response[0], "target" => $response[1]));
+	return(array("source" => $response[0], "target" => $response[1], "score" => $score[0]));
 }
 
 function getPathway2GeneData($ensembl_node)
@@ -1322,6 +1353,48 @@ function getPathway2GeneData($ensembl_node)
 	}
 	return(array("target" => $response));
 }
+
+function getDatasetReport($dataset)
+{
+	global $dataset_report;
+	$report = array();
+	if (!empty($dataset))
+	{
+		$conn = open_connection();
+		$query = $dataset_report.'\''.$dataset.'\'';
+		$result = mysql_query($query,$conn);
+		/*while($row = mysql_fetch_array($result,MYSQL_NUM)) // Should be one
+		{
+			for ($i=0; $i<mysql_num_fields($result); $i++)
+			{
+				$report[mysql_field_name($result,$i)] = $row[$i];
+			}
+		}*/
+		while(list($dname,$exp0,$sp0,$b0,$d0,$s0,$exp1,$b1,$d1,$s1,$sp1,$assay,$pmid,$elink,$geo,$desc) = mysql_fetch_array($result))
+		{
+			$report['display_name'] =  empty($dname) || $dname == "NULL" ? "&nbsp;" : utf8_encode($dname);
+			$report['experiment_condition_0'] = empty($exp0) || $exp0 == "NULL" ? "&nbsp;" : $exp0;
+			$report['biomaterial_0'] =  empty($b0) || $b0 == "NULL" ? "&nbsp;" : $b0;
+			$report['disease_0'] = empty($d0) || $d0 == "NULL" ? "&nbsp;" : $d0;
+			$report['severity_0'] = empty($s0) || $s0 == "NULL" ? "&nbsp;" : $s0;
+			$report['experiment_condition_1'] = empty($exp1) || $exp1 == "NULL" ? "&nbsp;" : $exp1;
+			$report['biomaterial_1'] = empty($b1) || $b1 == "NULL" ? "&nbsp;" : $b1;
+			$report['disease_1'] = empty($d1) || $d1 == "NULL" ? "&nbsp;" : $d1;
+			$report['severity_1'] = empty($s1) || $s1 == "NULL" ? "&nbsp;" : $s1;
+			$report['species'] = empty($sp0) || $sp0 == "NULL" ? $sp1 : $sp0;
+			$report['experiment_assay'] = empty($assay) || $assay == "NULL" ? "&nbsp;" : $assay;
+			$report['pmid'] = empty($pmid) || $pmid == "NULL" ? "&nbsp;" :
+				"<a class=\"infolink-d\" href=\"http://www.ncbi.nlm.nih.gov/pubmed?term=".$pmid."\" target=\"_blank\">".$pmid."</a>";
+			$report['external_link'] = empty($elink) || $elink == "NULL" ? "&nbsp;" :
+				"<a class=\"infolink-d\" href=\"".$elink."\" target=\"_blank\">here</a>";
+			$report['geo_acc'] = empty($geo) || $geo == "NULL" ? "&nbsp;" :
+				"<a class=\"infolink-d\" href=\"".$geo."\" target=\"_blank\">GEO</a>";
+			$report['experiment_description'] = empty($desc) || $desc == "NULL" ? "&nbsp;" : utf8_encode($desc);
+		}
+		close_connection($conn);
+	}
+	return($report);
+}	
 
 function initLocation($dataset) 
 {
@@ -1345,6 +1418,7 @@ function initLocation($dataset)
 		# Remove empty rows for each of $b_0, $b_1 and merge
 		//$location = array_merge(array_filter($b_0),array_filter($b_1));
 		$location = array_merge($b_0,$b_1);
+		natcasesort($location);
 	}
 	return($location);
 }
@@ -1367,10 +1441,10 @@ function initDisease($dataset)
 			$d_1[$r_1] = $rc_1;
 		}
 		close_connection($conn);
-		
 		# Remove empty rows for each of $d_0, $d_1 and merge
 		//$disease = array_merge(array_filter($d_0),array_filter($d_1));
 		$disease = array_merge($d_0,$d_1);
+		natcasesort($disease);
 	}
 	return($disease);
 }
@@ -1390,6 +1464,7 @@ function initDataset($dataset)
 			$dname[$n] = utf8_encode($d);
 		}
 		close_connection($conn);
+		natcasesort($dname);
 	}
 	return($dname);
 }
@@ -1413,6 +1488,7 @@ function initMiRNALocation($dataset)
 		}
 		close_connection($conn);
 		$location = array_merge($b_0,$b_1);
+		natcasesort($location);
 	}
 	return($location);
 }
@@ -1436,6 +1512,7 @@ function initMiRNADisease($dataset)
 		}
 		close_connection($conn);
 		$disease = array_merge($d_0,$d_1);
+		natcasesort($disease);
 	}
 	return($disease);
 }
@@ -1455,6 +1532,7 @@ function initMiRNADataset($dataset)
 			$dname[$n] = utf8_encode($d);
 		}
 		close_connection($conn);
+		natcasesort($dname);
 	}
 	return($dname);
 }
@@ -1474,6 +1552,11 @@ function initGO($entrez)
 			$goterms[$cat][$id] = $name;
 		}
 		close_connection($conn);
+
+		foreach ($goterms as $cat => $ids)
+		{
+			natcasesort($goterms[$cat]);
+		}
 	}
 	return($goterms);
 }
@@ -1493,6 +1576,11 @@ function initKEGG($entrez)
 			$keggs[$class][$id] = $name;
 		}
 		close_connection($conn);
+
+		foreach ($keggs as $class => $ids)
+		{
+			natcasesort($keggs[$class]);
+		}
 	}
 	return($keggs);
 }
@@ -1512,6 +1600,7 @@ function initmiRNA($entrez)
 			$mirnas[$row[0]] = $row[0];
 		}
 		close_connection($conn);
+		natcasesort($mirnas);
 	}
 	return($mirnas);
 }
@@ -1530,7 +1619,7 @@ function initNodes($entrez,$mirna)
 		$nodes[] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
 						 "strength" => "", "expression" => "",
 						 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
-						 "object_type" => "gene", "custom" => "");
+						 "object_type" => "gene", "dataset_id" => "", "custom" => "");
 	}
 
 	if (!empty($mirna))
@@ -1553,19 +1642,20 @@ function initNodes($entrez,$mirna)
 	return($nodes);
 }
 
-function initEdges($ensembl)
+function initEdges($ensembl,$score)
 {
-	global $init_edges_1,$init_edges_2;
+	global $init_edges_1,$init_edges_2,$init_edges_3;
 	$predges = array();
 	$adj = array();
 	$edges = array();
 	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
-							  "expression" => "expression", "activation" => "activation");
+							  "expression" => "expression", "activation" => "activation",
+							  "inhibition" => "inhibition");
 	if(is_array($ensembl) && !empty($ensembl))
 	{
 		$conn = open_connection();
 		$pro_list = '(\''.implode("', '",$ensembl).'\')';
-		$query = $init_edges_1.$pro_list.$init_edges_2.$pro_list;
+		$query = $init_edges_1.$pro_list.$init_edges_2.$pro_list.$init_edges_3.($score*1000);
 		$result = mysql_query($query,$conn);
 		while (list($target,$source,$interaction) = mysql_fetch_array($result))
 		{
@@ -1621,6 +1711,7 @@ function initDataSchema()
 	$node_schema[] = array("name" => "pvalue", "type" => "number");
 	$node_schema[] = array("name" => "fdr", "type" => "number");
 	$node_schema[] = array("name" => "object_type", "type" => "string");
+	$node_schema[] = array("name" => "dataset_id", "type" => "string");
 	$node_schema[] = array("name" => "custom", "type" => "string");
 
 	$edge_schema = array();
@@ -1643,7 +1734,7 @@ function getIndexedGenes($term,$species)
 	global $auto_genes,$auto_ensembl,$auto_mirna,$auto_uniprot;
 
 	$cl = new SphinxClient();
-	$cl->SetServer("localhost",60000);
+	$cl->SetServer("localhost",60001);
 	$cl->SetLimits(0,100);
 	$cl->SetMatchMode(SPH_MATCH_ANY);
 	if (isset($species)) { $cl->SetFilter("species",array($species)); }
@@ -1932,7 +2023,8 @@ function initEdges($ensembl)
 	$seen = array();
 	$edges = array();
 	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
-							  "expression" => "expression", "activation" => "activation");
+							  "expression" => "expression", "activation" => "activation",
+							  "inhibition" => "inhibition");
 	if(is_array($ensembl) && !empty($ensembl))
 	{
 		$conn = open_connection();

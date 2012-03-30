@@ -1,0 +1,114 @@
+/* New page section */
+body
+{
+	background:white;
+	color: #5A5A5A;
+	font-family: Arial Unicode MS, Arial, sans-serif;
+	font-size: small;
+	line-height: 1.7em;
+}
+
+h1.dataset
+{
+	margin-top:20px;
+	font-size: 2em;
+	font-weight: bold;
+	color: #434041;
+}
+
+table.dataset
+{
+	width: 50%;
+	margin-left: 2%;
+	font-size: 1em;
+}
+
+td.dataset
+{
+	padding: 5px;
+	border-style: solid;
+	border-color: #CCCCCC;
+	border-width: 1px;
+}
+
+tr {}
+
+tr.odd { background-color: #ECECEC; }
+
+tr.even { }
+
+.section-d
+{
+	font-size: 1.2em;
+	font-weight: bold;
+}
+
+.infolink-d
+{ 
+	text-decoration: underline; 
+	color: #7F7F7F; 
+	cursor: pointer; 
+}
+
+.footer
+{
+	padding-left:30px;
+	width:900px;
+}
+
+.disclaimer
+{
+	font-size:0.8em;
+}
+
+.logos
+{
+	width:900px;
+	text-align:center;
+}
+
+.logo
+{
+	padding:10px;
+	width:95px;
+	height:45px;
+}
+
+/* Popup section */
+table.popup
+{
+	table-layout:fixed;
+	margin-left: 5px;
+	width: 70%;
+	border-style: none;
+	padding: 0px;
+}
+
+td.popup
+{
+	padding: 3px;
+	font-size: 0.9em;
+	line-height: 1em;
+	text-align: left;
+	vertical-align: middle;
+	border-style: dotted;
+	border-color: #909090;
+	border-width: 1px;
+}
+
+.section-p
+{
+	display: block;
+	padding: 0px;
+	margin-top: 1px;
+	margin-bottom: 1px;
+	font-size: 1em;
+	font-weight: bold;
+}
+
+.infolink-p
+{ 
+	text-decoration: underline; 
+	color: #5A5A5A; 
+	cursor: pointer; 
+}

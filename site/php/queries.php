@@ -221,6 +221,7 @@ $init_edges_1 = 'SELECT DISTINCT `target`, `source`, `interaction` '.
 			    'FROM `interactions` '.
 			    'WHERE `source` IN ';
 $init_edges_2 = ' AND `target` IN ';
+$init_edges_3 = ' AND `score`>=';
 
 /* Initiate input miRNA nodes, edges are initiated with the query of getmirnaElements */
 $init_mirna_nodes = 'SELECT DISTINCT `mirna_id` '.
@@ -256,11 +257,15 @@ $get_gene = 'SELECT `synonyms`, `dbXrefs`, `chromosome`, `description` '.
 			'WHERE `entrez_id`=';
 
 /* Get the gene symbols connected by an edge based on node ids (ensembl protein) */
-$get_edge_1 = 'SELECT `gene_symbol` '.
+$get_edge_1 = 'SELECT `gene_symbol`,`score` '.
 			  'FROM `genes` INNER JOIN `entrez_to_ensembl` '.
 			  'ON genes.entrez_id=entrez_to_ensembl.entrez_id '.
-			  'WHERE entrez_to_ensembl.ensembl_protein=';
+			  'INNER JOIN `interactions` '.
+			  'WHERE (entrez_to_ensembl.ensembl_protein=';
 $get_edge_2 = ' OR entrez_to_ensembl.ensembl_protein=';
+$get_edge_3 = ') AND (interactions.source=';
+$get_edge_4 = ' AND interactions.target=';
+$get_edge_5 = ')';
 
 /* Get the additional proteins */
 $get_neighbors_1 = 'SELECT `ensembl_protein` '.
@@ -268,7 +273,8 @@ $get_neighbors_1 = 'SELECT `ensembl_protein` '.
 				   'ON entrez_to_ensembl.ensembl_protein=interactions.target '.
 				   'WHERE `source` IN ';
 $get_neighbors_2 = ' AND `target` NOT IN ';
-$get_neighbors_3 = ' GROUP BY `ensembl_protein`';
+$get_neighbors_3 = ' AND score>=';
+$get_neighbors_4 = ' GROUP BY `ensembl_protein`';
 
 /* With the results, initilize additional nodes in cytoscapeweb */
 $get_add_nodes = 'SELECT DISTINCT interactions.source AS `id`,genes.gene_symbol AS `label`,entrez_to_ensembl.entrez_id AS `entrez_id` '.
@@ -328,6 +334,12 @@ $get_mirna_coloring_2_3 = ' OR datasets.disease_1 IN ';
 $get_mirna_coloring_2_4 = ') AND (datasets.biomaterial_0 IN ';
 $get_mirna_coloring_2_5 = ' OR datasets.biomaterial_1 IN ';
 $get_mirna_coloring_3 = ')';
+
+/* Query for dataset report */
+$dataset_report = 'SELECT `display_name`,`experiment_condition_0`,`species_0`,`biomaterial_0`,`disease_0`,`severity_0`,`experiment_condition_1`,`biomaterial_1`,`disease_1`,`severity_1`,`species_1`,`experiment_assay`,`pmid`,datasets.external_link AS `external_link`,`geo_acc`,`experiment_description` '.
+				  'FROM `datasets` INNER JOIN `dataset_descriptions` '.
+				  'ON datasets.experiment_id=dataset_descriptions.experiment_name '.
+				  'WHERE `experiment_id`=';
 
 /* Get all KUPKB genes as Ensembl proteins to be used when calling only for KUPKB neighbors */
 $allkupkb2protein_1 = 'SELECT DISTINCT `ensembl_protein` '.

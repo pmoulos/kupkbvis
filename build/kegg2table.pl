@@ -20,9 +20,8 @@ $|=1;
 # Set defaults
 our $scriptname = "kegg2table.pl";
 our $paramfile;   # YAML parameters file
-our @dbdata;	  # Username and password for the DB to avoid hardcoding
+our @dbdata;	  # Database name, username and password for the DB to avoid hardcoding
 our $ref;		  # Import reference pathways too?
-our $waitbar = 0; # Do not use waitbar
 our $silent = 0;  # Display verbose messages
 our $help = 0;    # Help?
 
@@ -201,7 +200,8 @@ sub getTaxDataFromOrganism
 		return 0 if (!$str);
 		my @result = split(", ",$str);
 		my @firstpart = split(" ",$result[0]);
-		my @secondpart = split("; ",$result[3]);
+		#my @secondpart = split("; ",$result[3]); # They changed???
+		my @secondpart = split("; ",$result[2]);
 		$secondpart[1] =~ s/\r|\n$//g; # There is a new line...
 		return (@firstpart,@secondpart);
 	}
@@ -255,7 +255,6 @@ sub checkInputs
     GetOptions("param|p=s" => \$paramfile,
     		   "dbdata|d=s{,}" => \@dbdata,
     		   "reference|r" => \$ref,
-    		   "waitbar|w" => \$waitbar,
     		   "silent|s" => \$silent,
     		   "help|h" => \$help);
     # Check if the required arguments are set
@@ -265,8 +264,8 @@ sub checkInputs
     	exit;
     }
     $stop .= "--- Please provide database connection data ---\n" if (!@dbdata);
-    $stop .= "--- --dbdata should be consisted of two strings! ---\n"
-		if (@dbdata && $#dbdata+1 != 2);
+    $stop .= "--- --dbdata should be consisted of three strings! ---\n"
+		if (@dbdata && $#dbdata+1 != 3);
     if ($stop)
     {
             print "\n$stop\n";
@@ -358,9 +357,8 @@ sub openConnection
 {
     use DBI;
     
-    my ($username,$password) = @_;
+    my ($database,$username,$password) = @_;
     my $hostname = "localhost";
-    my $database = "KUPKB_Vis";
     
     my $conn = DBI->connect("dbi:mysql:database=$database;host=$hostname;port=3306",$username,$password);
     
@@ -412,7 +410,8 @@ sub initFields
 
 sub loadDefaultParams
 {
-	my %h = ("FTP" => "ftp.ncbi.nlm.nih.gov",
+	my %h = ("DBNAME" => "KUPKB_Vis",
+			 "FTP" => "ftp.ncbi.nlm.nih.gov",
 			 "gene" => {
 						"DATA" => [
 									"gene2accession.gz",
@@ -446,6 +445,7 @@ sub loadDefaultParams
 			 "GENE_PATH" => "download",
 			 "MIRNA_PATH" => "download",
 			 "INDEX_PATH" => "/etc/sphinxsearch/kupkbvis_sphinx.conf",
+			 "INDEX_HOME" => "/media/HD2/mysql/sphinx_index/",
 			 "CURATORS" => "/media/HD5/Work/TestGround/contr_emails.txt"
 		);
 	return(\%h);
@@ -506,10 +506,6 @@ Main usage
 $scriptname --input dir/flag --param parameter_file.yml [OPTIONS]
 
 --- Required ---
-  --input|i		dir/flag	Program input. It can be the word download
-			to build everything fetching files in real time or the
-			interactions file downloaded manually (for the adventurous only!)
-			which can be seen in the YAML parameters file.
   --dbdata|d		Connection data for the local database. It should
 			be a vector of length two containing a username and
 			a password.			
@@ -520,7 +516,6 @@ $scriptname --input dir/flag --param parameter_file.yml [OPTIONS]
   --reference|r		Import also the reference pathways? (NYI!)
   --silent|s		Use this option if you want to turn informative 
   			messages off.
-  --waitbar|w		Display a waitbar for long operations.
   --help|h		Display this help text.
 	
 This program builds the species and genes tables in the KUPKB_Vis database.

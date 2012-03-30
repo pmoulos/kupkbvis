@@ -24,7 +24,7 @@ our $type="";        # Excel or delimited text?
 our $mode;		     # Convert experiment sheet, dataset description
 our $outpath = "";   # Path to write the output file in case of not direct insertion
 our $curators = "";  # File with the list of curators and their mails
-our @dbdata;	     # Username and password for the DB to avoid hardcoding
+our @dbdata;	     # Database name, username and password for the DB to avoid hardcoding
 #our $updatedb;		 # Update the local DB with new datasets?
 our $silent = 0;     # Display verbose messages
 our $help = 0;       # Help?
@@ -322,7 +322,8 @@ sub parseExcelDataset
 						}
 						case /role|experiment_condition|species|biomaterial|maturity|disease|laterality|severity/
 						{
-							$nv = --$visited{$param};
+							$nv = $visited{$param};
+							$nv--;
 							$fields{$param."_".$nv} = $value;
 						}
 					}
@@ -471,7 +472,7 @@ sub parseExcelData
 		$value = undef;
 		$cell = $wsheet->get_cell($i,8);
 		$value = $cell->value() if ($cell);
-		$fields{"ratio"} = &trim(&stripQuotes($value)) if ($value);
+		$fields{"ratio"} = &parseReal(&trim(&stripQuotes($value))) if ($value);
 		
 		# pvalue
 		$value = undef;
@@ -831,8 +832,8 @@ sub checkInputs
 	}
     $stop .= "--- --input must not be a directory in case of description conversion ---\n"
 		if (-d $input[0] && $mode eq "description");
-	$stop .= "--- --dbdata should be consisted of two strings! ---\n"
-		if (@dbdata && $#dbdata+1 != 2);
+	$stop .= "--- --dbdata should be consisted of three strings! ---\n"
+		if (@dbdata && $#dbdata+1 != 3);
 	$stop .= "--- --type must be specified if a directory is given for conversion ---\n"
 		if (-d $input[0] && !$type);
     if ($stop)
@@ -964,9 +965,8 @@ sub openConnection
 {
     use DBI;
     
-    my ($username,$password) = @_;
+    my ($database,$username,$password) = @_;
     my $hostname = "localhost";
-    my $database = "KUPKB_Vis";
     
     my $conn = DBI->connect("dbi:mysql:database=$database;host=$hostname;port=3306",$username,$password);
     

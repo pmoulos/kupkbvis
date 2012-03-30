@@ -23,7 +23,7 @@ $|=1;
 # Set defaults
 our $scriptname = "string2table.pl";
 our $input; 	 # Input path containing downloaded files OR the bareword "download"
-our @dbdata;	 # Username and password for the DB to avoid hardcoding
+our @dbdata;	 # Database name, username and password for the DB to avoid hardcoding
 our $silent = 0; # Display verbose messages
 our $waitbar;    # Use a waitbar for parsing?
 our $help = 0;   # Help?
@@ -34,7 +34,7 @@ our $help = 0;   # Help?
 # Record progress...
 my $date = &now;
 disp("$date - Started...");
-disp("Building the protein-protein interaction table in KUPKB_Vis...");
+disp("Building the protein-protein interaction table in $dbdata[0]...");
 
 # Proceed with data reading/downloading
 if ($input =~ m/download/i) # Case where we download from HTTP
@@ -77,17 +77,31 @@ if (-f $input)
 		&waitbarUpdate($c,$len) if ($waitbar);
 		next if ($line !~ m/^($mats)/); # Oblivion if not to species...
 		
-		%fields = &initFields();
 		$line =~ s/\r|\n$//g;
+		%fields = &initFields();
 		@columns = split(/\t/,$line);
-		@contents = split(/\./,$columns[0]);
-		$fields{"source"} = $contents[1];
-		@contents = split(/\./,$columns[1]);
-		$fields{"target"} = $contents[1];
-		$fields{"interaction"} = $columns[2];
-		$fields{"species"} = $contents[0];
-		
-		&insertInteraction(\%fields);
+		if ($columns[2] eq "binding")
+		{
+			@contents = split(/\./,$columns[0]);
+			$fields{"source"} = $contents[1];
+			@contents = split(/\./,$columns[1]);
+			$fields{"target"} = $contents[1];
+			$fields{"interaction"} = $columns[2];
+			$fields{"score"} = $columns[5];
+			$fields{"species"} = $contents[0];
+			&insertInteraction(\%fields);
+		}
+		elsif ($columns[4] == 1)
+		{
+			@contents = split(/\./,$columns[0]);
+			$fields{"source"} = $contents[1];
+			@contents = split(/\./,$columns[1]);
+			$fields{"target"} = $contents[1];
+			($columns[3]) ? ($fields{"interaction"} = $columns[3]) : ($fields{"interaction"} = $columns[2]);
+			$fields{"score"} = $columns[5];
+			$fields{"species"} = $contents[0];
+			&insertInteraction(\%fields);
+		}	
 	}
 	close(PPIS);
 }
@@ -113,8 +127,8 @@ sub checkInputs
     }
     $stop .= "--- Please specify input path or download ---\n" if (!$input);
     $stop .= "--- Please provide database connection data ---\n" if (!@dbdata);
-    $stop .= "--- --dbdata should be consisted of two strings! ---\n"
-		if (@dbdata && $#dbdata+1 != 2);
+    $stop .= "--- --dbdata should be consisted of three strings! ---\n"
+		if (@dbdata && $#dbdata+1 != 3);
     if ($stop)
     {
             print "\n$stop\n";
@@ -180,9 +194,8 @@ sub openConnection
 {
     use DBI;
     
-    my ($username,$password) = @_;
+    my ($database,$username,$password) = @_;
     my $hostname = "localhost";
-    my $database = "KUPKB_Vis";
     
     my $conn = DBI->connect("dbi:mysql:database=$database;host=$hostname;port=3306",$username,$password);
     
@@ -236,6 +249,7 @@ sub initFields
 	my %out = ("source" => "",
 			   "interaction" => "",
 			   "target" => "",
+			   "score" => "NULL",
 			   "species" => "NULL");
 	return(%out);
 }

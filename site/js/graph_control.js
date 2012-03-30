@@ -67,7 +67,7 @@ function bypassNodeColors(ajaxData,type)
 		{
 			if (ajaxData[i].type === "protein" && seen[ajaxData[i].entrez_id].length == 1)
 			{
-				iShape = "ELLIPSE";
+				iShape = "ROUNDRECT";
 			}
 			else if (ajaxData[i].type === "protein" && seen[ajaxData[i].entrez_id].length > 1)
 			{
@@ -129,7 +129,7 @@ function bypassNodeColors(ajaxData,type)
 			}
 		}
 		ajaxNodes.push(ajaxData[i].entrez_id);
-		newData.push({ strength: ajaxData[i].strength, expression: ajaxData[i].expression, ratio: ajaxData[i].ratio, pvalue: -log10(ajaxData[i].pvalue), fdr: ajaxData[i].fdr, custom: ajaxData[i].custom });
+		newData.push({ strength: ajaxData[i].strength, expression: ajaxData[i].expression, ratio: ajaxData[i].ratio, pvalue: -log10(ajaxData[i].pvalue), fdr: ajaxData[i].fdr, dataset_id: ajaxData[i].dataset_id, custom: ajaxData[i].custom });
 	}
 
 	dataSeen = { strength: "Multiple", expression: "Multiple", ratio: 999, pvalue: 999, fdr: 999 };
@@ -165,6 +165,7 @@ function bypassNodeColors(ajaxData,type)
 									fdr: newData[seen[currNode.data.entrez_id][j]].fdr,
 									entrez_id: currNode.data.entrez_id,
 									object_type: type,
+									dataset_id: newData[seen[currNode.data.entrez_id][j]].dataset_id,
 									parent: currNode.data.id
 								};
 						visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),cdata,true);
@@ -191,6 +192,26 @@ function bypassNodeColors(ajaxData,type)
 	visObject.visualStyleBypass(bypass);
 }
 
+// Damn dirty!!! Will not be used...
+function byPassInitMiRNA()
+{
+	var visObject = getVisData("cytoscapeweb");
+	var bypass = getData("cytoscapeweb","bypass");
+	var nodes = visObject.nodes();
+	var n = nodes.length;
+	var i = 0;
+	for (i=0; i<n; i++)
+	{
+		if (nodes[i].data.object_type === "mirna")
+		{
+			bypass["nodes"][nodes[i].data.id] = { color: "#F7F7F7", borderWidth: 1, borderColor: "#000000" };
+		}
+	}
+	setData("cytoscapeweb","bypass",bypass);
+	visObject.visualStyleBypass(bypass);
+}
+
+
 // type: interaction type
 // status: on, off
 // Filter has a bug! It removes the complement of the selected set
@@ -207,6 +228,7 @@ function filterEdges()
 	checked.ptmod = $("#ptmod_check").is(":checked") ? true : false;
 	checked.expression = $("#expression_check").is(":checked") ? true : false;
 	checked.activation = $("#activation_check").is(":checked") ? true : false;
+	checked.inhibition = $("#inhibition_check").is(":checked") ? true : false;
 	checked.go = $("#go_check").is(":checked") ? true : false;
 	checked.kegg = $("#kegg_check").is(":checked") ? true : false;
 	checked.mirna = $("#mirna_check").is(":checked") ? true : false;
@@ -227,6 +249,9 @@ function filterEdges()
 				break;
 			case 'activation':
 				if(checked.activation) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'inhibition':
+				if(checked.inhibition) { toFilter.push(edges[i].data.id); }
 				break;
 			case 'go':
 				if(checked.go) { toFilter.push(edges[i].data.id); }
@@ -408,7 +433,7 @@ function addElements(elems)
 	// No need to remove go, kegg, mirna edges for neighbors, otherwise, they are removed automatically
 	for (i=0; i<edgeLength; i++)
 	{
-		if ($.inArray(edges[i].data.interaction,["binding","ptmod","expression","activation"]) !== -1)
+		if ($.inArray(edges[i].data.interaction,["binding","ptmod","expression","activation","inhibition"]) !== -1)
 		{
 			eids.push(edges[i].data.id);
 		}
@@ -589,6 +614,16 @@ function gimmeGeneData(staticData,ajaxData)
 	nodeData.ratio = (staticData['ratio']===999 || staticData['ratio']===null) ? "" : "Fold change: <span style=\"color:#FF0000\">" + staticData['ratio'] + "</span><br/>";
 	nodeData.pvalue = (staticData['pvalue']===999 || staticData['pvalue']===null) ? "" : "p-value: <span style=\"color:#FF0000\">" + Math.pow(10,-staticData['pvalue']) + "</span><br/>";
 	nodeData.fdr = (staticData['fdr']===999 || staticData['fdr']===null) ? "" : "FDR: <span style=\"color:#FF0000\">" + staticData['fdr'] + "</span><br/>";
+	if (staticData['strength']==="" && staticData['expression']==="" && (staticData['ratio']===999 || staticData['ratio']===null) && (staticData['pvalue']===999 || staticData['pvalue']===null) && (staticData['fdr']===999 || staticData['fdr']===null))
+	{
+		nodeData.dataset = "";
+	}
+	else
+	{
+		nodeData.dataset = "Experiment description: <a id=\"show_dataset\" class=\"infolink\" onclick=\"createDatasetDescription('" + staticData['dataset_id'] + "','page')\" onmouseover = \"createDatasetDescription('" + staticData['dataset_id'] + "','popup')\">here</a><br/>" +
+						   "<script>$(\"#show_dataset\").tooltip({tip:\".tooltip-dataset\",effect:\"fade\"}).dynamic();</script>";
+	}
+	
 
 	if ($.isEmptyObject(ajaxData))
 	{
@@ -612,6 +647,7 @@ function gimmeGeneData(staticData,ajaxData)
 	msg = "<span style=\"color:#000000; font-weight:bold\">KUPKB data</span><br/>" +
 		  nodeData.id + nodeData.label + nodeData.entrez + nodeData.strength +
 		  nodeData.expression + nodeData.ratio + nodeData.pvalue + nodeData.fdr +
+		  nodeData.dataset +
 		  "<span style=\"color:#000000; font-weight:bold\">External references</span><br/>" +
 		  nodeData.synonyms + nodeData.chromosome + nodeData.description + nodeData.DB;
 
@@ -663,6 +699,15 @@ function gimmeMirnaData(staticData,ajaxData)
 	nodeData.ratio = (staticData['ratio']===999 || staticData['ratio']===null) ? "" : "Fold change: <span style=\"color:#FF0000\">" + staticData['ratio'] + "</span><br/>";
 	nodeData.pvalue = (staticData['pvalue']===999 || staticData['pvalue']===null) ? "" : "p-value: <span style=\"color:#FF0000\">" + Math.pow(10,-staticData['pvalue']) + "</span><br/>";
 	nodeData.fdr = (staticData['fdr']===999 || staticData['fdr']===null) ? "" : "FDR: <span style=\"color:#FF0000\">" + staticData['fdr'] + "</span><br/>";
+	if (staticData['strength']==="" && staticData['expression']==="" && (staticData['ratio']===999 || staticData['ratio']===null) && (staticData['pvalue']===999 || staticData['pvalue']===null) && (staticData['fdr']===999 || staticData['fdr']===null))
+	{
+		nodeData.dataset = "";
+	}
+	else
+	{
+		nodeData.dataset = "Experiment description: <a id=\"show_dataset\" class=\"infolink\" onclick=\"createDatasetDescription('" + staticData['dataset_id'] + "','page')\" onmouseover = \"createDatasetDescription('" + staticData['dataset_id'] + "','popup')\">here</a><br/>" +
+						   "<script>$(\"#show_dataset\").tooltip({tip:\".tooltip-dataset\",effect:\"fade\"}).dynamic();</script>";
+	}
 
 	if (nodeData.strength === '' && nodeData.expression === '' && nodeData.ratio === '' && nodeData.pvalue === '' && nodeData.fdr === '')
 	{
@@ -674,7 +719,7 @@ function gimmeMirnaData(staticData,ajaxData)
 
 	msg = "<span style=\"color:#000000; font-weight:bold\">miRNA data</span><br/>" +
 		  nodeData.id + nodeData.label + nodeData.strength + nodeData.expression +
-		  nodeData.ratio + nodeData.pvalue + nodeData.fdr;
+		  nodeData.ratio + nodeData.pvalue + nodeData.fdr + nodeData.dataset;
 
 	return(msg);
 }
@@ -687,16 +732,18 @@ function gimmeGene2GeneData(staticData,ajaxData)
 	edgeData.interaction = "Interaction type: <span style=\"color:#FF0000\">" + staticData['interaction'] + "</span><br/>";
 	if ($.isEmptyObject(ajaxData))
 	{
+		edgeData.score = "";
 		edgeData.evidence = "No additional evidence found.";
 	}
 	else
 	{
+		edgeData.score = "Interaction score: <span style=\"color:#FF0000\">" + ajaxData['score']/1000 + "</span><br/>";
 		edgeData.evidence = "Evidence: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/pubmed?term=" +
 			ajaxData['source'] + " AND " + ajaxData['target'] + "\" target=\"_blank\">Look in Pubmed</a><br/>";
 	}
 
 	msg = "<span style=\"color:#000000; font-weight:bold\">Edge data</span><br/>" +
-		  edgeData.interaction + edgeData.evidence;
+		  edgeData.interaction + edgeData.score + edgeData.evidence;
 
 	return(msg);
 }
@@ -755,6 +802,111 @@ function gimmeMirna2GeneData(staticData,ajaxData)
 		  edgeData.interaction + edgeData.evidence;
 
 	return(msg);
+}
+
+function gimmeDatasetDescription(ajaxData,type)
+{
+	var html;
+	var dataData = {};
+
+	if (type === "page")
+	{
+		dataData.header =
+			"<html>" +
+			"<head>" +
+			"<meta http-equiv=\"content-type\" content=\"text/html; charset=UTF-8\">" + 
+			"<link rel=\"icon\" href=\"../images/justkidney.ico\" type=\"image/x-icon\"/>" +
+			"<link type=\"text/css\" rel=\"stylesheet\" href=\"css/dataset.css\"/>" +
+			"<title\>Dataset information</title>" +
+			"</head>" +
+			"<body>";
+		dataData.footer =
+			/*"<br/><br/>" +
+			"<div class=\"footer\"\>" +
+			"<p class=\"disclaimer\">The Kidney and Urinary Pathway Knowledge Base has been developed in collaboration between the <a href=\"http://renalfibrosis.free.fr\" target=\"_blank\"\>Renal Fibrosis Laboratory\</a> at INSERM, France and the <a href=\"http://intranet.cs.man.ac.uk/bhig/\" target=\"_blank\">Bio-health Informatics Group\</a> at the University of Manchester, UK. This work has been funded by <a href=\"http://www.e-lico.eu\" target=\"_blank\"\>e-LICO project</a>, an EU-FP7 Collaborative Project (2009-2012) Theme ICT-4.4: Intelligent Content and Semantics.</p>" +
+			"<div class=\"logos\">" +
+			"<a href=\"http://renalfibrosis.free.fr\" target=\"_blank\"><img class=\"logo\" src=\"images/logorflab.jpg\" border=\"0\"\></a>" +
+			"<a href=\"http://intranet.cs.man.ac.uk/bhig\" target=\"_blank\"><img class=\"logo\" src=\"images/BHIG.png\" border=\"0\"\></a>" +
+			"<a href=\"http://www.inserm.fr\" target=\"_blank\"\><img class=\"logo\" style=\"width:180px;\" src=\"images/inserm-logo.png\" border=\"0\"\></a>" +
+			"<a href=\"http://www.manchester.ac.uk\" target=\"_blank\"><img class=\"logo\" style=\"height:40px;\" src=\"images/logomanchester.gif\" border=\"0\"\></a>" +
+			"<a href=\"http://www.e-lico.eu\" target=\"_blank\"><img class=\"logo\" style=\"width:40px;\" src=\"images/elico-logo.png\" border=\"0\"\></a>" +
+			"</div>" +
+			"</div>" +*/
+			"</body>" +
+			"</html>";
+		dataData.title = "<h1 class=\"dataset\">" + ajaxData['display_name'] + "</h1>";
+		dataData.condition1 =
+			"<p><span class=\"section-d\">Condition 1</span><br/>" +
+			"<table class=\"dataset\">" +
+			"<tr class=\"odd\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Type</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['experiment_condition_0'] + "</td></tr>" +
+			"<tr class=\"even\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Biomaterial</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['biomaterial_0'] + "</td></tr>" +
+			"<tr class=\"odd\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Disease</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['disease_0'] + "</td></tr>" +
+			"<tr class=\"even\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Severity</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['severity_0'] + "</td></tr>" +
+			"</table></p>";
+		dataData.condition2 =
+			"<p><span class=\"section-d\">Condition 2</span><br/>" +
+			"<table class=\"dataset\">" +
+			"<tr class=\"odd\"><td class=\"dataset\" style=\"width:30%; font-weight:bold; font-weght:bold\">Type</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['experiment_condition_1'] + "</td></tr>" +
+			"<tr class=\"even\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Biomaterial</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['biomaterial_1'] + "</td></tr>" +
+			"<tr class=\"odd\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Disease</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['disease_1'] + "</td></tr>" +
+			"<tr class=\"even\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Severity</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['severity_1'] + "</td></tr>" +
+			"</table></p>";
+		dataData.experimental =
+			"<p><span class=\"section-d\">Experimental information</span><br/>" +
+			"<table class=\"dataset\">" +
+			"<tr class=\"odd\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Species</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['species'] + "</td></tr>" +
+			"<tr class=\"even\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Assay</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['experiment_assay'] + "</td></tr>" +
+			"</table></p>";
+		dataData.external =
+			"<p><span class=\"section-d\">External references</span><br/>" +
+			"<table class=\"dataset\">" +
+			"<tr class=\"odd\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Pubmed ID</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['pmid'] + "</td></tr>" +
+			"<tr class=\"even\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">Link</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['external_link'] + "</td></tr>" +
+			"<tr class=\"odd\"><td class=\"dataset\" style=\"width:30%; font-weight:bold\">GEO accession</td><td class=\"dataset\" style=\"width:70%\">" + ajaxData['geo_acc'] + "</td></tr>" +
+			"</table></p>";
+		dataData.summary =
+			"<p style=\"width:60%\"><span class=\"section-d\">Summary</span><br/>" + ajaxData['experiment_description'] + "</p>";
+	}
+	else
+	{
+		dataData.header = "";
+		dataData.footer = "";
+		dataData.title = "<span style=\"color:#434343; font-weight:bold; font-size:1em;\">" + ajaxData['display_name'] + "</span>";
+		dataData.condition1 =
+			"<p><span class=\"section-p\">Condition 1</span>" +
+			"<table class=\"popup\">" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Type</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['experiment_condition_0'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Biomaterial</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['biomaterial_0'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Disease</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['disease_0'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Severity</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['severity_0'] + "</td></tr>" +
+			"</table></p>";
+		dataData.condition2 =
+			"<p><span class=\"section-p\">Condition 2</span>" +
+			"<table class=\"popup\">" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Type</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['experiment_condition_1'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Biomaterial</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['biomaterial_1'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Disease</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['disease_1'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Severity</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['severity_1'] + "</td></tr>" +
+			"</table></p>";
+		dataData.experimental =
+			"<p><span class=\"section-p\">Experimental information</span>" +
+			"<table class=\"popup\">" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Species</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['species'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Link</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['experiment_assay'] + "</td></tr>" +
+			"</table></p>";
+		dataData.external =
+			"<p><span class=\"section-p\">External references</span>" +
+			"<table class=\"popup\">" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Pubmed ID</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['pmid'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Link</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['external_link'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">GEO accession</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['geo_acc'] + "</td></tr>" +
+			"</table></p>";
+		dataData.summary =
+			"<p style=\"width:95%\"><span class=\"section-p\">Summary</span><span style=\"font-size:0.9em\">" + ajaxData['experiment_description'] + "</span></p>";
+	}
+
+	html = dataData.header + dataData.title + dataData.condition1 + dataData.condition2 + dataData.experimental + dataData.external + dataData.summary + dataData.footer;
+	return(html);
 }
 
 function gimmeNodeColor(attr,val)
@@ -1082,7 +1234,7 @@ function resetNodeData(type)
 				if (nodes[i].data.object_type === "mirna")
 				{
 					reset.push(nodes[i].data.id)
-					bypass["nodes"][nodes[i].data.id] = { color: "#6E86D6", borderWidth: 1, borderColor: "#000000" };
+					bypass["nodes"][nodes[i].data.id] = { color: "#FBEFFB", borderWidth: 1, borderColor: "#000000" };
 				}
 			}
 			// Now, find any children nodes, we will add an if to check if this is allowed by the application
@@ -1244,6 +1396,11 @@ function initEdgeStyle()
 		{
 			defaultValue: "#000000",
 			discreteMapper: edgeMapper.colorMapper
+		},
+		targetArrowShape:
+		{
+			defaultValue: "NONE",
+			discreteMapper: edgeMapper.arrowMapper
 		}
 	};
 
@@ -1302,7 +1459,7 @@ function initNodeMapper()
 				{ attrValue: "function", value: "#BFA630" },
 				{ attrValue: "process", value: "#6E86D6" },
 				{ attrValue: "pathway", value: "#700900" },
-				{ attrValue: "mirna", value: "#6E86D6" }
+				{ attrValue: "mirna", value: "#FBEFFB" }
 			]
 		},
 		fontWeightMapper:
@@ -1347,11 +1504,23 @@ function initEdgeMapper()
 			[
 				{ attrValue: "binding", value: "#028E9B" },
 				{ attrValue: "ptmod", value: "#133CAC" },
-				{ attrValue: "expression", value: "#FFAD00" },
-				{ attrValue: "activation", value: "#FF7800" },
-				{ attrValue: "go", value: "#9BA402" },
+				{ attrValue: "expression", value: "#9BA402" },
+				{ attrValue: "activation", value: "#00A300" },
+				{ attrValue: "inhibition", value: "#EE0000" },
+				{ attrValue: "go", value: "#FFAD00" },
 				{ attrValue: "kegg", value: "#D30068" },
-				{ attrValue: "mirna", value: "#A67D00" }
+				{ attrValue: "mirna", value: "#FBB0FF" }
+			]
+		},
+		arrowMapper:
+		{
+			attrName: "interaction",
+			entries:
+			[
+				{ attrValue: "binding", value: "NONE" },
+				{ attrValue: "expression", value: "CIRCLE" },
+				{ attrValue: "activation", value: "ARROW" },
+				{ attrValue: "inhibition", value: "T" }
 			]
 		},
 		widthMapper:
