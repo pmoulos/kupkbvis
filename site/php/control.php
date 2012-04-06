@@ -857,25 +857,39 @@ function getRegulation($genes,$dataset,$disease,$location,$annotation)
 		$result = mysql_query($query,$conn);
 		while (list($record_id,$dataset_id,$display_name,$d0,$d1,$b0,$b1,$cpl,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
 		{
+			if (preg_match('/^protein/i',$cpl))
+			{
+				$type = "protein";
+			}
+			else if (preg_match('/^phospho/i',$cpl))
+			{
+				$type = "phosphoprotein";
+			}
+			else
+			{
+				$type = "gene";
+			}
 			if ($annotation['disease'] == 1)
 			{
-				$dep1 = empty($d0) ? $d1 : $d0;
+				/*if (isAnomaly($dataset_id)) { $dep1 = $d1; }
+				else { $dep1 = empty($d0) ? $d1 : $d0; }*/
+				$dep1 = empty($d1) ? $d0 : $d1;
 				$dep1 = empty($dep1) ? "" : $dep1."\n";
 			}
 			else { $dep1 = ""; }
 			if ($annotation['location'] == 1)
 			{
-				$dep2 = empty($b0) ? $b1 : $b0;
+				//$dep2 = empty($b0) ? $b1 : $b0;\
+				$dep2 = empty($b1) ? $b0 : $b1;
 				$dep2 = empty($dep2) ? "" : $dep2."\n";
 			} else { $dep2 = ""; }
 			if ($annotation['type'] == 1)
 			{
-				$dep3 = preg_match('/protein/i',$cpl) ? "protein" : "gene";
-				$dep3 = $dep3."\n";
+				$dep3 = $type."\n";
 			} else { $dep3 = ""; }
 			$dep4 = $annotation['dataset'] == 1 ? utf8_encode($display_name) : "";
 			$desc = $dep1.$dep2.$dep3.$dep4;
-			$type = preg_match('/protein/i',$cpl) ? "protein" : "gene";
+			//$type = preg_match('/protein/i',$cpl) ? "protein" : "gene";
 			$color_data[] = array("entrez_id" => $entrez_id, "strength" => $expr_strength, "expression" => $expr_de,
 								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "dataset_id" => $dataset_id,
 								  "custom" => $desc, "type" => $type);

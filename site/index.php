@@ -15,8 +15,11 @@ include('php/queries.php');
 	<link type="text/css" rel="stylesheet" href="css/jquery-ui-1.8.16.custom.css" />
 	<link type="text/css" rel="stylesheet" href="css/menu.css" />
 	<link type="text/css" rel="stylesheet" href="css/tabs.css" />
-	<link type="text/css" rel="stylesheet" href="css/kupkb.css" />
 	<link type="text/css" rel="stylesheet" href="css/dataset.css" />
+	<link type="text/css" rel="stylesheet" href="css/kupkb.css" />
+	<!--[if IE 8]>
+		<link rel="stylesheet" type="text/css" href="css/kupkb-ie8.css">
+	<![endif]-->
 	<script type="text/javascript" src="js/json2.min.js"></script>
 	<script type="text/javascript" src="js/AC_OETags.min.js"></script>
 	<script type="text/javascript" src="js/cytoscapeweb.min.js"></script>
@@ -26,9 +29,13 @@ include('php/queries.php');
 	<script type="text/javascript" src="js/jquery.tools.min.js"></script>
 	<script type="text/javascript" src="js/graph_control.js"></script>
 	<script type="text/javascript" src="js/app_control.js"></script>
+	<script type="text/javascript" src="js/simpletimer.js"></script>
 </head>
 
-<body>
+<body onunload="endTimer();">
+
+<!-- Piwik hack... -->
+<script language="javascript" type="text/javascript">startTimer()</script>
 
 <!-- Main table container layout -->
 <table class="main"><tr><td class="main">
@@ -37,14 +44,19 @@ include('php/queries.php');
 	<div id="dialog"></div>
 	<!-- The dataset description popup div -->
 	<div id="dataset_popup" class="tooltip-dataset"></div>
+	<!-- Internet Exlorer < 9 ... -->
+	<div id="ieDetect" style="display:none; margin-left:20px; font-size:1em; z-index:50;"></div>
+	<!-- IE8 and lower hacks... -->
+	<div id="top-left"></div><div id="top-right"></div><div id="bottom-left"></div>
 
 	<div class="mainContainer">
 
-		<a href="#"><img src="images/kupkb-logo-small.png" alt="KUPKB" border="0" style="position:relative; left:50px; top:5px;"/></a>
-		<table class="innerTable" style="position:relative; left:-60px; top:-40px; border:none"><tr><td class="innerCell" style="border:none; text-align:center;">
+		<!--<a href="#"><img src="images/kupkb-logo-small.png" alt="KUPKB" border="0" style="position:relative; left:50px; top:5px;"/></a>-->
+		<a href="#"><img src="images/logobetaok.jpg" alt="Vis beta" border="0" style="position:static; left:50px; top:5px;"/></a>
+		<table class="titleTable"><tr><td class="innerCell" style="border:none; text-align:center;">
 			<span style="color:#0E0E0E; font-size:2.1em; font-weight:bold; font-style:italic">The Kidney &amp; Urinary Pathway <span style="color:#E21A30;">K</span>nowledge <span style="color:#E21A30;">B</span>ase</span>
 			<br/>
-			<span style="font-size: 1.5em; font-weight:bold;"><span style="color:#E21A30;">N</span>etwork <span style="color:#E21A30;">E</span>xplorer</span>
+			<span style="font-size: 1.5em; font-weight:bold;"><span style="color:#E21A30;">N</span>etwork <span style="color:#E21A30;">E</span>xplorer<span style="color:#E21A30; font-size:0.7em; vertical-align:super"><em> beta</em></span></span>
 		</td></tr></table>
 		
 		<div id="menu">
@@ -96,54 +108,54 @@ include('php/queries.php');
 				</div>
 			</td>
 			<td class="innerCell">
-				<div id="color_legend" style="visibility:hidden; height:160px;">
-				<table class="innerTable">
+				<div id="color_legend" style="visibility:hidden; height:210px;">
+				<table class="innerTable" style="height:100%">
 					<tr>
-					<td colspan=4 class="colorTableCellText" style="height:20%;">
+					<td colspan=4 class="colorTableCellText" style="height:32px;">
 						<span style="font-size:1.1em; font-weight:bold">Gene/protein node legend</span>
 					</td>
 					</tr>
 					<tr>
-					<td rowspan=5 class="colorTableCellColor" style="text-align:center; width:10%; height:80%">
+					<td rowspan=5 class="colorTableCellColor" style="text-align:center; width:10%; height:165px;">
 						<table class="innerTable"><tr><td style="background:url(images/colorbar.png) no-repeat center;"></td></tr></table>
 					</td>
-					<td class="colorTableCellText" style="width:40%; height:16%">Up</td>
-					<td class="colorTableCellColor" style="width:10%; height:16%">
+					<td class="colorTableCellText" style="width:40%;">Up</td>
+					<td class="colorTableCellColor" style="width:10%;">
 						<table class="innerTable"><tr><td style="background-color:#0C5DA5"></td></tr></table>
 					</td>
-					<td class="colorTableCellText" style="width:40%; height:16%">Strong</td>
+					<td class="colorTableCellText" style="width:40%;">Strong</td>
 					</tr>
 					<tr>
 					<!--<td class="colorTableCellColor" style="width:10%;"></td>-->
-					<td class="colorTableCellText" style="width:40%; height:16%">&nbsp;</td>
-					<td class="colorTableCellColor" style="width:10%; height:16%">
+					<td class="colorTableCellText" style="width:40%;">&nbsp;</td>
+					<td class="colorTableCellColor" style="width:10%;">
 						<table class="innerTable"><tr><td style="background-color:#539AD9"></td></tr></table>
 					</td>
-					<td class="colorTableCellText" style="width:40%; height:16%">Medium</td>
+					<td class="colorTableCellText" style="width:40%;">Medium</td>
 					</tr>
 					<tr>
 					<!--<td class="colorTableCellColor" style="width:10%;"></td>-->
-					<td class="colorTableCellText" style="width:40%; height:16%">Unmodified</td>
-					<td class="colorTableCellColor" style="width:10%; height:16%">
+					<td class="colorTableCellText" style="width:40%;">Unmodified</td>
+					<td class="colorTableCellColor" style="width:10%;">
 						<table class="innerTable"><tr><td style="background-color:#A4C9EB"></td></tr></table>
 					</td>
-					<td class="colorTableCellText" style="width:40%; height:16%">Weak</td>
+					<td class="colorTableCellText" style="width:40%;">Weak</td>
 					</tr>
 					<tr>
 					<!--<td class="colorTableCellColor" style="width:10%;"></td>-->
-					<td class="colorTableCellText" style="width:40%; height:16%">&nbsp;</td>
-					<td class="colorTableCellColor" style="width:10%; height:16%">
+					<td class="colorTableCellText" style="width:40%;">&nbsp;</td>
+					<td class="colorTableCellColor" style="width:10%;">
 						<table class="innerTable"><tr><td style="background-color:#9FFFB5"></td></tr></table>
 					</td>
-					<td class="colorTableCellText" style="width:40%; height:16%">Present</td>
+					<td class="colorTableCellText" style="width:40%;">Present</td>
 					</tr>
 					<tr>
 					<!--td class="colorTableCellColor" style="width:10%;"></td>-->
-					<td class="colorTableCellText" style="width:40%; height:16%">Down</td>
-					<td class="colorTableCellColor" style="width:10%; height:16%">
+					<td class="colorTableCellText" style="width:40%;">Down</td>
+					<td class="colorTableCellColor" style="width:10%;">
 						<table class="innerTable"><tr><td style="background-color:#FFF59F"></td></tr></table>
 					</td>
-					<td class="colorTableCellText" style="width:40%; height:16%">Absent</td>
+					<td class="colorTableCellText" style="width:40%;">Absent</td>
 					</tr>
 					<!--<tr>
 					<td colspan=4 class="colorTableCellText" style="width:100%; font-size:0.8em">
@@ -208,6 +220,7 @@ include('php/queries.php');
 									if ($_POST['ikup_terms'])
 									{
 										$from_ikup = $_POST['ikup_terms'];
+										echo $_POST['ikup_terms'];
 										$from_ikup = json_decode($from_ikup,$assoc=TRUE);
 										if (!is_array($from_ikup)) { $from_ikup = array($from_ikup); }
 										$terms = implode("\n",$from_ikup);
@@ -247,15 +260,15 @@ include('php/queries.php');
 							and click 'GO' to display the network in the panel on top. Tabs 2 and 3 will be filled with data from KUPKB. Navigate through the in different tabs
 							to filter the results and map expression data stored in the KUPKB.
 							<ol>
-								<li>
+								<li style="display:list-item;"> <!-- IE bug with ordered lists!... -->
 								Enter your molecules in the search area to the left, using any of the following types: Entrez gene ID, gene symbol, Ensembl gene or protein ID,
 								Uniprot ID, mirBase miRNA IDs or simple text search (multiple ID types are supported!). You will also get auto-complete suggestions.
 								</li>
-								<li>
+								<li style="display:list-item;">
 								Select KUPKB datasets based on kidney locations and diseases criteria to color the nodes of the network. The displayed datasets were found to contain at
 								least one of your searched molecules and are limited to the selected species. Filter the displayed edges and fetch neighbors of selected genes/proteins.
 								</li>
-								<li>
+								<li style="display:list-item;">
 								Add GO terms and KEGG pathways containing the queried genes or add miRNAs that target your queried molecules to the network.
 								</li>
 								</li>
@@ -273,7 +286,7 @@ include('php/queries.php');
 				<table class="innerTable"><tr><td id="kupkbdataContainer">
 					<table class="innerTable">
 						<tr>
-						<td class="optsCell" style="width:40%">           
+						<td class="optsCell" style="width:38%">           
 							<fieldset class="optsGroup"><legend class="fieldSetTitle" style="background-color:#FFFF5F;">KUPKB gene/protein data</legend>
 								<table class="innerTable">
 									<?php
@@ -281,14 +294,14 @@ include('php/queries.php');
 										echo "<tr><td class=\"innerCell\">";
 										echo "<span class=\"boldText\">Disease: </span>";
 										echo "</td><td class=\"innerCell\">";
-										echo html_selectbox('disease_list',$disease,'NULL',array('size' => '2', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'disease_list\')'));
+										echo html_selectbox('disease_list',$disease,'NULL',array('multiple' => 'multiple', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'disease_list\')'));
 										echo "</td></tr>";
 										
 										$location = array('0' => 'Select...');
 										echo "<tr><td class=\"innerCell\">";
 										echo "<span class=\"boldText\">Location: </span>";
 										echo "</td><td class=\"innerCell\">";
-										echo html_selectbox('location_list',$location,'NULL',array('size' => '2', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'location_list\')'));
+										echo html_selectbox('location_list',$location,'NULL',array('multiple' => 'multiple', => '2', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'location_list\')'));
 										echo "</td></tr>";
 										
 										$dataset = array('0' => 'Select...');
@@ -327,7 +340,7 @@ include('php/queries.php');
 								</table>
 							</fieldset>
 						</td>
-						<td class="optsCell" style="width:40%">           
+						<td class="optsCell" style="width:38%">           
 							<fieldset class="optsGroup"><legend class="fieldSetTitle">KUPKB miRNA data</legend>
 								<table class="innerTable">
 									<?php										
@@ -335,14 +348,14 @@ include('php/queries.php');
 										echo "<tr><td class=\"innerCell\">";
 										echo "<span class=\"boldText\">Disease: </span>";
 										echo "</td><td class=\"innerCell\">";
-										echo html_selectbox('disease_mirna_list',$disease_mirna,'NULL',array('size' => '2', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'disease_mirna_list\')'));
+										echo html_selectbox('disease_mirna_list',$disease_mirna,'NULL',array('multiple' => 'multiple', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'disease_mirna_list\')'));
 										echo "</td></tr>";
 										
 										$location_mirna = array('0' => 'Select...');
 										echo "<tr><td class=\"innerCell\">";
 										echo "<span class=\"boldText\">Location: </span>";
 										echo "</td><td class=\"innerCell\">";
-										echo html_selectbox('location_mirna_list',$location_mirna,'NULL',array('size' => '2', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'location_mirna_list\')'));
+										echo html_selectbox('location_mirna_list',$location_mirna,'NULL',array('multiple' => 'multiple', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'location_mirna_list\')'));
 										echo "</td></tr>";
 										
 										$dataset_mirna = array('0' => 'Select...');
@@ -381,7 +394,7 @@ include('php/queries.php');
 								</table>
 							</fieldset>
 						</td>
-						<td class="optsCell" style="width:20%">
+						<td class="optsCell" style="width:24%">
 							<div>
 								<fieldset class="optsGroup"><legend class="fieldSetTitle">Displayed interactions</legend>
 									<input type="checkbox" id="binding_check" checked disabled onclick="filterEdges()"><label for="binding_check"><span style="color:#028E9B; font-weight:bold;"> binding &mdash;</span></label><br/>
@@ -582,7 +595,7 @@ include('php/queries.php');
 											</tr>
 											<tr>
 											<td colspan=3 class="layoptCell">Edges among neighbors 
-											<img class="hint" id="neighbor_edge_tip" src="images/questionmark.png" title="Use these options to control the display of edges among genes/proteins after fetching neighbors for the selected node(s). If 'all' is selected, the relationships between the new nodes that are added to the network after asking for neighboring genes will also be displayed (resulting possibly in a fuzzy view). If 'only with selected genes(s)' is selected, only edges to the selected gene(s) are displayed."/>
+											<img class="hint" id="neighbor_edge_tip" src="images/questionmark.png" title="Use these options to control the display of edges among genes/proteins after fetching neighbors for the selected node(s). If 'all' is selected, the relationships between the new nodes added to the network will also be displayed (resulting possibly in a fuzzy view). If 'only with selected genes(s)' is selected, only edges to the selected gene(s) are displayed."/>
 											</td>
 											</tr>
 											<tr>
@@ -594,7 +607,7 @@ include('php/queries.php');
 											</td>
 											</tr>
 											<tr>
-											<td class="layoptCell" style="width:33%"><label for="score_threshold">Score&nbsp;&nbsp;&nbsp;</label><input type="text" id="score_threshold" name="score_threshold" value="0.4" size="3" onblur="mySimpleValidation(['score_threshold'])" /></td>
+											<td class="layoptCell" style="width:33%"><label for="score_threshold">Score&nbsp;&nbsp;&nbsp;</label><input type="text" id="score_threshold" name="score_threshold" value="0.2" size="3" onblur="mySimpleValidation(['score_threshold'])" /></td>
 											<td colspan=2 class="layoptCell" style="width:66%">&nbsp;</td>
 											</tr>
 											<tr>
@@ -640,8 +653,8 @@ include('php/queries.php');
 											</td>
 											</tr>
 											<tr>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_gene_check" onclick="toggleMultiKidney('gene','disease')" disabled /><label for="multidisease_gene_check"> genes/proteins</label></td>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_mirna_check" onclick="toggleMultiKidney('mirna','disease')" disabled /><label for="multidisease_mirna_check"> miRNAs</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_gene_check" onclick="toggleMultiKidney('gene','disease')" checked disabled /><label for="multidisease_gene_check"> genes/proteins</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_mirna_check" onclick="toggleMultiKidney('mirna','disease')" checked disabled /><label for="multidisease_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
 											<td colspan=4 class="layoptCell">Allow multiple location selection
@@ -649,8 +662,8 @@ include('php/queries.php');
 											</td>
 											</tr>
 											<tr>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_gene_check" onclick="toggleMultiKidney('gene','location')" disabled /><label for="multilocation_gene_check"> genes/proteins</label></td>
-											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_mirna_check" onclick="toggleMultiKidney('mirna','location')" disabled /><label for="multilocation_mirna_check"> miRNAs</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_gene_check" onclick="toggleMultiKidney('gene','location')" checked disabled /><label for="multilocation_gene_check"> genes/proteins</label></td>
+											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_mirna_check" onclick="toggleMultiKidney('mirna','location')" checked disabled /><label for="multilocation_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
 											<td colspan=4 class="layoptCell">Multiply colored node annotation
@@ -780,6 +793,7 @@ include('php/queries.php');
 				 'sigsize_tip','gene_mode_tip','mirna_mode_tip','neighbor_tip','neighbor_edge_tip',
 				 'multidisease_tip','multilocation_tip','allowclickcolor_tip',
 				 'multiannotation_gene_tip','interaction_score_tip']);
+	detectIE();
 </script>
 
 <!-- Here, PHP code for handling a call from the iKUP. It will receive the JSON, send it
@@ -790,6 +804,19 @@ if ($_POST['ikup_terms'])
 	echo "<script type=\"text/javascript\">search()</script>";
 }
 ?>
+
+<!-- Piwik --> 
+<script type="text/javascript">
+var pkBaseURL = (("https:" == document.location.protocol) ? "https://194.57.225.115/piwik/" : "http://194.57.225.115/piwik/");
+document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script type="text/javascript">
+try {
+var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", 3);
+piwikTracker.trackPageView();
+piwikTracker.enableLinkTracking();
+} catch( err ) {}
+</script><noscript><p><img src="http://194.57.225.115/piwik/piwik.php?idsite=3" style="border:0" alt="" /></p></noscript>
+<!-- End Piwik Tracking Code -->
 </body>
 </html>
 
