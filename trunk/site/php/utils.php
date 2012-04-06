@@ -44,4 +44,17 @@ function array_unshift_assoc(&$arr,$key,$val)
 	$arr = array_reverse($arr,true); 
 	return $arr; 
 }
+
+function getAnnotationAnomalies()
+{
+	$anomalies = array();
+	$anomalies[] = "scherer_haller_iftahumankidney";
+	return($anomalies);
+}
+
+function isAnomaly($dataset)
+{
+	$anomalies = getAnnotationAnomalies();
+	return(in_array($dataset,$anomalies));
+}
 ?>

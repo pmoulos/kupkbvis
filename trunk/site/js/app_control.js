@@ -53,7 +53,11 @@ function bindAutoComplete(id)
 				topush = truncOrg(ui.item.value);
 				terms.push(topush); // add the selected item
 				terms.push(""); // add placeholder to get the comma-and-space at the end
-				this.value = terms.join("\n");
+				if (whichIE() !== 99)
+				{
+					this.value = terms.join("\n");
+				}
+				else { this.value = terms.join("\r\n"); }
 				return false;
 			}
 		});
@@ -2940,6 +2944,50 @@ function isNumber(n)
 function capFirst(str)
 {
     return str.charAt(0).toUpperCase() + str.substr(1);
+}
+
+function whichIE()
+{
+	if (/MSIE (\d+\.\d+);/.test(navigator.userAgent))
+	{
+		var ieversion=new Number(RegExp.$1)
+		if (ieversion>=8)
+			return(8);
+		else if (ieversion>=7)
+			return(7);		
+		else if (ieversion>=6)
+			return(6);
+		else if (ieversion>=5)
+			return(5);
+		else
+			return(99);
+    }
+}
+
+function detectIE()
+{
+	if (/MSIE (\d+\.\d+);/.test(navigator.userAgent))
+	{
+		var ieversion=new Number(RegExp.$1)
+		if (ieversion>=7)
+		{
+			$("#ieDetect")
+			.html("<strong>Internet explorer 8 or higher detected: This site is optimized and best viewed in either Firefox, Chrome, Safari or Internet Explorer 9</strong>")
+			.show("fast");
+		}
+		else if (ieversion>=6)
+		{
+			$("#ieDetect")
+			.html("<strong>Internet explorer 7 or higher detected: This site is optimized and best viewed in either Firefox, Chrome, Safari or Internet Explorer 9</strong>")
+			.show("fast");
+		}
+		else if (ieversion>=5)
+		{
+			$("#ieDetect")
+			.html("<strong>Internet explorer 6 detected: This site hasn't been tested in your version of Internet Explorer, consider upgrading or get Firefox, Chrome, Safari or IE9 for a better, faster and safer experience</strong>")
+			.show("fast");
+		}
+    }
 }
 
 /*function debugMessage(msg)

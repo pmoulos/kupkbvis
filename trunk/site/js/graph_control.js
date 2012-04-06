@@ -65,13 +65,13 @@ function bypassNodeColors(ajaxData,type)
 	{
 		if (multicolor) // Aarrghhh...
 		{
-			if (ajaxData[i].type === "protein" && seen[ajaxData[i].entrez_id].length == 1)
+			if (ajaxData[i].type === "protein" && seen[ajaxData[i].entrez_id].length >= 1)
 			{
 				iShape = "ROUNDRECT";
 			}
-			else if (ajaxData[i].type === "protein" && seen[ajaxData[i].entrez_id].length > 1)
+			else if (ajaxData[i].type === "phosphoprotein" && seen[ajaxData[i].entrez_id].length >= 1)
 			{
-				iShape = "ROUNDRECT";
+				iShape = "RECTANGLE";
 			}
 			else if (ajaxData[i].type === "gene" && seen[ajaxData[i].entrez_id].length >= 1)
 			{
@@ -618,6 +618,10 @@ function gimmeGeneData(staticData,ajaxData)
 	{
 		nodeData.dataset = "";
 	}
+	else if (staticData['strength']==="Multiple" || staticData['expression']==="Multiple")
+	{
+		nodeData.dataset = "";
+	}
 	else
 	{
 		nodeData.dataset = "Experiment description: <a id=\"show_dataset\" class=\"infolink\" onclick=\"createDatasetDescription('" + staticData['dataset_id'] + "','page')\" onmouseover = \"createDatasetDescription('" + staticData['dataset_id'] + "','popup')\">here</a><br/>" +
@@ -892,7 +896,7 @@ function gimmeDatasetDescription(ajaxData,type)
 			"<p><span class=\"section-p\">Experimental information</span>" +
 			"<table class=\"popup\">" +
 			"<tr><td class=\"popup\" style=\"width:40%\">Species</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['species'] + "</td></tr>" +
-			"<tr><td class=\"popup\" style=\"width:40%\">Link</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['experiment_assay'] + "</td></tr>" +
+			"<tr><td class=\"popup\" style=\"width:40%\">Assay</td><td class=\"popup\" style=\"width:60%\">" + ajaxData['experiment_assay'] + "</td></tr>" +
 			"</table></p>";
 		dataData.external =
 			"<p><span class=\"section-p\">External references</span>" +
