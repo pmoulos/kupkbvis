@@ -599,6 +599,13 @@ function gimmeGeneData(staticData,ajaxData)
 	var msg;
 	var nodeData = {};
 
+	if (staticData['object_type'] === "supergene")
+	{
+		nodeData.label = "Gene symbol: <a class=\"infolink\" href=\"http://www.genecards.org/cgi-bin/carddisp.pl?gene=" + staticData['label'] + "\" target=\"_blank\">" + staticData['label'] + "</a><br/>";
+		msg = "<span style=\"color:#000000; font-weight:bold\">Supergene data</span><br/>" + nodeData.label
+		return(msg);
+	}
+
 	nodeData.id = "Ensembl protein: <span style=\"color:#FF0000\">" + staticData['id'] + "</span><br/>";
 	if (staticData['parent'] === '' || staticData['parent'] === null || staticData['parent'] === 'undefined')
 	{
@@ -1204,6 +1211,7 @@ function resetNodeData(type)
 	var redata = { strength: "", expression: "", ratio: 999, pvalue: 999, fdr: 999 };
 	var pNodes = [];
 	var cNodes = [];
+	var ccNodes = [];
 
 	switch(type)
 	{	
@@ -1352,6 +1360,7 @@ function initNodeStyle()
 			defaultValue: "ELLIPSE",
 			discreteMapper: nodeMapper.shapeMapper
 		},
+		compoundShape: "ELLIPSE",
 		borderWidth: 1,
 		borderColor: "#000000",
 		size: "auto",
@@ -1360,6 +1369,7 @@ function initNodeStyle()
 			defaultValue: "#F7F7F7",
 			discreteMapper: nodeMapper.metaMapper
 		},
+		compoundColor: "E0E0E0",
 		labelHorizontalAnchor: "center",
 		labelVerticalAnchor: "middle",
 		selectionColor: "#5FFFFB",
@@ -1370,6 +1380,7 @@ function initNodeStyle()
 			defaultValue: "normal",
 			discreteMapper: nodeMapper.fontWeightMapper
 		},
+		compoundLabelFontWeight: "bold",
         labelFontColor:
         {
             defaultValue: "#000000",
@@ -1421,6 +1432,7 @@ function initNodeMapper()
 			entries:
 			[
 				{ attrValue: "gene", value: "ELLIPSE" },
+				{ attrValue: "supergene", value: "ELLIPSE" },
 				{ attrValue: "component", value: "ROUNDRECT" },
 				{ attrValue: "function", value: "ROUNDRECT" },
 				{ attrValue: "process", value: "ROUNDRECT" },
@@ -1459,6 +1471,7 @@ function initNodeMapper()
 			entries:
 			[
 				{ attrValue: "gene", value: "#F7F7F7" },
+				{ attrValue: "supergene", value: "#FFFCEB" },
 				{ attrValue: "component", value: "#A468D5" },
 				{ attrValue: "function", value: "#BFA630" },
 				{ attrValue: "process", value: "#6E86D6" },
@@ -1472,6 +1485,7 @@ function initNodeMapper()
 			entries:
 			[
 				{ attrValue: "gene", value: "normal" },
+				{ attrValue: "supergene", value: "bold" },
 				{ attrValue: "component", value: "bold" },
 				{ attrValue: "function", value: "bold" },
 				{ attrValue: "process", value: "bold" },
@@ -1485,6 +1499,7 @@ function initNodeMapper()
             entries:
             [
                 { attrValue: "gene", value: "#000000" },
+                { attrValue: "supergene", value: "#000000" },
                 { attrValue: "component", value: "#000000" },
                 { attrValue: "function", value: "#000000" },
                 { attrValue: "process", value: "#000000" },
@@ -1548,8 +1563,8 @@ function initLayoutOpts()
 	{
 		ForceDirected:
 		{
-			gravitation: -500,
-			node_mass: 5,
+			gravitation: -50,
+			node_mass: 2,
 			edge_tension: 0.5
 		},
 		Circle:

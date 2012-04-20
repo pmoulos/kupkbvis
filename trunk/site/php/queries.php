@@ -18,7 +18,7 @@ $entrez_from_any_2_2 = ' OR genes.entrez_id IN ';
 $entrez_from_any_2_3 = ' OR entrez_to_uniprot.uniprot_id IN ';
 $entrez_from_any_2_4 = ' OR entrez_to_ensembl.ensembl_gene IN ';
 $entrez_from_any_2_5 = ' OR entrez_to_ensembl.ensembl_protein IN ';
-$entrez_from_any_3 = ') AND species.tax_id=';
+$entrez_from_any_3 = ') AND species.tax_id IN ';
 $entrez_from_any_4 = ' GROUP BY genes.entrez_id';
 $union_mirna = ' UNION ';
 $mirna_from_input_1 = 'SELECT `mirna_id` AS `entity`,\'mirna\' AS `type` '.
@@ -26,7 +26,7 @@ $mirna_from_input_1 = 'SELECT `mirna_id` AS `entity`,\'mirna\' AS `type` '.
 					  'INNER JOIN `species` '.
 					  'ON mirna_to_ensembl.species=species.tax_id '.
 					  'WHERE `mirna_id` IN ';
-$mirna_from_input_2 = ' AND species.tax_id=';
+$mirna_from_input_2 = ' AND species.tax_id IN ';
 $mirna_from_input_3 = ' GROUP BY `mirna_id`';
 
 $entrez_from_symbol_1 = 'SELECT `entrez_id` '.
@@ -350,7 +350,7 @@ $allkupkb2protein_1 = 'SELECT DISTINCT `ensembl_protein` '.
 					  'ON genes.entrez_id=data.entrez_gene_id '.
 					  'WHERE data.entrez_gene_id<>\'NULL\' AND data.entrez_gene_id<>\'\' '.
 					  ' AND data.dataset_id IN ';
-$allkupkb2protein_2	= ' AND genes.species=';
+$allkupkb2protein_2	= ' AND genes.species IN ';
 $allkupkb2protein_3 = ' UNION '.
 					  'SELECT entrez_to_uniprot.entrez_id '.
 					  'FROM `entrez_to_uniprot` INNER JOIN `data` '.
@@ -359,7 +359,7 @@ $allkupkb2protein_3 = ' UNION '.
 					  'ON entrez_to_uniprot.entrez_id=genes.entrez_id '.
 					  'WHERE (data.uniprot_id<>\'NULL\' AND data.uniprot_id<>\'\') '.
 					  ' AND data.dataset_id IN ';
-$allkupkb2protein_4 = 'AND genes.species=';
+$allkupkb2protein_4 = 'AND genes.species IN ';
 $allkupkb2protein_5 = ')';
 
 $allkupkbsymbols2protein = 'SELECT DISTINCT `ensembl_protein` '.

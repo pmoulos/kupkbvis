@@ -16,7 +16,7 @@ if ($_POST['root'])
 # Response to Select species dropdown list or the GO button
 if ($_REQUEST['species'])
 {
-    $species = (int)$_REQUEST['species'];
+    $species = $_REQUEST['species'];
 	$genes = $_REQUEST['genes'];
 	$genes = json_decode($genes,$assoc=TRUE);
     //$entrez = getEntrezFromSymbol($genes,$species);
@@ -381,7 +381,7 @@ if ($_REQUEST['target_data'])
 if ($_REQUEST['suggest_term'])
 {		
 	$term = $_REQUEST['suggest_term'];
-	$species = (int)$_REQUEST['suggest_species'];
+	$species = $_REQUEST['suggest_species'];
 	try
 	{
 		$result = getIndexedGenes($term,$species);
@@ -460,7 +460,8 @@ function getEntrezFromAnyAndMiRNA($terms,$species)
 			 $entrez_from_any_2_5.'(\''.$list_of_genes.'\')';
 	if (isset($species))
 	{
-		$query .= $entrez_from_any_3.$species.$entrez_from_any_4;
+		$list_of_species = is_array($species) ? implode(", ",$species) : $species;
+		$query .= $entrez_from_any_3.'('.$list_of_species.')'.$entrez_from_any_4;
 	}
 	else
 	{
@@ -471,7 +472,8 @@ function getEntrezFromAnyAndMiRNA($terms,$species)
 			  $mirna_from_input_1.'(\''.$list_of_genes.'\')';
 	if (isset($species))
 	{
-		$query .= $mirna_from_input_2.$species.$mirna_from_input_3;
+		$list_of_species = is_array($species) ? implode(", ",$species) : $species;
+		$query .= $mirna_from_input_2.'('.$list_of_species.')'.$mirna_from_input_3;
 	}
 	else
 	{
@@ -980,7 +982,11 @@ function getAutocompGenes($term,$species)
 	{
 		$query = $auto_genes_1.'\'%'.$term.'%\'';
 	}
-	else { $query = $auto_genes_1.'\'%'.$term.'%\''.$auto_genes_2.$species; }
+	else
+	{
+		$list_of_species = is_array($species) ? implode(", ",$species) : $species;
+		$query = $auto_genes_1.'\'%'.$term.'%\''.$auto_genes_2.'('.$species.')';
+	}
 	$result = mysql_query($query,$conn);
 	while (list($g,$d,$n) = mysql_fetch_array($result))
 	{
@@ -1623,18 +1629,49 @@ function initNodes($entrez,$mirna)
 {
 	global $init_nodes;
 	$nodes = array();
+	$super = array();
 	$conn = open_connection();
 	
 	$gene_list = '('.implode(", ",$entrez).')';
 	$query = $init_nodes.$gene_list;
 	$result = mysql_query($query,$conn);
+
 	while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
+	{
+		$ilabel = strtolower($label);
+		$super[$ilabel][] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
+								  "strength" => "", "expression" => "",
+								  "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+								  "object_type" => "gene", "dataset_id" => "", "custom" => "");
+	}
+	
+	foreach ($super as $key => $value)
+	{
+		$size = count($super[$key]);
+		if ($size>1)
+		{
+			$nodes[] = array("id" => $key, "label" => $key, "entrez_id" => $key,
+							 "strength" => "", "expression" => "",
+							 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+							 "object_type" => "supergene", "dataset_id" => "", "custom" => "");
+			for ($i=0; $i<$size; $i++)
+			{
+				$nodes[] = array_merge($value[$i],array("parent" => $key));
+			}
+		}
+		else
+		{
+			$nodes[] = $value[0];
+		}
+	}
+	
+	/*while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
 	{
 		$nodes[] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
 						 "strength" => "", "expression" => "",
 						 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
 						 "object_type" => "gene", "dataset_id" => "", "custom" => "");
-	}
+	}*/
 
 	if (!empty($mirna))
 	{
@@ -1747,11 +1784,16 @@ function getIndexedGenes($term,$species)
 {
 	global $auto_genes,$auto_ensembl,$auto_mirna,$auto_uniprot;
 
+	if (isset($species))
+	{
+		$species = is_array($species) ? $species : array($species);
+	}
+	
 	$cl = new SphinxClient();
 	$cl->SetServer("localhost",60001);
 	$cl->SetLimits(0,100);
 	$cl->SetMatchMode(SPH_MATCH_ANY);
-	if (isset($species)) { $cl->SetFilter("species",array($species)); }
+	if (isset($species)) { $cl->SetFilter("species",$species); }
 	else { $cl->ResetFilters(); }
 	
 	$cl->AddQuery("*".$term."*","kupkbvis_entrez");
@@ -1879,9 +1921,10 @@ function getAllKUPKBGenesAsProteins($did,$conn)
 	if (!$conn) { $outside = FALSE; }
 
 	$d_list = is_array($did) ? '(\''.implode("', '",$did).'\')' : '\''.$did.'\'';
+	$s_list = is_array($species) ? '('.implode(", ",$species).')' : '('.$species.')';
 	if (!$outside) { $conn = open_connection(); } # else opened, called from outside
-	$query = $allkupkb2protein_1.$d_list.$allkupkb2protein_2.$species.
-			 $allkupkb2protein_3.$d_list.$allkupkb2protein_4.$species.
+	$query = $allkupkb2protein_1.$d_list.$allkupkb2protein_2.$s_list.
+			 $allkupkb2protein_3.$d_list.$allkupkb2protein_4.$s_list.
 			 $allkupkb2protein_5;
 	$result = mysql_query($query,$conn);
 	while ($row = mysql_fetch_array($result,MYSQL_NUM))
