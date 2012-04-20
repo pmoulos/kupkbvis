@@ -236,7 +236,7 @@ include('php/queries.php');
 									echo "<tr><td class=\"innerCell\">";
 									echo "<span class=\"boldText\">Species: </span>";
 									echo "</td><td class=\"innerCell\">";
-									echo html_selectbox('species_list',$species,'NULL',array('style' => 'font-size:1em', 'onchange' => 'update(\'species_list\')'));
+									echo html_selectbox('species_list',$species,'NULL',array('multiple' => 'multiple', 'onchange' => 'update(\'species_list\')'));
 									echo "</td></tr>";
 								?>
 								</table>
@@ -301,7 +301,7 @@ include('php/queries.php');
 										echo "<tr><td class=\"innerCell\">";
 										echo "<span class=\"boldText\">Location: </span>";
 										echo "</td><td class=\"innerCell\">";
-										echo html_selectbox('location_list',$location,'NULL',array('multiple' => 'multiple', => '2', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'location_list\')'));
+										echo html_selectbox('location_list',$location,'NULL',array('multiple' => 'multiple', 'style' => 'height:5em', 'disabled' => 'disabled', 'onchange' => 'update(\'location_list\')'));
 										echo "</td></tr>";
 										
 										$dataset = array('0' => 'Select...');
@@ -564,7 +564,7 @@ include('php/queries.php');
 									<td class="innerCell">
 										<table class="innerTable">
 											<tr>
-											<td colspan=3 class="layoptCell">Gene/protein search mode 
+											<td colspan=3 class="layoptCell"><strong>Gene/protein search mode</strong>
 											<img class="hint" id="gene_mode_tip" src="images/questionmark.png" title="Use these options to control how the disease/location lists are populated upon selections on any of the two for KUPKB genes/proteins. Free search displays all the diseases/locations for the queried genes constantly and only datasets are repopulated, re-populate refills the disease/location lists upon a selection in either, strict repopulates only once. Thus, to apply new criteria you must click the Reset button."/>
 											</td>
 											</tr>
@@ -574,7 +574,7 @@ include('php/queries.php');
 											<td class="layoptCell" style="width:33%"><input type="radio" id="gene_mode_strict_radio" name="gene_mode_radio" checked disabled /><label for="gene_mode_strict_radio">strict</label></td>
 											</tr>
 											<tr>
-											<td colspan=3 class="layoptCell">miRNA search mode 
+											<td colspan=3 class="layoptCell"><strong>miRNA search mode</strong>
 											<img class="hint" id="mirna_mode_tip" src="images/questionmark.png" title="Use these options to control how the disease/location lists are populated upon selections on any of the two for KUPKB miRNAs. Free search displays all the diseases/locations for the queried miRNAs constantly and only datasets are repopulated, re-populate refills the disease/location lists upon a selection in either, strict repopulates only once. Thus, to apply new criteria you must click the Reset button."/>
 											</td>
 											</tr>
@@ -584,7 +584,7 @@ include('php/queries.php');
 											<td class="layoptCell" style="width:33%"><input type="radio" id="mirna_mode_strict_radio" name="mirna_mode_radio" checked disabled /><label for="mirna_mode_strict_radio">strict</label></td>
 											</tr>
 											<tr>
-											<td colspan=3 class="layoptCell">Neighbor search mode 
+											<td colspan=3 class="layoptCell"><strong>Neighbor search mode</strong>
 											<img class="hint" id="neighbor_tip" src="images/questionmark.png" title="Use these options to control the behavior of the application when fetching the neighbors of a selected gene/protein. If 'all' is selected, all the selected organism genes which have a relationship with the selected one(s) will be displayed whereas if 'only in KUPKB is selected, only neighbors that have a role in the relative KUPKB datasets (2nd tab) will be displayed instead of all genes of the species."/>
 											</td>
 											</tr>
@@ -594,7 +594,7 @@ include('php/queries.php');
 											<td class="layoptCell" style="width:33%">&nbsp;</td>
 											</tr>
 											<tr>
-											<td colspan=3 class="layoptCell">Edges among neighbors 
+											<td colspan=3 class="layoptCell"><strong>Edges among neighbors</strong>
 											<img class="hint" id="neighbor_edge_tip" src="images/questionmark.png" title="Use these options to control the display of edges among genes/proteins after fetching neighbors for the selected node(s). If 'all' is selected, the relationships between the new nodes added to the network will also be displayed (resulting possibly in a fuzzy view). If 'only with selected genes(s)' is selected, only edges to the selected gene(s) are displayed."/>
 											</td>
 											</tr>
@@ -602,7 +602,7 @@ include('php/queries.php');
 											<td class="layoptCell" style="width:33%"><input type="radio" id="edge_all_radio" name="edge_radio" disabled checked /><label for="edge_all_radio">all possible</label></td>
 											<td colspan=2 class="layoptCell" style="width:66%"><input type="radio" id="edge_one_radio" name="edge_radio" disabled /><label for="edge_one_radio">with selected gene(s)/protein(s)</label></td>
 											</tr>
-											<td colspan=3 class="layoptCell">Interactions score threshold
+											<td colspan=3 class="layoptCell"><strong>Interactions score threshold</strong>
 											<img class="hint" id="interaction_score_tip" src="images/questionmark.png" title="Enter the displayed interactions score threshold. For the description of this score please look at the website of the STRING database. You will have to reinitialize the network for the changes to be applied."/>
 											</td>
 											</tr>
@@ -630,7 +630,7 @@ include('php/queries.php');
 									<td class="innerCell">
 										<table class="innerTable">
 											<tr>
-											<td colspan=4 class="layoptCell">Allow coloring on dataset(s) click
+											<td colspan=4 class="layoptCell"><strong>Allow coloring on dataset(s) click</strong>
 											<img class="hint" id="allowclickcolor_tip" src="images/questionmark.png" title="Check this box to allow the coloring of network nodes simply by clicking on the dataset name(s) in the list. Otherwise, the respective button must be pressed. Uncheck this box to explore the datasets without excessive workload for the server or check for fast exploration of smaller queries."/>
 											</td>
 											</tr>
@@ -639,7 +639,7 @@ include('php/queries.php');
 											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="allow_click_color_mirna_check" onclick="toggleClickColor('mirna')" disabled /><label for="allow_click_color_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
-											<td colspan=4 class="layoptCell">Allow multiple node coloring
+											<td colspan=4 class="layoptCell"><strong>Allow multiple node coloring</strong>
 											<img class="hint" id="multicolor_tip" src="images/questionmark.png" title="Check this to allow mutliple colors in a gene/miRNA in the network, if found to be present in multiple selected datasets. Expression in multiple datasets will be represented by a larger node containing several smaller ones, according to the number of the datasets. Each one will be colored based on the expression recorded in the dataset. If unchecked, a grey node will represent multiple found genes."/>
 											</td>
 											</tr>
@@ -648,7 +648,7 @@ include('php/queries.php');
 											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multicolor_mirna_check" onclick="checkMultiColor('mirna')" checked disabled /><label for="multicolor_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
-											<td colspan=4 class="layoptCell">Allow multiple disease selection
+											<td colspan=4 class="layoptCell"><strong>Allow multiple disease selection</strong>
 											<img class="hint" id="multidisease_tip" src="images/questionmark.png" title="Check these boxes to allow multiple selections to be made in the disease lists connected to the queried genes/proteins/miRNAs in the second tab of the application. You should be careful when using this option though as the resulting view might be extremely fuzzy and slow down the application."/>
 											</td>
 											</tr>
@@ -657,7 +657,7 @@ include('php/queries.php');
 											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multidisease_mirna_check" onclick="toggleMultiKidney('mirna','disease')" checked disabled /><label for="multidisease_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
-											<td colspan=4 class="layoptCell">Allow multiple location selection
+											<td colspan=4 class="layoptCell"><strong>Allow multiple location selection</strong>
 											<img class="hint" id="multilocation_tip" src="images/questionmark.png" title="Check these boxes to allow multiple selections to be made in the location lists connected to the queried genes/proteins/miRNAs in the second tab of the application. You should be careful when using this option though as the resulting view might be extremely fuzzy and slow down the application."/>
 											</td>
 											</tr>
@@ -666,7 +666,7 @@ include('php/queries.php');
 											<td colspan=2 class="layoptCell" style="width:50%"><input type="checkbox" id="multilocation_mirna_check" onclick="toggleMultiKidney('mirna','location')" checked disabled /><label for="multilocation_mirna_check"> miRNAs</label></td>
 											</tr>
 											<tr>
-											<td colspan=4 class="layoptCell">Multiply colored node annotation
+											<td colspan=4 class="layoptCell"><strong>Multiply colored node annotation</strong>
 											<img class="hint" id="multiannotation_gene_tip" src="images/questionmark.png" title="Check these boxes to control the information displayed inside nodes when multiple node coloring is allowed. Having everything checked might render the network too complex to view when querying many genes/proteins. Type is either gene or protein."/>
 											</td>
 											</tr>

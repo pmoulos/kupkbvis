@@ -103,7 +103,6 @@ function search(input)
 	if (!$.isEmptyObject(enteredTerms))
 	{
 		var searchJSON = $.toJSON(enteredTerms);
-		var sorted = [];
 		$.ajax(
 		{
 			type: 'POST',
@@ -1077,7 +1076,7 @@ function colorNodes(type)
 				if (selDisease[0] === "-data with no disease associated-") { selDisease = ''; }
 			}
 			
-			resetNodeData('gene');
+			//resetNodeData('gene');
 			$.ajax(
 			{
 				type: 'POST',
@@ -1560,6 +1559,9 @@ function initNetwork(networkJSON)
 							},
 							dataType: "json"
 						});
+						break;
+					case 'supergene':
+						gimmeNodeData('gene',target.data,{});
 						break;
 					case 'component':
 						gimmeNodeData('go',target.data,{});
@@ -2108,9 +2110,9 @@ function modalLayoutParamForm(tit)
 		"<table class=\"innerTable\">" +
 		"<tr>" +
 		"<td class=\"layoptCell\"><label for=\"force_gravitation\">Gravitation:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"5\" value=\"-500\" /></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"5\" value=\"-50\" /></td>" +
 		"<td class=\"layoptCell\"><label for=\"force_node_mass\">Node mass:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"5\" value=\"5\" /></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"5\" value=\"2\" /></td>" +
 		"</tr>" +
 		"<tr>" +
 		"<td class=\"layoptCell\"><label for=\"force_edge_tension\">Edge tension:</label></td>" +
