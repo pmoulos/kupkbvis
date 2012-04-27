@@ -316,6 +316,10 @@ function update(id)
 				$("#disease_mirna_list").data("locked",false);
 				$("#location_mirna_list").data("locked",false);
 
+				// Enable/disable multiple species view options
+				if ($("#species_list option:selected").length > 1) { enable(['ms_compound_radio','ms_merged_radio']); }
+				else { disable(['ms_compound_radio','ms_merged_radio']); }
+
 				// In this case, entrez genes will return an empty network as they are species
 				// specific... We have to get back gene symbols which will be then queried
 				// but the query ignores letter case
@@ -1076,7 +1080,7 @@ function colorNodes(type)
 				if (selDisease[0] === "-data with no disease associated-") { selDisease = ''; }
 			}
 			
-			//resetNodeData('gene');
+			resetNodeData('gene');
 			$.ajax(
 			{
 				type: 'POST',
@@ -1530,7 +1534,43 @@ function initNetwork(networkJSON)
 		$("#cytoscapeweb").data("visObject",vis);
 		$("#cytoscapeweb").data("layout",layOpts);
 		$("#cytoscapeweb").data("bypass", { nodes: { }, edges: { } });
-		
+		$("#cytoscapeweb").data("userdata", {});
+
+		// Draw what should be drawn in case of multiple organisms
+		multispecies = getMultiSpeciesStatus();
+		multigene = getMultiGeneStatus();
+		if (multispecies)
+		{
+			var i;
+			if (multigene)
+			{
+				var edgesToHide = [];
+				edges = vis.edges();
+				for (i=0; i<edges.length; i++)
+				{
+					if (edges[i].data.interaction.match(/^super/))
+					{
+						edgesToHide.push(edges[i].data.id);
+					}
+				}
+				hideSomeEdges(edgesToHide);
+			}
+			else
+			{
+				var nodesToHide = [];
+				nodes = vis.nodes();
+				for (i=0; i<nodes.length; i++)
+				{
+					if (nodes[i].data.parent == undefined)
+					{
+						nodesToHide.push(nodes[i].data.id);
+					}
+				}
+				vis.filter("nodes",nodesToHide);
+			}
+			recalculateLayout("CompoundSpringEmbedder");
+		}
+
 		function displaySingleInfo(event)
 		{
 			urlBase = initMe();
@@ -1670,11 +1710,13 @@ function fetchNeighbors(level)
 	var allNodeIDs = [];
 	var sn = selNodes.length;
 	var an = allNodes.length;
-	var i = 0;
+	var children;
+	var i, j;
 	var nSearch = "";
 	var eSearch = "";
 	var currDatasets = [];
 	var score = $("#score_threshold").val();
+	var multiView = false;
 
 	if (sn === 0) // Nothing selected
 	{
@@ -1704,9 +1746,19 @@ function fetchNeighbors(level)
 		eSearch = "selected";
 	}
 
+	// In case of supernodes, we have to get all their children
 	for (i=0; i<sn; i++)
 	{
-		selNodeIDs.push(selNodes[i].data.id);
+		if (selNodes[i].data.object_type === "supergene")
+		{
+			multiView = true;
+			children = vis.childNodes(selNodes[i].data.id);
+			for (j=0; j<children.length; j++)
+			{
+				selNodeIDs.push(children[j].data.id);
+			}
+			
+		} else { selNodeIDs.push(selNodes[i].data.id); }
 	}
 	for (i=0; i<an; i++)
 	{
@@ -1752,7 +1804,13 @@ function fetchNeighbors(level)
 					}
 				}
 				addElements(data);
-				filterEdges();
+				if (multiView)
+				{
+					var multiGene = getMultiGeneStatus();
+					if (multiGene) { updateMultiSpeciesView("compound"); }
+					else { updateMultiSpeciesView("merged"); }					
+				}
+				else { filterEdges(); }
 				search(entrezID);
 			}
 		},
@@ -2100,6 +2158,7 @@ function modalLayoutParamForm(tit)
 		"<option value=\"Circle\">Circle</option>" +
 		"<option value=\"Tree\">Tree</option>" +
 		"<option value=\"Radial\">Pizza</option>" +
+		"<option value=\"CompoundSpringEmbedder\">Compound</option>" +
 		"</select>" +
 		"</td></tr>" +
 		"<tr>" +
@@ -2110,9 +2169,9 @@ function modalLayoutParamForm(tit)
 		"<table class=\"innerTable\">" +
 		"<tr>" +
 		"<td class=\"layoptCell\"><label for=\"force_gravitation\">Gravitation:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"5\" value=\"-50\" /></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_gravitation\" size=\"5\" value=\"-500\" /></td>" +
 		"<td class=\"layoptCell\"><label for=\"force_node_mass\">Node mass:</label></td>" +
-		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"5\" value=\"2\" /></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"force_node_mass\" size=\"5\" value=\"5\" /></td>" +
 		"</tr>" +
 		"<tr>" +
 		"<td class=\"layoptCell\"><label for=\"force_edge_tension\">Edge tension:</label></td>" +
@@ -2168,6 +2227,18 @@ function modalLayoutParamForm(tit)
 							layoutOpts.Tree.breadth = parseFloat($("#tree_breadth").val());
 						} else { return; }
 						break;
+					case 'CompoundSpringEmbedder':
+						if (mySimpleValidation(['spring_gravitation','spring_central_gravitation','spring_central_gravity_distance',
+							'spring_compound_central_gravitation','spring_compound_central_gravity_distance','spring_edge_tension']))
+						{
+							layoutOpts.CompoundSpringEmbedder.gravitation = parseFloat($("#spring_gravitation").val());
+							layoutOpts.CompoundSpringEmbedder.central_gravitation = parseFloat($("#spring_central_gravitation").val());
+							layoutOpts.CompoundSpringEmbedder.central_gravity_distance = parseFloat($("#spring_central_gravity_distance").val());
+							layoutOpts.CompoundSpringEmbedder.compound_central_gravitation = parseFloat($("#spring_compound_central_gravitation").val());
+							layoutOpts.CompoundSpringEmbedder.compound_central_gravity_distance = parseFloat($("#spring_compound_central_gravity_distance").val());
+							layoutOpts.CompoundSpringEmbedder.edge_tension = parseFloat($("#spring_edge_tension").val());
+						} else { return; }
+						break;
 				}
 
 				$("#cytoscapeweb").data("layout",layoutOpts);
@@ -2208,6 +2279,18 @@ function modalLayoutParamForm(tit)
 							layoutOpts.Tree.orientation = $("#tree_orientation").val();
 							layoutOpts.Tree.depth = parseFloat($("#tree_depth").val());
 							layoutOpts.Tree.breadth = parseFloat($("#tree_breadth").val());
+						} else { return; }
+						break;
+					case 'CompoundSpringEmbedder':
+						if (mySimpleValidation(['spring_gravitation','spring_central_gravitation','spring_central_gravity_distance',
+							'spring_compound_central_gravitation','spring_compound_central_gravity_distance','spring_edge_tension']))
+						{
+							layoutOpts.CompoundSpringEmbedder.gravitation = parseFloat($("#spring_gravitation").val());
+							layoutOpts.CompoundSpringEmbedder.central_gravitation = parseFloat($("#spring_central_gravitation").val());
+							layoutOpts.CompoundSpringEmbedder.central_gravity_distance = parseFloat($("#spring_central_gravity_distance").val());
+							layoutOpts.CompoundSpringEmbedder.compound_central_gravitation = parseFloat($("#spring_compound_central_gravitation").val());
+							layoutOpts.CompoundSpringEmbedder.compound_central_gravity_distance = parseFloat($("#spring_compound_central_gravity_distance").val());
+							layoutOpts.CompoundSpringEmbedder.edge_tension = parseFloat($("#spring_edge_tension").val())
 						} else { return; }
 						break;
 				}
@@ -2291,7 +2374,28 @@ function updateLayoutOpts()
 		"<td class=\"layoptCell\"><input type=\"text\" id=\"tree_breadth\" size=\"5\" value=\"30\"/></td>" +
 		"</tr>" +
 		"</table>";
-
+	html.compound =
+		"<table class=\"innerTable\">" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"spring_gravitation\">Gravitation:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"spring_gravitation\" size=\"5\" value=\"-50\"/></td>" +
+		"<td class=\"layoptCell\"><label for=\"spring_edge_tension\">Edge tension:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"spring_edge_tension\" size=\"5\" value=\"50\"/></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"spring_central_gravitation\">Central gravitation:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"spring_central_gravitation\" size=\"5\" value=\"50\"/></td>" +
+		"<td class=\"layoptCell\"><label for=\"spring_central_gravity_distance\">Central gravity distance:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"spring_central_gravity_distance\" size=\"5\" value=\"50\"/></td>" +
+		"</tr>" +
+		"<tr>" +
+		"<td class=\"layoptCell\"><label for=\"spring_compound_central_gravitation\">Compound central gravitation:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"spring_compound_central_gravitation\" size=\"5\" value=\"100\"/></td>" +
+		"<td class=\"layoptCell\"><label for=\"spring_compound_central_gravity_distance\">Compound central gravity distance:</label></td>" +
+		"<td class=\"layoptCell\"><input type=\"text\" id=\"spring_compound_central_gravity_distance\" size=\"5\" value=\"5\"/></td>" +
+		"</tr>" +
+		"</table>";
+	
 	switch(layout)
 	{
 		case 'ForceDirected':
@@ -2305,6 +2409,9 @@ function updateLayoutOpts()
 			break;
 		case 'Tree':
 			$("#layoutOptionContainer").html(html.tree);
+			break;
+		case 'CompoundSpringEmbedder':
+			$("#layoutOptionContainer").html(html.compound);
 			break;
 	}
 }
@@ -2413,6 +2520,20 @@ function toggleMultiKidney(what,where)
 	}
 }
 
+function toggleMultiSpecies()
+{
+	if ($('#multiorganism_check').is(":checked"))
+	{
+		$('#species_list').removeAttr("size");
+		$('#species_list').attr("multiple","multiple");
+	}
+	else
+	{
+		$('#species_list').removeAttr("multiple");
+		$('#species_list').attr("size","2");
+	}
+}
+
 function checkLookup(what,where)
 {
 	switch(what)
@@ -2464,6 +2585,7 @@ function restoreDefaults(what)
 			$("#score_threshold").val(0.4);
 			break;
 		case 'color':
+			$("#multiorganism_dataset").attr("checked",true);
 			$("#allow_click_color_gene_check").attr("checked",false);
 			$("#allow_click_color_mirna_check").attr("checked",false);
 			$("#multicolor_gene_check").attr("checked","checked");
@@ -2517,7 +2639,7 @@ function loadingSmall()
 			 'neighbor_all_radio','neighbor_kupkb_radio','score_threshold',
 			 'edge_all_radio','edge_one_radio',
 			 'allow_click_color_gene_check','allow_click_color_mirna_check',
-			 'multicolor_gene_check','multicolor_mirna_check',
+			 'multicolor_gene_check','multicolor_mirna_check','multiorganism_check',
 			 'multidisease_gene_check','multidisease_mirna_check',
 			 'multilocation_gene_check','multilocation_mirna_check',
 			 'multiannotation_gene_disease','multiannotation_gene_location',
@@ -2526,7 +2648,7 @@ function loadingSmall()
 			 'fetch_neighbors_1','fetch_neighbors_2',
 			 'fetch_neighbors_11','fetch_neighbors_22','toggle_fullscreen',
 			 'hide_node','hide_edge','delete_node','delete_edge',
-			 'mark_neighbors','restore_network',
+			 'mark_neighbors','restore_network','ms_compound_radio','ms_merged_radio',
 			 'search_defaults','color_defaults']);
 	$("#layoutOptionContainer").find("input, button, select").attr("disabled","disabled");
 }
@@ -2552,7 +2674,7 @@ function unloadingSmall()
 			'neighbor_all_radio','neighbor_kupkb_radio','score_threshold',
 			'edge_all_radio','edge_one_radio',
 			'allow_click_color_gene_check','allow_click_color_mirna_check',
-			'multicolor_gene_check','multicolor_mirna_check',
+			'multicolor_gene_check','multicolor_mirna_check','multiorganism_check',
 			'multidisease_gene_check','multidisease_mirna_check',
 			'multilocation_gene_check','multilocation_mirna_check',
 			'multiannotation_gene_disease','multiannotation_gene_location',
@@ -2561,7 +2683,7 @@ function unloadingSmall()
 			'fetch_neighbors_1','fetch_neighbors_2',
 			'fetch_neighbors_11','fetch_neighbors_22','toggle_fullscreen',
 			'hide_node','hide_edge','delete_node','delete_edge',
-			'mark_neighbors','restore_network',
+			'mark_neighbors','restore_network','ms_compound_radio','ms_merged_radio',
 			'search_defaults','color_defaults']);
 	$("#layoutOptionContainer").find("input, button, select").removeAttr("disabled");
 
@@ -2770,7 +2892,18 @@ function split(val) { return val.split(/\n/); }
 
 function truncOrg(val) { return val.replace(/((\s+\-\s+)([\(\)\-\\\/,A-Za-z0-9]*\s*)*)+/,''); }
 
-function extractLast(term) { return split(term).pop(); }
+function extractLast(term)
+{
+	var empty = true;
+	arr = split(term);
+	while (empty)
+	{
+		val = arr.pop();
+		//empty = val.match(/^\n$/) !== null ? true : false;
+		empty = val === '\n' || val === '\r\n' || val === '' || val === ' ' ? true : false;
+	}
+	return val;
+}
 
 function fixKEGGClass(val) { return val.replace(/;\s+/,' - '); }
 
@@ -2916,11 +3049,71 @@ function mySimpleValidation(ids)
 					$("#score_threshold").val(0.4);
 				}
 				break;
+			case 'spring_gravitation':
+				if (!isNumber(cont) || cont<-1000 || cont>1000)
+				{
+					msg.push("Gravitation must be a number between -1000 and 1000");
+					isvalid = false;
+				}
+				break;
+			case 'spring_central_gravitation':
+				if (!isNumber(cont) || cont<-1000 || cont>1000)
+				{
+					msg.push("Central gravitation must be a number between -1000 and 1000");
+					isvalid = false;
+				}
+				break;
+			case 'spring_central_gravity_distance':
+				if (!isNumber(cont) || cont<-1000 || cont>1000)
+				{
+					msg.push("Central gravity distance must be a number between -1000 and 1000");
+					isvalid = false;
+				}
+				break;
+			case 'spring_compound_central_gravitation':
+				if (!isNumber(cont) || cont<-1000 || cont>1000)
+				{
+					msg.push("Compound central gravitation must be a number between -1000 and 1000");
+					isvalid = false;
+				}
+				break;
+			case 'spring_compound_central_gravity_distance':
+				if (!isNumber(cont) || cont<-1000 || cont>1000)
+				{
+					msg.push("Compound central gravity distance must be a number between -1000 and 1000");
+					isvalid = false;
+				}
+				break;
+			case 'spring_edge_tension':
+				if (!isNumber(cont) || cont<=0 || cont>100)
+				{
+					msg.push("Edge tension must be a number between 0 and 100 (not equal to 0)");
+					isvalid = false;
+				}
+				break;
 		}
 	}
 
 	if (!isvalid) { modalAlert(msg.join("<br/>"),"Alert!") };
 	return(isvalid);
+}
+
+function getMultiSpeciesStatus()
+{
+	var status = $("#species_list option:selected").length > 1 ? true : false;
+	return(status);
+}
+
+function getMultiGeneStatus()
+{
+	if ($("#ms_merged_radio").is(":checked"))
+	{
+		return(false);
+	}
+	else if ($("#ms_compound_radio").is(":checked"))
+	{
+		return(true);
+	}
 }
 
 function randomFromTo(from,to)

@@ -19,9 +19,9 @@ if ($_REQUEST['species'])
     $species = $_REQUEST['species'];
 	$genes = $_REQUEST['genes'];
 	$genes = json_decode($genes,$assoc=TRUE);
-    //$entrez = getEntrezFromSymbol($genes,$species);
-    $entities = getEntrezFromAnyAndMiRNA($genes,$species);
-    $entrez = $entities['entrez'];
+    $entities = getSymbolFromAnyAndMiRNA($genes);
+    $entrez = getEntrezFromSymbol($entities['symbol'],$species);
+    //$entrez = $entities['entrez'];
     $mirna_in = $entities['mirna'];
     
 	if (empty($entrez) && empty($mirna_in))
@@ -44,8 +44,9 @@ if ($_REQUEST['species'])
 				$display = initDataset($dataset);
 				$resultKUPKB = array("disease" => $disease, "location" => $location, "dataset" => $display);
 			}
+			$ms = count($species) > 1 ? TRUE : FALSE;
 			$go = initGO($entrez);
-			$kegg = initKEGG($entrez);
+			$kegg = initKEGG($entrez,$ms);
 			$mirna = initmiRNA($entrez);
 			$resultOther = array("go" => $go, "kegg" => $kegg, "mirna" => $mirna);
 		}
@@ -283,8 +284,9 @@ if ($_REQUEST['network']) // The network!
 	$mirna = $_SESSION['mirna'];
 	$proteins = $_SESSION['proteins'];
 	$schema = initDataSchema();
-	$nodes = initNodes($entrez,$mirna);
-	$edges = initEdges($proteins,$score);
+	$nodearr = initNodes($entrez,$mirna);
+	$nodes = $nodearr['nodes'];
+	$edges = initEdges($proteins,$score,$nodearr['ms']);
 
 	# Add additional input miRNA edges if any
 	if (!empty($mirna))
@@ -308,9 +310,11 @@ if ($_REQUEST['network']) // The network!
 if ($_REQUEST['go'])
 {
 	$proteins = $_SESSION['proteins'];
+	$species = $_SESSION['species'];
 	$gots = $_REQUEST['go'];
 	$gots = json_decode($gots,$assoc=TRUE);
-	$elements = getGOElements($gots,$proteins);
+	$ms = count($species) > 1 ? TRUE : FALSE;
+	$elements = getGOElements($gots,$proteins,$ms);
 	echo json_encode($elements,JSON_NUMERIC_CHECK);
 }
 
@@ -318,9 +322,11 @@ if ($_REQUEST['go'])
 if ($_REQUEST['kegg'])
 {
     $proteins = $_SESSION['proteins'];
+    $species = $_SESSION['species'];
     $keggs = $_REQUEST['kegg'];
     $keggs = json_decode($keggs,$assoc=TRUE);
-    $elements = getKEGGElements($keggs,$proteins);
+    $ms = count($species) > 1 ? TRUE : FALSE;
+    $elements = getKEGGElements($keggs,$proteins,$ms);
     echo json_encode($elements,JSON_NUMERIC_CHECK);
 }
 
@@ -328,9 +334,11 @@ if ($_REQUEST['kegg'])
 if ($_REQUEST['mirna'])
 {
     $proteins = $_SESSION['proteins'];
+    $species = $_SESSION['species'];
     $mirnas = $_REQUEST['mirna'];
     $mirnas = json_decode($mirnas,$assoc=TRUE);
-    $elements = getmiRNAElements($mirnas,$proteins);
+    $ms = count($species) > 1 ? TRUE : FALSE;
+    $elements = getmiRNAElements($mirnas,$proteins,$ms);
     echo json_encode($elements,JSON_NUMERIC_CHECK);
 }
 
@@ -440,51 +448,34 @@ function initSpecies()
 	return($species);	
 }
 
-function getEntrezFromAnyAndMiRNA($terms,$species)
+function getSymbolFromAnyAndMiRNA($terms)
 {					
-	global $entrez_from_any_1,$entrez_from_any_3,$entrez_from_any_4;
-	global $entrez_from_any_2_1,$entrez_from_any_2_2,$entrez_from_any_2_3,$entrez_from_any_2_4,$entrez_from_any_2_5;
+	global $symbol_from_any_1,$symbol_from_any_3;
+	global $symbol_from_any_2_1,$symbol_from_any_2_2,$symbol_from_any_2_3,$symbol_from_any_2_4,$symbol_from_any_2_5;
 	global $union_mirna;
-	global $mirna_from_input_1,$mirna_from_input_2,$mirna_from_input_3;
-	$entrez = array();
+	global $mirna_from_input_1,$mirna_from_input_2;
+	$symbol = array();
 	$mirna = array();
 	
 	$conn = open_connection();
 	$list_of_genes = is_array($terms) ? implode("', '",$terms) : $terms;
 	# Gene part
-	$query = $entrez_from_any_1.
-			 $entrez_from_any_2_1.'(\''.$list_of_genes.'\')'.
-			 $entrez_from_any_2_2.'(\''.$list_of_genes.'\')'.
-			 $entrez_from_any_2_3.'(\''.$list_of_genes.'\')'.
-			 $entrez_from_any_2_4.'(\''.$list_of_genes.'\')'.
-			 $entrez_from_any_2_5.'(\''.$list_of_genes.'\')';
-	if (isset($species))
-	{
-		$list_of_species = is_array($species) ? implode(", ",$species) : $species;
-		$query .= $entrez_from_any_3.'('.$list_of_species.')'.$entrez_from_any_4;
-	}
-	else
-	{
-		$query .= $entrez_from_any_4;
-	}
+	$query = $symbol_from_any_1.
+			 $symbol_from_any_2_1.'(\''.$list_of_genes.'\')'.
+			 $symbol_from_any_2_2.'(\''.$list_of_genes.'\')'.
+			 $symbol_from_any_2_3.'(\''.$list_of_genes.'\')'.
+			 $symbol_from_any_2_4.'(\''.$list_of_genes.'\')'.
+			 $symbol_from_any_2_5.'(\''.$list_of_genes.'\')'.
+			 $symbol_from_any_3;
 	# miRNA part
 	$query .= $union_mirna.
-			  $mirna_from_input_1.'(\''.$list_of_genes.'\')';
-	if (isset($species))
-	{
-		$list_of_species = is_array($species) ? implode(", ",$species) : $species;
-		$query .= $mirna_from_input_2.'('.$list_of_species.')'.$mirna_from_input_3;
-	}
-	else
-	{
-		$query .= $mirna_from_input_3;
-	}
+			  $mirna_from_input_1.'(\''.$list_of_genes.'\')'.$mirna_from_input_2;
 	$result = mysql_query($query,$conn);
-	while (list($entity,$type) = mysql_fetch_array($result))
+	while (list($entity,$sym,$type) = mysql_fetch_array($result))
 	{
 		if ($type == "gene")
 		{
-			$entrez[] = $entity;
+			$symbol[] = $sym;
 		}
 		else if ($type == "mirna")
 		{
@@ -492,7 +483,7 @@ function getEntrezFromAnyAndMiRNA($terms,$species)
 		}
 	}
 	close_connection($conn);
-	return(array("entrez" => $entrez, "mirna" => $mirna));
+	return(array("symbol" => $symbol, "mirna" => $mirna));
 }
 
 function getSymbolFromEntrez($entrez)
@@ -516,7 +507,8 @@ function getEntrezFromSymbol($genes,$species)
 	global $entrez_from_symbol_1,$entrez_from_symbol_2;
 	$conn = open_connection();
 	$list_of_genes = is_array($genes) ? implode("', '",$genes) : $genes;
-	$query = $entrez_from_symbol_1.'(\''.$list_of_genes.'\')'.$entrez_from_symbol_2.$species;
+	$list_of_species = is_array($species) ? implode(", ",$species) : $species;
+	$query = $entrez_from_symbol_1.'(\''.$list_of_genes.'\')'.$entrez_from_symbol_2.'('.$list_of_species.')';
 	$result = mysql_query($query,$conn);
 	while ($row = mysql_fetch_array($result,MYSQL_NUM))
 	{
@@ -856,8 +848,9 @@ function getRegulation($genes,$dataset,$disease,$location,$annotation)
 					 $get_coloring_3.$gene_list.$get_coloring_4_1.$dataset;
 					 $get_coloring_5.$gene_list.$get_coloring_6_1.$dataset;
 		}
+		//echo $query;
 		$result = mysql_query($query,$conn);
-		while (list($record_id,$dataset_id,$display_name,$d0,$d1,$b0,$b1,$cpl,$entrez_id,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
+		while (list($record_id,$dataset_id,$display_name,$d0,$d1,$b0,$b1,$cpl,$entrez_id,$sym,$expr_strength,$expr_de,$ratio,$pvalue,$fdr) = mysql_fetch_array($result))
 		{
 			if (preg_match('/^protein/i',$cpl))
 			{
@@ -892,9 +885,9 @@ function getRegulation($genes,$dataset,$disease,$location,$annotation)
 			$dep4 = $annotation['dataset'] == 1 ? utf8_encode($display_name) : "";
 			$desc = $dep1.$dep2.$dep3.$dep4;
 			//$type = preg_match('/protein/i',$cpl) ? "protein" : "gene";
-			$color_data[] = array("entrez_id" => $entrez_id, "strength" => $expr_strength, "expression" => $expr_de,
-								  "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, "dataset_id" => $dataset_id,
-								  "custom" => $desc, "type" => $type);
+			$color_data[] = array("entrez_id" => $entrez_id, "gene_symbol" => strtolower($sym), "strength" => $expr_strength, 
+								  "expression" => $expr_de, "ratio" => $ratio, "pvalue" => $pvalue, "fdr" => $fdr, 
+								  "dataset_id" => $dataset_id,"custom" => $desc, "type" => $type);
 		}
 		close_connection($conn);
 	}
@@ -996,13 +989,15 @@ function getAutocompGenes($term,$species)
 	return($opts);
 }
 
-function getGOElements($gots,$ensembl)
+function getGOElements($gots,$ensembl,$ms)
 {
 	global $get_go_1,$get_go_2;
+	global $init_super_edge_hash;
 	$go_nodes = array();
 	$go_edges = array();
 	$visited_go = array();
 	$visited_rel = array();
+	$eshash = array();
 	if(!empty($ensembl) && !empty($gots))
 	{
 		$conn = open_connection();			
@@ -1018,7 +1013,7 @@ function getGOElements($gots,$ensembl)
 									"data" => array("id" => $go_id, "label" => $go_term, "entrez_id" => $go_id,
 													"strength" => "", "expression" => "",
 													"ratio" => 999, "pvalue" => 999, "fdr" => 999,
-													"object_type" => strtolower($category)));
+													"object_type" => strtolower($category), "custom" => $protein));
 				$visited_go[$go_id] = 1;
 			}
 			if ($visited_rel[$edge_id] != 1) // Some pubmeds can cause damage
@@ -1030,24 +1025,45 @@ function getGOElements($gots,$ensembl)
 				$visited_rel[$edge_id] = 1;
 			}
 		}
+
+		if ($ms)
+		{
+			$query = $init_super_edge_hash.'(\''.$protein_list.'\')';
+			$result = mysql_query($query,$conn);
+			while(list($pro,$sym) = mysql_fetch_array($result))
+			{
+				$sehash[$pro] = $sym;
+			}
+			foreach ($go_nodes as $gn)
+			{
+				$go_edges[] = array("group" => "edges",
+								    "data" => array( "id" => $gn['data']['id']."_to_".$sehash[$gn['data']['custom']],
+								    "target" => $sehash[$gn['data']['custom']], "source" => $gn['data']['id'],
+								    "label" => "go","interaction" => "supergo", "custom" => $gn['data']['label']));
+			}
+		}
 		close_connection($conn);
 	}
 	return(array_merge($go_nodes,$go_edges));
 }
 
-function getKEGGElements($keggs,$ensembl)
+function getKEGGElements($keggs,$ensembl,$ms)
 {
     global $get_kegg_1,$get_kegg_2;
+    global $get_kegg_multi_1,$get_kegg_multi_2;
+    global $init_super_edge_hash;
     $kegg_nodes = array();
     $kegg_edges = array();
     $visited_kegg = array();
     $visited_rel = array();
+    $sehash = array();
     if(!empty($ensembl) && !empty($keggs))
     {
         $conn = open_connection();
         $protein_list = is_array($ensembl) ? implode("', '",$ensembl) : $ensembl;
         $kegg_list = is_array($keggs) ? implode("', '",$keggs) : $keggs;    
-        $query = $get_kegg_1.'(\''.$protein_list.'\')'.$get_kegg_2.'(\''.$kegg_list.'\')';
+        $query = !$ms ? $get_kegg_1.'(\''.$protein_list.'\')'.$get_kegg_2.'(\''.$kegg_list.'\')' :
+			$get_kegg_multi_1.'(\''.$protein_list.'\')'.$get_kegg_multi_2.'(\''.$kegg_list.'\')';
         $result = mysql_query($query,$conn);
         while (list($edge_id,$entrez_id,$kegg_id,$kegg_name,$kegg_class,$protein) = mysql_fetch_array($result))
         {
@@ -1059,30 +1075,50 @@ function getKEGGElements($keggs,$ensembl)
                                       "data" => array("id" => $kegg_id, "label" => $kegg_name, "entrez_id" => $kegg_id,
                                                       "strength" => $kegg_class, "expression" => "",
                                                       "ratio" => 999, "pvalue" => 999, "fdr" => 999,
-                                                      "object_type" => "pathway"));
+                                                      "object_type" => "pathway", "custom" => $protein));
                 $visited_kegg[$kegg_id] = 1;
             }
             if ($visited_rel[$edge_id] != 1) // Just in case... to be removed...
             {
                 $kegg_edges[] = array("group" => "edges",
                                       "data" => array("id" => $edge_id, "target" => $protein, "source" => $kegg_id,
-                                                    "interaction" => "kegg", "custom" => $kegg_name));
+                                      "interaction" => "kegg", "custom" => $kegg_name));
                 $visited_rel[$edge_id] = 1;
             }
         }
+
+        if ($ms)
+		{
+			$query = $init_super_edge_hash.'(\''.$protein_list.'\')';
+			$result = mysql_query($query,$conn);
+			while(list($pro,$sym) = mysql_fetch_array($result))
+			{
+				$sehash[$pro] = $sym;
+			}
+			foreach ($kegg_nodes as $kn)
+			{
+				$kegg_edges[] = array("group" => "edges",
+									  "data" => array( "id" => $kn['data']['id']."_to_".$sehash[$kn['data']['custom']],
+									  "target" => $sehash[$kn['data']['custom']], "source" => $kn['data']['id'],
+									  "label" => "kegg","interaction" => "superkegg", "custom" => $kn['data']['label']));
+			}
+		}
+		
         close_connection($conn);
     }
     return(array_merge($kegg_nodes,$kegg_edges));
 }
 
-function getmirnaElements($mirnas,$ensembl)
+function getmirnaElements($mirnas,$ensembl,$ms)
 {
 	global $get_mirna_1,$get_mirna_2;
+	global $init_super_edge_hash;
 	$session_mirna = $_SESSION['mirna'];
 	$mirna_nodes = array();
 	$mirna_edges = array();
 	$visited_mirna = array();
 	$visited_rel = array();
+	$ehash = array();
 	if(!empty($ensembl) && !empty($mirnas))
     {
         $conn = open_connection();
@@ -1098,7 +1134,7 @@ function getmirnaElements($mirnas,$ensembl)
                                        "data" => array("id" => $mirna_id, "label" => $mirna_id, "entrez_id" => $mirna_id,
                                                        "strength" => "", "expression" => "",
                                                        "ratio" => 999, "pvalue" => 999, "fdr" => 999,
-                                                       "object_type" => "mirna"));
+                                                       "object_type" => "mirna", "custom" => $protein));
                 $visited_mirna[$mirna_id] = 1;
                 # For coloring issues!
                 if (!in_array($mirna_id,$session_mirna)) { $session_mirna[] = $mirna_id; }
@@ -1111,6 +1147,23 @@ function getmirnaElements($mirnas,$ensembl)
                 $visited_rel[$edge_id] = 1;
             }
         }
+
+        if ($ms)
+		{
+			$query = $init_super_edge_hash.'(\''.$protein_list.'\')';
+			$result = mysql_query($query,$conn);
+			while(list($pro,$sym) = mysql_fetch_array($result))
+			{
+				$sehash[$pro] = $sym;
+			}
+			foreach ($mirna_nodes as $mn)
+			{
+				$mirna_edges[] = array("group" => "edges",
+									   "data" => array( "id" => $mn['data']['id']."_to_".$sehash[$mn['data']['custom']],
+									   "target" => $sehash[$mn['data']['custom']], "source" => $mn['data']['id'],
+									   "label" => "mirna","interaction" => "supermirna", "custom" => ""));
+			}
+		}
         close_connection($conn);
     }
     $_SESSION['mirna'] = $session_mirna;
@@ -1123,11 +1176,17 @@ function getmirnaElements($mirnas,$ensembl)
 function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 {
 	global $get_neighbors_1,$get_neighbors_2,$get_neighbors_3,$get_neighbors_4;
-	global $get_add_nodes,$get_add_edges_1,$get_add_edges_2;
+	global $get_add_nodes_1,$get_add_nodes_2,$get_add_edges_1,$get_add_edges_2;
+	global $init_super_edge_hash;
 	$neighbors = array();
 	$add_nodes = array();
 	$add_edges = array();
+	$super = array();
 	$adj = array();
+	$sehash = array();
+	$eshash = array();
+	$tmpedges = array();
+	$supedges = array();
 	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
 							  "expression" => "expression", "activation" => "activation",
 							  "inhibition" => "inhibition");
@@ -1187,17 +1246,51 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 		
 		# Keep in mind! The cytoscapeweb node and edge queries need to be run only once!
 		# Now fire more queries to get the network elements
+		$multi = FALSE;
 		$neighbor_list = implode("', '",$neighbors);
-		$query = $get_add_nodes.'(\''.$neighbor_list.'\')';
+		$query = $get_add_nodes_1.'(\''.$neighbor_list.'\')'.$get_add_nodes_2.'(\''.$neighbor_list.'\')';
 		$result = mysql_query($query,$conn);
 		while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
+		{
+			$ilabel = strtolower($label);
+			$super[$ilabel][] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
+									  "data" => array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
+													  "strength" => "", "expression" => "",
+													  "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+													  "object_type" => "gene", "dataset_id" => "", "custom" => ""));
+		}
+		foreach ($super as $key => $value)
+		{
+			$size = count($super[$key]);
+			if ($size>1)
+			{
+				$add_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
+									 "data" => array("id" => $key, "label" => $key, "entrez_id" => $key,
+									 "strength" => "", "expression" => "",
+									 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+									 "object_type" => "supergene", "dataset_id" => "", "custom" => ""));
+				for ($i=0; $i<$size; $i++)
+				{
+					$newdata = array_merge($value[$i]['data'],array("parent" => $key));
+					$value[$i]['data'] = $newdata;
+					$add_nodes[] = $value[$i];
+				}
+				$multi = TRUE;
+			}
+			else
+			{
+				$add_nodes[] = $value[0];
+			}
+		}
+
+		/*while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
 		{
 			$add_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
 								 "data" => array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
 												 "strength" => "", "expression" => "",
 												 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
 												 "object_type" => "gene"));
-		}
+		}*/
 
 		if ($level == 1) { $nodes = array_merge($nodes,$neighbors); } // Else already done
 		$all_list = implode("', '",$nodes); // Must be redefined, $_SESSION['proteins'] no longer enough...
@@ -1211,7 +1304,6 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 					 ' UNION '.
 					 $get_add_edges_1.'(\''.$neighbor_list.'\')'.$get_add_edges_2.'(\''.$selected_list.'\')';
 		}
-		
 		$result = mysql_query($query,$conn);
 		while (list($target,$source,$interaction) = mysql_fetch_array($result))
 		{
@@ -1255,28 +1347,99 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 				}
 			}
 		}
+		# Now the super edges...
+		if ($multi)
+		{
+			if ($es == "all")
+			{
+				$query = $init_super_edge_hash.'(\''.$all_list.'\')';
+			}
+			else if ($es == "selected")
+			{
+				$query = $init_super_edge_hash.'(\''.$selected_list.'\','.'\''.$neighbor_list.'\')';
+			}
+			$result = mysql_query($query,$conn);
+			while(list($pro,$sym) = mysql_fetch_array($result))
+			{
+				$sehash[$pro] = $sym;
+				$eshash[$sym] = 0;
+			}
+			 # Full of dirty hacks...
+			foreach($sehash as $k => $v)
+			{
+				$eshash[$v]++;
+			}
+			foreach ($add_edges as $compedge)
+			{
+				$edge = $compedge['data'];
+				if ($eshash[$sehash[$edge['source']]] > 1 && $eshash[$sehash[$edge['target']]] > 1)
+				{
+					$tmpedges[] = array("group" => "edges",
+										"data" => array("id" => $sehash[$edge['source']]."_to_".$sehash[$edge['target']]."_super".$edge['interaction'],
+														"target" => $sehash[$edge['target']], "source" => $sehash[$edge['source']],
+														"directed" => true, "label" => $interaction_hash["super".$edge['interaction']],
+														"interaction" => "super".$edge['interaction'], "custom" => ""));
+				}
+				else if ($eshash[$sehash[$edge['source']]] == 1 && $eshash[$sehash[$edge['target']]] > 1)
+				{
+					$tmpedges[] = array("group" => "edges",
+										"data" => array("id" => $edge['source']."_to_".$sehash[$edge['target']]."_super".$edge['interaction'],
+														"target" => $sehash[$edge['target']], "source" => $edge['source'],
+														"directed" => true, "label" => $interaction_hash["super".$edge['interaction']],
+														"interaction" => "super".$edge['interaction'], "custom" => ""));
+				}
+				else if ($eshash[$sehash[$edge['source']]] > 1 && $eshash[$sehash[$edge['target']]] == 1)
+				{
+					$tmpedges[] = array("group" => "edges",
+										"data" => array("id" => $sehash[$edge['source']]."_to_".$edge['target']."_super".$edge['interaction'],
+														"target" => $edge['target'], "source" => $sehash[$edge['source']],
+														"directed" => true, "label" => $interaction_hash["super".$edge['interaction']],
+														"interaction" => "super".$edge['interaction'], "custom" => ""));
+				}
+			}
+			foreach ($tmpedges as $edge)
+			{
+				if (!isset($seen[$edge['data']['id']]))
+				{
+					$supedges[] = $edge;
+					$seen[$edge['data']['id']] = 1;
+				}
+			}
+		}
 	}
-		
 	close_connection($conn);
-	
-	return(array_merge($add_nodes,$add_edges));
+
+	if (empty($supedges))
+	{
+		return(array_merge($add_nodes,$add_edges));
+	}
+	else
+	{
+		return(array_merge($add_nodes,array_merge($add_edges,$supedges)));
+	}
 	//return(array("elements" => array_merge($add_nodes,$add_edges), "entrez" => $new_entrez));
 }
 
 function getGeneData($gene,$species_id)
 {
 	global $get_gene;
+	$species = array();
 
 	// Get the species text from the DB
+	$species_list = is_array($species_id) ? implode(", ",$species_id) : $species_id;
 	$conn = open_connection();
-	$query = 'SELECT `name` FROM `species` WHERE `tax_id`='.$species_id;
+	$query = 'SELECT `name` FROM `species` WHERE `tax_id` IN '.'('.$species_list.')';
 	$result = mysql_query($query,$conn);
 	while ($row = mysql_fetch_array($result,MYSQL_NUM))
 	{
-		$species = $row[0];
+		$species[] = $row[0];
 	}		
 	close_connection($conn);
-	$species = ucfirst(implode("_",explode(" ",$species)));
+
+	foreach ($species as $k => $v)
+	{
+		$species[$k] = ucfirst(implode("_",explode(" ",$v)));
+	}
 
 	// Go on...
 	$gene_data = array();
@@ -1581,15 +1744,16 @@ function initGO($entrez)
 	return($goterms);
 }
 
-function initKEGG($entrez)
+function initKEGG($entrez,$multi)
 {
 	global $init_kegg_1,$init_kegg_2;
+	global $init_kegg_multi_1,$init_kegg_multi_2;
 	$keggs = array();
 	if(is_array($entrez) && !empty($entrez))
 	{
 		$conn = open_connection();
 		$gene_list = '('.implode(", ",$entrez).')';
-		$query = $init_kegg_1.$gene_list.$init_kegg_2;
+		$query = $multi ? $init_kegg_multi_1.$gene_list.$init_kegg_multi_2 : $init_kegg_1.$gene_list.$init_kegg_2;
 		$result = mysql_query($query,$conn);
 		while (list($id,$name,$class) = mysql_fetch_array($result))
 		{			    
@@ -1630,8 +1794,9 @@ function initNodes($entrez,$mirna)
 	global $init_nodes;
 	$nodes = array();
 	$super = array();
-	$conn = open_connection();
+	$multi = FALSE;
 	
+	$conn = open_connection();
 	$gene_list = '('.implode(", ",$entrez).')';
 	$query = $init_nodes.$gene_list;
 	$result = mysql_query($query,$conn);
@@ -1658,6 +1823,7 @@ function initNodes($entrez,$mirna)
 			{
 				$nodes[] = array_merge($value[$i],array("parent" => $key));
 			}
+			$multi = TRUE;
 		}
 		else
 		{
@@ -1690,18 +1856,25 @@ function initNodes($entrez,$mirna)
 	}
 	
 	close_connection($conn);
-	return($nodes);
+	return(array("nodes" => $nodes, "ms" => $multi));
 }
 
-function initEdges($ensembl,$score)
+function initEdges($ensembl,$score,$ms)
 {
-	global $init_edges_1,$init_edges_2,$init_edges_3;
+	global $init_edges_1,$init_edges_2,$init_edges_3,$init_super_edge_hash;
 	$predges = array();
 	$adj = array();
 	$edges = array();
+	$sehash = array();
+	$eshash = array();
+	$tmpedges = array();
+	$supedges = array();
+	$seen = array();
 	$interaction_hash = array("binding" => "binding", "ptmod" => "modification",
 							  "expression" => "expression", "activation" => "activation",
-							  "inhibition" => "inhibition");
+							  "inhibition" => "inhibition","superbinding" => "binding",
+							  "superptmod" => "modification","superexpression" => "expression",
+							  "superactivation" => "activation","superinhibition" => "inhibition");
 	if(is_array($ensembl) && !empty($ensembl))
 	{
 		$conn = open_connection();
@@ -1747,8 +1920,59 @@ function initEdges($ensembl,$score)
 				}
 			}
 		}
+
+		# Now the super edges...
+		if ($ms)
+		{
+			$query = $init_super_edge_hash.$pro_list;
+			$result = mysql_query($query,$conn);
+			while(list($pro,$sym) = mysql_fetch_array($result))
+			{
+				$sehash[$pro] = $sym;
+				$eshash[$sym] = 0;
+			}
+			 # Full of dirty hacks...
+			foreach($sehash as $k => $v)
+			{
+				$eshash[$v]++;
+			}
+			foreach ($edges as $edge)
+			{
+				if ($eshash[$sehash[$edge['source']]] > 1 && $eshash[$sehash[$edge['target']]] > 1)
+				{
+					$tmpedges[] = array("id" => $sehash[$edge['source']]."_to_".$sehash[$edge['target']]."_super".$edge['interaction'],
+										"target" => $sehash[$edge['target']], "source" => $sehash[$edge['source']],
+										"directed" => true, "label" => $interaction_hash["super".$edge['interaction']],
+										"interaction" => "super".$edge['interaction'], "custom" => "");
+				}
+				else if ($eshash[$sehash[$edge['source']]] == 1 && $eshash[$sehash[$edge['target']]] > 1)
+				{
+					$tmpedges[] = array("id" => $edge['source']."_to_".$sehash[$edge['target']]."_super".$edge['interaction'],
+										"target" => $sehash[$edge['target']], "source" => $edge['source'],
+										"directed" => true, "label" => $interaction_hash["super".$edge['interaction']],
+										"interaction" => "super".$edge['interaction'], "custom" => "");
+				}
+				else if ($eshash[$sehash[$edge['source']]] > 1 && $eshash[$sehash[$edge['target']]] == 1)
+				{
+					$tmpedges[] = array("id" => $sehash[$edge['source']]."_to_".$edge['target']."_super".$edge['interaction'],
+										"target" => $edge['target'], "source" => $sehash[$edge['source']],
+										"directed" => true, "label" => $interaction_hash["super".$edge['interaction']],
+										"interaction" => "super".$edge['interaction'], "custom" => "");
+				}
+			}
+			foreach ($tmpedges as $edge)
+			{
+				if (!isset($seen[$edge['id']]))
+				{
+					$supedges[] = $edge;
+					$seen[$edge['id']] = 1;
+				}
+			}
+		}
+
+		close_connection($conn);
 	}
-	return($edges);
+	return(array_merge($edges,$supedges));
 }
 
 function initDataSchema()
@@ -1764,6 +1988,7 @@ function initDataSchema()
 	$node_schema[] = array("name" => "object_type", "type" => "string");
 	$node_schema[] = array("name" => "dataset_id", "type" => "string");
 	$node_schema[] = array("name" => "custom", "type" => "string");
+	//$node_schema[] = array("name" => "userdata", "type" => "string");
 
 	$edge_schema = array();
 	$edge_schema[] = array("name" => "label", "type" => "string");
@@ -1946,6 +2171,62 @@ function getAllKUPKBGenesAsProteins($did,$conn)
 }
 
 /*
+function getEntrezFromAnyAndMiRNA($terms,$species)
+{					
+	global $entrez_from_any_1,$entrez_from_any_3,$entrez_from_any_4;
+	global $entrez_from_any_2_1,$entrez_from_any_2_2,$entrez_from_any_2_3,$entrez_from_any_2_4,$entrez_from_any_2_5;
+	global $union_mirna;
+	global $mirna_from_input_1,$mirna_from_input_2,$mirna_from_input_3;
+	$symbol = array();
+	$mirna = array();
+	
+	$conn = open_connection();
+	$list_of_genes = is_array($terms) ? implode("', '",$terms) : $terms;
+	# Gene part
+	$query = $entrez_from_any_1.
+			 $entrez_from_any_2_1.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_2.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_3.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_4.'(\''.$list_of_genes.'\')'.
+			 $entrez_from_any_2_5.'(\''.$list_of_genes.'\')';
+	if (isset($species))
+	{
+		$list_of_species = is_array($species) ? implode(", ",$species) : $species;
+		$query .= $entrez_from_any_3.'('.$list_of_species.')'.$entrez_from_any_4;
+	}
+	else
+	{
+		$query .= $entrez_from_any_4;
+	}
+	# miRNA part
+	$query .= $union_mirna.
+			  $mirna_from_input_1.'(\''.$list_of_genes.'\')';
+	if (isset($species))
+	{
+		$list_of_species = is_array($species) ? implode(", ",$species) : $species;
+		$query .= $mirna_from_input_2.'('.$list_of_species.')'.$mirna_from_input_3;
+	}
+	else
+	{
+		$query .= $mirna_from_input_3;
+	}
+	echo $query;
+	$result = mysql_query($query,$conn);
+	while (list($entity,$sym,$type) = mysql_fetch_array($result))
+	{
+		if ($type == "gene")
+		{
+			$symbol[] = $sym;
+		}
+		else if ($type == "mirna")
+		{
+			$mirna[] = $entity;
+		}
+	}
+	close_connection($conn);
+	return(array("symbol" => $symbol, "mirna" => $mirna));
+}
+
 function updateLocDataDisease($genes,$disease) 
 {
 	global $update_locdata_disease_1,$update_locdata_disease_2_1,$update_locdata_disease_2_2,$update_locdata_disease_3;
