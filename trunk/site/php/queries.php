@@ -5,34 +5,28 @@ $init_species = 'SELECT `tax_id`,`name` '.
 				'ORDER BY `name`';
 
 # Convert ANY input to entrez IDs to reduce subsequent burden */
-$entrez_from_any_1 = 'SELECT genes.entrez_id AS `entity`,\'gene\' AS `type` '.
+$symbol_from_any_1 = 'SELECT genes.entrez_id AS `entity`,genes.gene_symbol AS `symbol`,\'gene\' AS `type` '.
 					 'FROM `genes` INNER JOIN `entrez_to_uniprot` '.
 					 'ON genes.entrez_id=entrez_to_uniprot.entrez_id '.
 					 'INNER JOIN `entrez_to_ensembl` '.
 					 'ON genes.entrez_id=entrez_to_ensembl.entrez_id '.
-					 'INNER JOIN `species` '.
-					 'ON genes.species=species.tax_id '.
 					 'WHERE (';
-$entrez_from_any_2_1 = 'genes.gene_symbol IN ';
-$entrez_from_any_2_2 = ' OR genes.entrez_id IN ';
-$entrez_from_any_2_3 = ' OR entrez_to_uniprot.uniprot_id IN ';
-$entrez_from_any_2_4 = ' OR entrez_to_ensembl.ensembl_gene IN ';
-$entrez_from_any_2_5 = ' OR entrez_to_ensembl.ensembl_protein IN ';
-$entrez_from_any_3 = ') AND species.tax_id IN ';
-$entrez_from_any_4 = ' GROUP BY genes.entrez_id';
+$symbol_from_any_2_1 = 'genes.gene_symbol IN ';
+$symbol_from_any_2_2 = ' OR genes.entrez_id IN ';
+$symbol_from_any_2_3 = ' OR entrez_to_uniprot.uniprot_id IN ';
+$symbol_from_any_2_4 = ' OR entrez_to_ensembl.ensembl_gene IN ';
+$symbol_from_any_2_5 = ' OR entrez_to_ensembl.ensembl_protein IN ';
+$symbol_from_any_3 = ') GROUP BY genes.entrez_id';
 $union_mirna = ' UNION ';
-$mirna_from_input_1 = 'SELECT `mirna_id` AS `entity`,\'mirna\' AS `type` '.
+$mirna_from_input_1 = 'SELECT `mirna_id` AS `entity`,`mirna_id` AS `symbol`,\'mirna\' AS `type` '.
 					  'FROM `mirna_to_ensembl` '.
-					  'INNER JOIN `species` '.
-					  'ON mirna_to_ensembl.species=species.tax_id '.
 					  'WHERE `mirna_id` IN ';
-$mirna_from_input_2 = ' AND species.tax_id IN ';
-$mirna_from_input_3 = ' GROUP BY `mirna_id`';
+$mirna_from_input_2 = ' GROUP BY `mirna_id`';
 
 $entrez_from_symbol_1 = 'SELECT `entrez_id` '.
 						'FROM `genes` '.
 						'WHERE `gene_symbol` IN ';
-$entrez_from_symbol_2 = ' AND `species`=';
+$entrez_from_symbol_2 = ' AND `species` IN ';
 
 # Get gene symbols from entrez... Useful in case of neighbors being called and wanting to
 # change species...
@@ -85,6 +79,15 @@ $init_kegg_1 = 'SELECT kegg_pathways.pathway_id,`name`,`class` '.
 			   'WHERE pathway_members.entrez_member IN ';
 $init_kegg_2 = ' GROUP BY kegg_pathways.pathway_id';
 
+/* Fill the KEGG pathways drop down, multiple species */
+$init_kegg_multi_1 = 'SELECT `ref_id`,`name`,`class` '.
+					 'FROM `kegg_reference` INNER JOIN `kegg_pathways` '.
+					 'ON kegg_reference.path_id=kegg_pathways.pathway_id '.
+					 'INNER JOIN `pathway_members` '.
+					 'ON kegg_pathways.pathway_id=pathway_members.pathway_id '.
+					 'WHERE pathway_members.entrez_member IN ';
+$init_kegg_multi_2 = ' GROUP BY `ref_id`';
+
 /* Fill the miRNA drop down */
 $init_mirna = 'SELECT DISTINCT `mirna_id` '.
 			  'FROM `mirna_to_ensembl` INNER JOIN `entrez_to_ensembl` '.
@@ -133,11 +136,13 @@ $update_locdisdata_6_4 = ' OR datasets.biomaterial_1 IN ';
 $update_locdisdata_7 = ')';
 
 /* Select the gene regulation for a selected dataset for both cases */
-$get_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,`entrez_gene_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+$get_coloring_1 = 'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,`entrez_gene_id`,genes.gene_symbol,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM `data` INNER JOIN `datasets` '.
 				  'ON data.dataset_record_id = datasets.record_id '.
 				  'INNER JOIN `dataset_descriptions` '.
 				  'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
+				  'INNER JOIN `genes` '.
+				  'ON data.entrez_gene_id=genes.entrez_id '.
 				  'WHERE `entrez_gene_id` IN ';
 $get_coloring_2_1 = ' AND `dataset_id` IN ';
 $get_coloring_2_2 = ' AND (datasets.disease_0 IN ';
@@ -145,13 +150,15 @@ $get_coloring_2_3 = ' OR datasets.disease_1 IN ';
 $get_coloring_2_4 = ') AND (datasets.biomaterial_0 IN ';
 $get_coloring_2_5 = ' OR datasets.biomaterial_1 IN ';
 $get_coloring_3 = ') UNION '.
-				  'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,entrez_to_uniprot.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,entrez_to_uniprot.entrez_id,genes.gene_symbol,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM `data` INNER JOIN `datasets` '.
 				  'ON data.dataset_record_id = datasets.record_id '.
 				  'INNER JOIN `dataset_descriptions` '.
 				  'ON datasets.experiment_id = dataset_descriptions.experiment_name '.
 				  'INNER JOIN `entrez_to_uniprot` '.
 				  'ON data.uniprot_id=entrez_to_uniprot.uniprot_id '.
+				  'INNER JOIN `genes` '.
+				  'ON entrez_to_uniprot.entrez_id=genes.entrez_id '.
 				  'WHERE entrez_to_uniprot.entrez_id IN ';
 $get_coloring_4_1 = ' AND `dataset_id` IN ';
 $get_coloring_4_2 = ' AND (datasets.disease_0 IN ';
@@ -159,7 +166,7 @@ $get_coloring_4_3 = ' OR datasets.disease_1 IN ';
 $get_coloring_4_4 = ') AND (datasets.biomaterial_0 IN ';
 $get_coloring_4_5 = ' OR datasets.biomaterial_1 IN ';
 $get_coloring_5 = ') UNION '.
-				  'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,genes.entrez_id,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
+				  'SELECT datasets.record_id,`dataset_id`,`display_name`,`disease_0`,`disease_1`,`biomaterial_0`,`biomaterial_1`,`compound_list`,genes.entrez_id,genes.gene_symbol,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM `data` INNER JOIN `datasets` '.
 				  'ON data.dataset_record_id = datasets.record_id '.
 				  'INNER JOIN `dataset_descriptions` '.
@@ -223,6 +230,12 @@ $init_edges_1 = 'SELECT DISTINCT `target`, `source`, `interaction` '.
 $init_edges_2 = ' AND `target` IN ';
 $init_edges_3 = ' AND `score`>=';
 
+/* Super edges */
+$init_super_edge_hash = 'SELECT `ensembl_protein`, LOWER(genes.gene_symbol) AS `symbol` '.
+						'FROM `genes` INNER JOIN entrez_to_ensembl '.
+						'ON genes.entrez_id=entrez_to_ensembl.entrez_id '.
+						'WHERE `ensembl_protein` IN ';
+
 /* Initiate input miRNA nodes, edges are initiated with the query of getmirnaElements */
 $init_mirna_nodes = 'SELECT DISTINCT `mirna_id` '.
 					'FROM `mirna_to_ensembl` '.
@@ -243,6 +256,17 @@ $get_kegg_1 = 'SELECT CONCAT_WS("_to_",pathway_members.pathway_id,`ensembl_prote
               'ON pathway_members.pathway_id=kegg_pathways.pathway_id '.
               'WHERE `ensembl_protein` IN ';
 $get_kegg_2 = ' AND pathway_members.pathway_id IN ';
+
+/* Get the selected KEGG pathways and their proteins to create KEGG nodes and edges, multiple species */
+$get_kegg_multi_1 = 'SELECT CONCAT_WS("_to_",`ref_id`,`ensembl_protein`) AS `edge_id`,`entrez_member`,`ref_id`,`name`,`class`,`ensembl_protein` '.
+					'FROM `pathway_members` INNER JOIN `entrez_to_ensembl` '.
+					'ON pathway_members.entrez_member=entrez_to_ensembl.entrez_id '.
+					'INNER JOIN `kegg_pathways` '.
+					'ON pathway_members.pathway_id=kegg_pathways.pathway_id '.
+					'INNER JOIN `kegg_reference` '.
+					'ON kegg_pathways.pathway_id=kegg_reference.path_id '.
+					'WHERE `ensembl_protein` IN ';
+$get_kegg_multi_2 = ' AND `ref_id` IN ';
 
 /* Get miRNA edges */
 $get_mirna_1 = 'SELECT CONCAT_WS("_to_",`mirna_id`,`ensembl_protein`) AS `edge_id`,`mirna_id`,`ensembl_protein` '.
@@ -277,12 +301,19 @@ $get_neighbors_3 = ' AND score>=';
 $get_neighbors_4 = ' GROUP BY `ensembl_protein`';
 
 /* With the results, initilize additional nodes in cytoscapeweb */
-$get_add_nodes = 'SELECT DISTINCT interactions.source AS `id`,genes.gene_symbol AS `label`,entrez_to_ensembl.entrez_id AS `entrez_id` '.
-				 'FROM `interactions` INNER JOIN `entrez_to_ensembl` '.
-				 'ON interactions.source=entrez_to_ensembl.ensembl_protein '.
-				 'INNER JOIN `genes` '.
-				 'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
-				 'WHERE entrez_to_ensembl.ensembl_protein IN ';
+$get_add_nodes_1 = 'SELECT DISTINCT interactions.source AS `id`,genes.gene_symbol AS `label`,entrez_to_ensembl.entrez_id AS `entrez_id` '.
+				   'FROM `interactions` INNER JOIN `entrez_to_ensembl` '.
+				   'ON interactions.source=entrez_to_ensembl.ensembl_protein '.
+				   'INNER JOIN `genes` '.
+				   'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
+				   'WHERE entrez_to_ensembl.ensembl_protein IN ';
+$get_add_nodes_2 = ' UNION '.
+				   'SELECT DISTINCT interactions.target AS `id`,genes.gene_symbol AS `label`,entrez_to_ensembl.entrez_id AS `entrez_id` '.
+				   'FROM `interactions` INNER JOIN `entrez_to_ensembl` '.
+				   'ON interactions.target=entrez_to_ensembl.ensembl_protein '.
+				   'INNER JOIN `genes` '.
+				   'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
+				   'WHERE entrez_to_ensembl.ensembl_protein IN ';
 
 /* Then additional edges in cytoscapeweb */
 $get_add_edges_1 = 'SELECT DISTINCT `target`,`source`,`interaction` '.
@@ -374,6 +405,31 @@ $allkupkb_symbols2entrez = 'SELECT `entrez_id`,`species` '.
 						   'FROM `genes` '.
 						   'WHERE `gene_symbol` IN ';
 # LEGACY
+/* Convert ANY input to entrez IDs to reduce subsequent burden, before we support multiple species */
+/*$entrez_from_any_1 = 'SELECT genes.entrez_id AS `entity`,genes.gene_symbol AS `symbol`,\'gene\' AS `type` '.
+					 'FROM `genes` INNER JOIN `entrez_to_uniprot` '.
+					 'ON genes.entrez_id=entrez_to_uniprot.entrez_id '.
+					 'INNER JOIN `entrez_to_ensembl` '.
+					 'ON genes.entrez_id=entrez_to_ensembl.entrez_id '.
+					 'INNER JOIN `species` '.
+					 'ON genes.species=species.tax_id '.
+					 'WHERE (';
+$entrez_from_any_2_1 = 'genes.gene_symbol IN ';
+$entrez_from_any_2_2 = ' OR genes.entrez_id IN ';
+$entrez_from_any_2_3 = ' OR entrez_to_uniprot.uniprot_id IN ';
+$entrez_from_any_2_4 = ' OR entrez_to_ensembl.ensembl_gene IN ';
+$entrez_from_any_2_5 = ' OR entrez_to_ensembl.ensembl_protein IN ';
+$entrez_from_any_3 = ') AND species.tax_id IN ';
+$entrez_from_any_4 = ' GROUP BY genes.entrez_id';
+$union_mirna = ' UNION ';
+$mirna_from_input_1 = 'SELECT `mirna_id` AS `entity`,`mirna_id` AS `symbol`,\'mirna\' AS `type` '.
+					  'FROM `mirna_to_ensembl` '.
+					  'INNER JOIN `species` '.
+					  'ON mirna_to_ensembl.species=species.tax_id '.
+					  'WHERE `mirna_id` IN ';
+$mirna_from_input_2 = ' AND species.tax_id IN ';
+$mirna_from_input_3 = ' GROUP BY `mirna_id`';*/
+
 /* Get data for coloring this is slower than the UNION below above but we are keeping it for legacy reasons */
 /*$get_coloring_1 = 'SELECT `dataset_id`,`entrez_gene_id`,`uniprot_id`,`expression_strength`,`differential_expression_analyte_control`,`ratio`,`pvalue`,`fdr` '.
 				  'FROM data '.

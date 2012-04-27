@@ -68,6 +68,7 @@ include('php/queries.php');
 						<li><a onclick="updateLayout('Circle')"><span>Circle</span></a></li>
 						<li><a onclick="updateLayout('Tree')"><span>Tree</span></a></li>
 						<li><a onclick="updateLayout('Radial')"><span>Pizza</span></a></li>
+						<li><a onclick="updateLayout('CompoundSpringEmbedder')"><span>Compound</span></a></li>
 						<li><a onclick="modalLayoutParamForm('View parameters')"><span>Parameters</span></a></li>
 					</ul>
 				</li>
@@ -77,7 +78,7 @@ include('php/queries.php');
 							<ul>
 								<li><a onclick="exportImage('pdf')"><span>PDF</span></a></li>
 								<li><a onclick="exportImage('png')"><span>PNG</span></a></li>
-								<li><a onclick="exportImage('jpg')"><span>JPG</span></a></li>
+								<li><a onclick="exportImage('svg')"><span>SVG</span></a></li>
 							</ul>
 						</li>
 						<li><a class="parent"><span>Text</span></a>
@@ -116,7 +117,7 @@ include('php/queries.php');
 					</td>
 					</tr>
 					<tr>
-					<td rowspan=5 class="colorTableCellColor" style="text-align:center; width:10%; height:165px;">
+					<td rowspan=5 class="colorTableCellColor" style="text-align:center; width:10%; height:155px;">
 						<table class="innerTable"><tr><td style="background:url(images/colorbar.png) no-repeat center;"></td></tr></table>
 					</td>
 					<td class="colorTableCellText" style="width:40%;">Up</td>
@@ -212,7 +213,7 @@ include('php/queries.php');
 						<td class="optsCell" style="width:25%">
 							<div>
 								<label for="enter_genes"><span class="boldText">Enter search terms</span></label>
-								<img id="search_tip" src="images/questionmark.png" title="You can search by Gene Symbol, Entrez ID, Ensembl gene or protein ID, Uniprot ID or simply gene description like 'angiotensin II'"/>
+								<img id="search_tip" src="images/questionmark.png" title="You can search by Gene Symbol, Entrez ID, Ensembl gene or protein ID, Uniprot ID or simply gene description like 'angiotensin II'. You can also select multiple species."/>
 							</div>
 							<div>						
 								<textarea id="enter_genes" name="enter_genes" wrap="hard" onkeyup="searchAllow()" onclick="searchAllow()"><?php
@@ -233,9 +234,10 @@ include('php/queries.php');
 								<table class="innerTable" style="width:90%">
 								<?php
 									$species = initSpecies();
-									echo "<tr><td class=\"innerCell\">";
+									echo "<tr><td class=\"innerCell\" style=\"vertical-alignment:top;width:50%;line-height:1em;\">";
 									echo "<span class=\"boldText\">Species: </span>";
-									echo "</td><td class=\"innerCell\">";
+									echo "<br/><br/><span style=\"font-size:0.9em;\">Hold down the Ctrl key to select multiple species</span>";
+									echo "</td><td class=\"innerCell\" style=\"width:50%;\">";
 									echo html_selectbox('species_list',$species,'NULL',array('multiple' => 'multiple', 'onchange' => 'update(\'species_list\')'));
 									echo "</td></tr>";
 								?>
@@ -461,7 +463,7 @@ include('php/queries.php');
 									<td class="innerCell" colspan=3>
 										<?php
 											$goterms = array('0' => 'Select...');
-											echo html_selectbox('go_list',$goterms,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:90%; height:14em;','ondblclick' => 'showMeta(\'go\',\'selected\')'));
+											echo html_selectbox('go_list',$goterms,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:90%; height:15em;','ondblclick' => 'showMeta(\'go\',\'selected\')'));
 										?>
 									</td>
 									</tr>
@@ -496,7 +498,7 @@ include('php/queries.php');
 										echo "<tr><td class=\"innerCell\" colspan=2>";
 										echo "<span class=\"boldText\">Selected organism pathways: </span>";
 										echo "</td></tr><tr><td class=\"innerCell\" colspan=2>";
-										echo html_selectbox('kegg_list',$kegg,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:90%; height:14em;','ondblclick' => 'showMeta(\'kegg\',\'selected\')'));
+										echo html_selectbox('kegg_list',$kegg,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:90%; height:15em;','ondblclick' => 'showMeta(\'kegg\',\'selected\')'));
 										echo "</td></tr>";
 									?>
 									<tr>
@@ -526,7 +528,7 @@ include('php/queries.php');
 										echo "<tr><td class=\"innerCell\" colspan=2>";
 										echo "<span class=\"boldText\">Target miRNAs: </span>";
 										echo "</td></tr><tr><td class=\"innerCell\" colspan=2>";
-										echo html_selectbox('mirna_list',$mirna,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:90%; height:14em;','ondblclick' => 'showMeta(\'mirna\',\'selected\')'));
+										echo html_selectbox('mirna_list',$mirna,'NULL',array('disabled' => 'disabled','multiple' => 'multiple','style' => 'width:90%; height:15em;','ondblclick' => 'showMeta(\'mirna\',\'selected\')'));
 										echo "</td></tr>";
 									?>
 									<tr>
@@ -630,6 +632,11 @@ include('php/queries.php');
 									<td class="innerCell">
 										<table class="innerTable">
 											<tr>
+											<td colspan=3 class="layoptCell"><label for="multiorganism_check"><strong>Allow multiple organism selection</strong></label></td>
+											<td class="layoptCell"><input type="checkbox" id="multiorganism_check" onclick="toggleMultiSpecies()" style="float:left;" checked disabled />
+											<img class="hint" id="multiorganism_tip" src="images/questionmark.png" title="Check these box to allow multiple selections to be made in the organism list in the 1st tab in order to search the queried genes/proteins/miRNAs in the selected organisms. You should be careful when using this option though as the resulting view might be extremely fuzzy and slow down the application."/></td>
+											</tr>
+											<tr>
 											<td colspan=4 class="layoptCell"><strong>Allow coloring on dataset(s) click</strong>
 											<img class="hint" id="allowclickcolor_tip" src="images/questionmark.png" title="Check this box to allow the coloring of network nodes simply by clicking on the dataset name(s) in the list. Otherwise, the respective button must be pressed. Uncheck this box to explore the datasets without excessive workload for the server or check for fast exploration of smaller queries."/>
 											</td>
@@ -709,11 +716,25 @@ include('php/queries.php');
 								</table>
 								<hr>
 								<table class="innerTable">
+								<tr>
+								<td class="layoptCell"><strong>Multiple species representation of nodes and edges</strong>
+								<img class="hint" id="multiple_representation_tip" src="images/questionmark.png" title="Use these options to control the display of nodes and edges among genes/proteins when multiple species are selected. The 1st option creates one 'super' node with smalled nodes per organism inside and separate edges. The 2nd option creates one 'super' node without smaller nodes and merged edges."/>
+								</td>
+								</tr>
+								<tr>
+								<td class="layoptCell"><input type="radio" id="ms_compound_radio" name="ms_radio" onclick="updateMultiSpeciesView('compound')" disabled /><label for="ms_compound_radio">Compound nodes with separated edges per organism</label></td>
+								</tr>
+								<tr>
+								<td class="layoptCell"><input type="radio" id="ms_merged_radio" name="ms_radio" onclick="updateMultiSpeciesView('merged')" disabled checked /><label for="ms_merged_radio">Single nodes with merged edges for all organisms</label></td>
+								</tr>
+								</table>
+								<hr>
+								<table class="innerTable">
 									<tr>
 									<td class="layoptCell" style="width:60%; border-bottom-style:dotted; border-bottom-width:1px"><span class="boldText">Nodes</span></td>
 									<td class="layoptCell" style="width:40%; border-bottom-style:dotted; border-bottom-width:1px"><span class="boldText">Edges</span></td>
 									</tr>
-									<tr>
+									<tr style="display:none;"> <!-- Redundant and takes space... Hidden for now... -->
 									<td class="layoptCell" style="border-right-style:dotted; border-right-width:1px">
 										<label><span style="font-size:0.9em">Get neighbors</span></label>
 										<button id="fetch_neighbors_1" class="secondaryButton" style="float:none" onclick="fetchNeighbors(1)" disabled>L1</button>
@@ -791,8 +812,8 @@ include('php/queries.php');
 	bindAutoComplete('enter_genes');
 	initTooltip(['search_tip','elinfo_tip','allgenecrit_tip','allmirnacrit_tip','multicolor_tip',
 				 'sigsize_tip','gene_mode_tip','mirna_mode_tip','neighbor_tip','neighbor_edge_tip',
-				 'multidisease_tip','multilocation_tip','allowclickcolor_tip',
-				 'multiannotation_gene_tip','interaction_score_tip']);
+				 'multidisease_tip','multilocation_tip','allowclickcolor_tip','multiple_representation_tip',
+				 'multiannotation_gene_tip','interaction_score_tip','multiorganism_tip']);
 	detectIE();
 </script>
 

@@ -19,16 +19,20 @@ function bypassNodeColors(ajaxData,type)
 	var visObject = getVisData("cytoscapeweb");
 	var bypass = getData("cytoscapeweb","bypass");
 	var nodes = visObject.nodes();
+	var parentNodes = visObject.parentNodes();
 	var noN = nodes.length;
+	var noPN = parentNodes.length;
 	var noA = ajaxData.length;
 	var ajaxNodes = [];
+	var moreAjaxNodes = [];
 	var visProps = [];
 	var newData = [];
 	var seen = [];
+	var moreseen = [];
 	var dataSeen = [];
 	var propSeen = [];
+	var multiSpecies = getMultiSpeciesStatus();
 	var i, j, k, currNode;
-	//var bypass = { nodes: { }, edges: { } };
 	var multicolor, cShape, iShape;
 
 	switch(type)
@@ -54,10 +58,12 @@ function bypassNodeColors(ajaxData,type)
 	for (i=0; i<noA; i++) // First initialize
 	{
 		seen[ajaxData[i].entrez_id] = [];
+		moreseen[ajaxData[i].gene_symbol] = [];
 	}
 	for (i=0; i<noA; i++) // Now hash
 	{
 		seen[ajaxData[i].entrez_id].unshift(i);
+		moreseen[ajaxData[i].gene_symbol].unshift(i);
 	}
 	
 	// Construct the array of entrez_id in ajaxData;
@@ -129,6 +135,7 @@ function bypassNodeColors(ajaxData,type)
 			}
 		}
 		ajaxNodes.push(ajaxData[i].entrez_id);
+		moreAjaxNodes.push(ajaxData[i].gene_symbol);
 		newData.push({ strength: ajaxData[i].strength, expression: ajaxData[i].expression, ratio: ajaxData[i].ratio, pvalue: -log10(ajaxData[i].pvalue), fdr: ajaxData[i].fdr, dataset_id: ajaxData[i].dataset_id, custom: ajaxData[i].custom });
 	}
 
@@ -186,10 +193,69 @@ function bypassNodeColors(ajaxData,type)
 				bypass[currNode.group][currNode.data.id] = visProps[ii];
 			}
 		}
+
+		// Additional search if multiple species based on gene symbols
+		if (multiSpecies)
+		{
+			var jj = $.inArray(nodes[i].data.label.toLowerCase(),moreAjaxNodes);
+			if (jj !== -1) // Node in KUPKB expression data
+			{
+				currNode = nodes[i];
+				if (moreseen[currNode.data.label.toLowerCase()].length>1)
+				{
+					if (multicolor)
+					{
+						for (j=0; j<moreseen[currNode.data.label.toLowerCase()].length; j++)
+						{
+							k = j+1;
+							cdata = {
+										id: currNode.data.id + "_" + 10*k,
+										label: newData[moreseen[currNode.data.label.toLowerCase()][j]].custom, // + " (" + k + ")",
+										strength: newData[moreseen[currNode.data.label.toLowerCase()][j]].strength,
+										expression: newData[moreseen[currNode.data.label.toLowerCase()][j]].expression,
+										ratio: newData[moreseen[currNode.data.label.toLowerCase()][j]].ratio,
+										pvalue: newData[moreseen[currNode.data.label.toLowerCase()][j]].pvalue,
+										fdr: newData[moreseen[currNode.data.label.toLowerCase()][j]].fdr,
+										entrez_id: "",
+										object_type: type,
+										dataset_id: newData[moreseen[currNode.data.label.toLowerCase()][j]].dataset_id,
+										parent: currNode.data.id
+									};
+							visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),cdata,true);
+							bypass["nodes"][cdata.id] = visProps[moreseen[currNode.data.label.toLowerCase()][j]];
+						}
+						visObject.updateData([currNode.data.id],dataSeen);
+						bypass[currNode.group][currNode.data.id] = propSeen;
+					}
+					else
+					{
+						visObject.updateData([currNode.data.id],dataSeen);
+						bypass[currNode.group][currNode.data.id] = propSeen;
+					}
+				}
+				else
+				{
+					visObject.updateData([currNode.data.id],newData[jj]);
+					bypass[currNode.group][currNode.data.id] = visProps[jj];
+				}
+			}
+		}
 	}
 
 	setData("cytoscapeweb","bypass",bypass);
 	visObject.visualStyleBypass(bypass);
+
+	if (noPN > 0)
+	{
+		if ($("#ms_compound_radio").is(":checked"))
+		{
+			updateMultiSpeciesView("compound");
+		}
+		else if ($("#ms_merged_radio").is(":checked"))
+		{
+			updateMultiSpeciesView("merged");
+		}
+	}
 }
 
 // Damn dirty!!! Will not be used...
@@ -232,6 +298,14 @@ function filterEdges()
 	checked.go = $("#go_check").is(":checked") ? true : false;
 	checked.kegg = $("#kegg_check").is(":checked") ? true : false;
 	checked.mirna = $("#mirna_check").is(":checked") ? true : false;
+	checked.superbinding = ($("#binding_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
+	checked.superptmod = ($("#ptmod_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
+	checked.superexpression = ($("#expression_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
+	checked.superactivation = ($("#activation_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
+	checked.superinhibition = ($("#inhibition_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
+	checked.supergo = ($("#go_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
+	checked.superkegg = ($("#kegg_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
+	checked.supermirna = ($("#mirna_check").is(":checked") && $("#ms_merged_radio").is(":checked")) ? true : false;
 
 	// $.each can be slow when having lots of edges...
 	for (i=0;i<len;i++)
@@ -253,6 +327,21 @@ function filterEdges()
 			case 'inhibition':
 				if(checked.inhibition) { toFilter.push(edges[i].data.id); }
 				break;
+			case 'superbinding':
+				if (checked.superbinding) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'superptmod':
+				if (checked.superptmod) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'superexpression':
+				if (checked.superexpression) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'superactivation':
+				if(checked.superactivation) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'superinhibition':
+				if(checked.superinhibition) { toFilter.push(edges[i].data.id); }
+				break;
 			case 'go':
 				if(checked.go) { toFilter.push(edges[i].data.id); }
 				break;
@@ -261,6 +350,15 @@ function filterEdges()
 				break;
 			case 'mirna':
 				if(checked.mirna) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'supergo':
+				if(checked.supergo) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'superkegg':
+				if(checked.superkegg) { toFilter.push(edges[i].data.id); }
+				break;
+			case 'supermirna':
+				if(checked.supermirna) { toFilter.push(edges[i].data.id); }
 				break;
 		}
 	}
@@ -272,7 +370,6 @@ function filterEdges()
 	showLabels("edges");
 }
 
-// Edge IDs only for now...
 function hideSomeEdges(someEdges)
 {
     var visObject = getVisData('cytoscapeweb');
@@ -291,6 +388,25 @@ function hideSomeEdges(someEdges)
 	visObject.filter("edges",toHide,true);
 	updateInfo();
 	showLabels("edges");
+}
+
+function hideSomeNodes(someNodes)
+{
+    var visObject = getVisData('cytoscapeweb');
+	var nodes = visObject.nodes();
+	var toHide = [];
+	var i = 0;
+	var len = nodes.length;
+	
+	for (i=0; i<len; i++)
+	{
+		if ($.inArray(nodes[i].data.id,someNodes) === -1 && nodes[i].visible)
+		{
+			toHide.push(nodes[i].data.id);
+		}
+	}
+	visObject.filter("nodes",toHide,true);
+	updateInfo();
 }
 
 function updateInfo()
@@ -422,10 +538,12 @@ function addElements(elems)
 	var nids = [];
 	var eids = [];
 	var i = 0;
+	var types;
 
 	for (i=0; i<nodeLength; i++)
 	{
-		if ($.inArray(nodes[i].data.object_type,["component","function","process","pathway","mirna","gene"]) !== -1)
+		types = ["component","function","process","pathway","mirna","gene","supergene"];
+		if ($.inArray(nodes[i].data.object_type,types) !== -1)
 		{
 			nids.push(nodes[i].data.id);
 		}
@@ -433,7 +551,9 @@ function addElements(elems)
 	// No need to remove go, kegg, mirna edges for neighbors, otherwise, they are removed automatically
 	for (i=0; i<edgeLength; i++)
 	{
-		if ($.inArray(edges[i].data.interaction,["binding","ptmod","expression","activation","inhibition"]) !== -1)
+		types = ["binding","ptmod","expression","activation","inhibition","superbinding",
+				 "superptmod","superexpression","superactivation","superinhibition"];
+		if ($.inArray(edges[i].data.interaction,types) !== -1)
 		{
 			eids.push(edges[i].data.id);
 		}
@@ -458,18 +578,26 @@ function addElements(elems)
 
 function updateLayout(layopt)
 {
+	var isCompound = false;
 	var visObject = getVisData("cytoscapeweb");
 	if ($.isEmptyObject(visObject) || visObject === undefined || visObject === null)
 	{
 		modalAlert("No network has been initialized yet!");
 		return;
 	}
+	var pNodes = visObject.parentNodes();
+	if (pNodes.length > 0) { isCompound = true; }
 
 	var layoutOpts = getData("cytoscapeweb","layout");
 	//var layoutOpts = $("#cytoscapeweb").data("layout");
 	switch(layopt)
 	{
 		case 'ForceDirected':
+			if (isCompound)
+			{
+				updateLayout('CompoundSpringEmbedder');
+				return;
+			}
 			theLayout =
 			{
 				gravitation: layoutOpts.ForceDirected.gravitation,
@@ -479,6 +607,11 @@ function updateLayout(layopt)
 			visObject.layout({ name: 'ForceDirected', options: theLayout });
 			break;
 		case 'Circle':
+			if (isCompound)
+			{
+				modalAlert("Compound nodes detected! Please use Compound or Default layout for best network view.");
+				return;
+			}
 			theLayout =
 			{
 				angleWidth: layoutOpts.Circle.angle_width,
@@ -487,6 +620,11 @@ function updateLayout(layopt)
 			visObject.layout({ name: 'Circle', options: theLayout });
 			break;
 		case 'Radial':
+			if (isCompound)
+			{
+				modalAlert("Compound nodes detected! Please use Compound or Default layout for best network view.");
+				return;
+			}
 			theLayout =
 			{
 				angleWidth: layoutOpts.Radial.angle_width,
@@ -495,6 +633,11 @@ function updateLayout(layopt)
 			visObject.layout({ name: 'Radial', options: theLayout });
 			break;
 		case 'Tree':
+			if (isCompound)
+			{
+				modalAlert("Compound nodes detected! Please use Compound or Default layout for best network view.");
+				return;
+			}
 			theLayout =
 			{
 				orientation: layoutOpts.Tree.orientation,
@@ -502,6 +645,23 @@ function updateLayout(layopt)
 				breadthSpace: layoutOpts.Tree.breadth
 			};
 			visObject.layout({ name: 'Radial', options: theLayout });
+			break;
+		case 'CompoundSpringEmbedder':
+			if (!isCompound)
+			{
+				modalAlert("Did not detect nodes! Please use Default, Radial, Tree or Pizza layout for best network view.");
+				return;
+			}
+			theLayout =
+			{
+				tension: layoutOpts.CompoundSpringEmbedder.edge_tension,
+				gravitation: layoutOpts.CompoundSpringEmbedder.gravitation,
+				centralGravitation: layoutOpts.CompoundSpringEmbedder.central_gravitation,
+				centralGravityDistance: layoutOpts.CompoundSpringEmbedder.central_gravity_distance,
+				compoundCentralGravitation: layoutOpts.CompoundSpringEmbedder.compound_central_gravitation,
+				compoundCentralGravityDistance: layoutOpts.CompoundSpringEmbedder.compound_central_gravity_distance,
+			};
+			visObject.layout({ name: 'CompoundSpringEmbedder', options: theLayout });
 			break;
 	}
 }
@@ -607,14 +767,7 @@ function gimmeGeneData(staticData,ajaxData)
 	}
 
 	nodeData.id = "Ensembl protein: <span style=\"color:#FF0000\">" + staticData['id'] + "</span><br/>";
-	if (staticData['parent'] === '' || staticData['parent'] === null || staticData['parent'] === 'undefined')
-	{
-		nodeData.label = "Gene symbol: <a class=\"infolink\" href=\"http://www.genecards.org/cgi-bin/carddisp.pl?gene=" + staticData['label'] + "\" target=\"_blank\">" + staticData['label'] + "</a><br/>";
-	}
-	else
-	{
-		nodeData.label = "";
-	}
+	nodeData.label = "Gene symbol: <a class=\"infolink\" href=\"http://www.genecards.org/cgi-bin/carddisp.pl?gene=" + staticData['label'] + "\" target=\"_blank\">" + staticData['label'] + "</a><br/>";
 	nodeData.entrez = "Entrez ID: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/gene?term=" + staticData['entrez_id'] + "\" target=\"_blank\">" + staticData['entrez_id'] + "</a><br/>";
 	nodeData.strength = staticData['strength']==="" ? "" : "Expression strength: <span style=\"color:#FF0000\">" + staticData['strength'] + "</span><br/>";
 	nodeData.expression = staticData['expression']==="" ? "" : "Differential expression: <span style=\"color:#FF0000\">" + staticData['expression'] + "</span><br/>";
@@ -741,16 +894,25 @@ function gimmeGene2GeneData(staticData,ajaxData)
 	var edgeData = {};
 
 	edgeData.interaction = "Interaction type: <span style=\"color:#FF0000\">" + staticData['interaction'] + "</span><br/>";
-	if ($.isEmptyObject(ajaxData))
+	if (staticData['interaction'].match(/^super/))
 	{
 		edgeData.score = "";
-		edgeData.evidence = "No additional evidence found.";
+		edgeData.evidence = "Evidence: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/pubmed?term=" +
+			staticData['source'] + " AND " + staticData['target'] + "\" target=\"_blank\">Look in Pubmed</a><br/>";
 	}
 	else
 	{
-		edgeData.score = "Interaction score: <span style=\"color:#FF0000\">" + ajaxData['score']/1000 + "</span><br/>";
-		edgeData.evidence = "Evidence: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/pubmed?term=" +
-			ajaxData['source'] + " AND " + ajaxData['target'] + "\" target=\"_blank\">Look in Pubmed</a><br/>";
+		if ($.isEmptyObject(ajaxData))
+		{
+			edgeData.score = "";
+			edgeData.evidence = "No additional evidence found.";
+		}
+		else
+		{
+			edgeData.score = "Interaction score: <span style=\"color:#FF0000\">" + ajaxData['score']/1000 + "</span><br/>";
+			edgeData.evidence = "Evidence: <a class=\"infolink\" href=\"http://www.ncbi.nlm.nih.gov/pubmed?term=" +
+				ajaxData['source'] + " AND " + ajaxData['target'] + "\" target=\"_blank\">Look in Pubmed</a><br/>";
+		}
 	}
 
 	msg = "<span style=\"color:#000000; font-weight:bold\">Edge data</span><br/>" +
@@ -989,8 +1151,22 @@ function gimmeNodeBorder(val)
 function restoreNetwork()
 {
 	var visObject = getVisData('cytoscapeweb');
-	visObject.removeFilter();
-	filterEdges();
+	if ($("#species_list option:selected").length > 1)
+	{
+		if ($("#ms_compound_radio").is(":checked"))
+		{
+			updateMultiSpeciesView("compound");
+		}
+		else if ($("#ms_merged_radio").is(":checked"))
+		{
+			updateMultiSpeciesView("merged");
+		}
+	}
+	else
+	{
+		visObject.removeFilter();
+		filterEdges();
+	}
 	updateInfo();
 }
 
@@ -1001,6 +1177,8 @@ function hideElements(group,action)
 	var selElemIDs = [];
 	var toHide = [];
 	var i, allElems;
+	var isMulti = $("#species_list option:selected").length > 1 ? true : false;
+	var isCompound = $("#ms_compound_radio").is(":checked") ? true : false;
 
 	if (group === "nodes")
 	{
@@ -1026,7 +1204,11 @@ function hideElements(group,action)
 
 	if (action === "hide")
 	{
-		if (group === "nodes") { vis.filter(group,toHide); }
+		if (group === "nodes")
+		{
+			if (isMulti && !isCompound) { updateMultiSpeciesView("merged",selElemIDs); }
+			else { vis.filter(group,toHide); }
+		}
 		if (group === "edges") { hideSomeEdges(selElemIDs); }
 	}
 	else if (action === "delete")
@@ -1207,11 +1389,12 @@ function resetNodeData(type)
 	var n = nodes.length;
 	var reset = [];
 	var i = 0;
+	var j = 0;
 	//var bypass = { nodes: { }, edges: { } };
 	var redata = { strength: "", expression: "", ratio: 999, pvalue: 999, fdr: 999 };
 	var pNodes = [];
 	var cNodes = [];
-	var ccNodes = [];
+	var cNodesID = [];
 
 	switch(type)
 	{	
@@ -1236,6 +1419,16 @@ function resetNodeData(type)
 					{
 						cNodes = visObject.childNodes(pNodes[i]);
 						visObject.removeElements("nodes",cNodes);
+					}
+					// Something special should be done here for supergenes
+					if (pNodes[i].data.object_type === "supergene" && $("#ms_merged_radio").is(":checked"))
+					{
+						cNodes = visObject.childNodes(pNodes[i]);
+						for (j=0; j<cNodes.length; j++)
+						{
+							cNodesID.push(cNodes[j].data.id);
+						}
+						hideSomeNodes(cNodesID);
 					}
 				}
 			}
@@ -1279,21 +1472,35 @@ function checkMultiColor(type)
 	switch(type)
 	{
 		case 'gene':
-			if (!$("#multicolor_gene_check").is(":checked"))
+			if ($("#species_list option:selected").length > 1)
 			{
-				for (i=0; i<pNodes.length; i++)
+				if ($("#ms_compound_radio").is(":checked"))
 				{
-					if (pNodes[i].data.object_type === "gene")
-					{
-						cNodes = visObject.childNodes(pNodes[i]);
-						visObject.removeElements("nodes",cNodes);
-					}
+					updateMultiSpeciesView("compound");
 				}
-				colorNodes(type);
+				else if ($("#ms_merged_radio").is(":checked"))
+				{
+					updateMultiSpeciesView("merged");
+				}					
 			}
 			else
-			{
-				colorNodes(type);
+			{	
+				if (!$("#multicolor_gene_check").is(":checked"))
+				{
+					for (i=0; i<pNodes.length; i++)
+					{
+						if (pNodes[i].data.object_type === "gene")
+						{
+							cNodes = visObject.childNodes(pNodes[i]);
+							visObject.removeElements("nodes",cNodes);
+						}
+					}
+					colorNodes(type);
+				}
+				else
+				{
+					colorNodes(type);
+				}
 			}
 			break;
 		case 'mirna':
@@ -1313,6 +1520,242 @@ function checkMultiColor(type)
 			{
 				colorNodes(type);
 			}
+			break;
+	}
+}
+
+function updateMultiSpeciesView(type,xNodes)
+{
+	if ($("#species_list option:selected").length > 1) { // Otherwise we waste computer power
+
+	var visObject = getVisData("cytoscapeweb");
+	var bypass = getData("cytoscapeweb","bypass");
+	var multicolor = $("#multicolor_gene_check").is(":checked") ? true : false;
+	var byp = false;
+	var i, j, k;
+	if (xNodes == undefined) { xNodes = []; }
+
+	switch(type)
+	{
+		case 'compound':
+			if ($("#species_list option:selected").length > 1)
+			{
+				// Deal with edges
+				var edgesToHide = [];
+				visObject.removeFilter();
+				filterEdges();
+				var edges = visObject.edges();
+				for (i=0; i<edges.length; i++)
+				{
+					if (edges[i].data.interaction.match(/^super/))
+					{
+						edgesToHide.push(edges[i].data.id);
+					}
+				}
+				hideSomeEdges(edgesToHide);
+
+				// Deal with nodes and various possible click sequences among Allow multiple node coloring
+				// and Multiple species representation of nodes and edges
+				var pC, theHack;
+				var aHack = [];
+				var allNodes = getAllNodeID();
+				var pNodes = visObject.parentNodes();
+				for (i=0; i<pNodes.length; i++)
+				{
+					if (pNodes[i].data.object_type === "supergene")
+					{
+						byp = true;
+						bypass["nodes"][pNodes[i].data.id] = { compoundColor: "#E0E0E0", compoundBorderWidth: 1, compoundBorderColor: "#666666" };
+
+						// We must restore internal parent nodes in case of colored datasets
+						pC = visObject.childNodes(pNodes[i]);
+						if (multicolor)
+						{
+							var done = false;
+							for (j=0; j<pC.length; j++)
+							{
+								if ((pC[j].data.expression !== "" || pC[j].data.strength !== "" || pC[j].data.ratio !== 999) &&
+									(pC[j].data.expression !== "Multiple" || pC[j].data.strength !== "Multiple") &&
+									(pC[j].data.id.match(/_\d{1,2,3}$/))) // Stinks from Toulouse as far as to NY!...
+								{
+									visObject.removeElements([pC[j].data.id],true);
+									pC[j].data.parent = pC[j].data.custom; // Restore the original parent
+									if ($.inArray(pC[j].data.id,allNodes === -1))
+									{
+										visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),pC[j].data,true);
+									}
+									done = true;
+								} // Called from Multiple species represenation of nodes and edges
+								else if (pC[j].data.expression === "Multiple" && pC[j].data.strength === "Multiple" && !done)
+								{
+									theHack = getData("cytoscapeweb","userdata");
+									for (k=0; k<theHack.length; k++)
+									{
+										if ($.inArray(theHack[k].id,allNodes === -1))
+										{
+											visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),theHack[k],true);
+										}
+									}
+									bypass["nodes"][pC[j].data.id] = { compoundColor: "#7A7A7A", compoundBorderWidth: 5, compoundBorderColor: "#ECBD00", compoundLabelFontColor: "#0000FF", compoundLabelFontWeight: "bold", compoundOpacity: 0.5 };
+								} // Called from Allow multiple disease selection
+							}
+						}
+						else
+						{
+							for (j=0; j<pC.length; j++)
+							{								
+								pCC = visObject.childNodes(pC[j]);
+								for (k=0; k<pCC.length; k++)
+								{
+									if ((pCC[k].data.expression !== "" || pCC[k].data.strength !== "" || pCC[k].data.ratio !== 999) &&
+										(pCC[k].data.expression !== "Multiple" || pCC[k].data.strength !== "Multiple") &&
+										(pCC[k].data.id.match(/_\d{1,2,3}$/))) // Stinks from Toulouse as far as to NY!...
+									{
+										byp = true;
+										bypass["nodes"][pC[j].data.id] = { color: "#2B2B2B", borderWidth: 5, borderColor: "#ECBD00", labelFontColor: "#FFFFFF" };
+										visObject.removeElements([pCC[k].data.id],true);
+										pCC[k].data.custom = pCC[k].data.parent; // Save the original parent for restore
+										aHack.push(pCC[k].data);
+									}
+								}
+							}
+							setData("cytoscapeweb","userdata",aHack);
+						}
+					}
+				}
+				
+				recalculateLayout("CompoundSpringEmbedder");
+			}
+			break;
+		case 'merged':
+			if ($("#species_list option:selected").length > 1)
+			{
+				var nodesToKeep = [];
+				var pC, pCC;
+				var hasColoredDatasets = false;
+				var nodes = visObject.nodes();
+				visObject.removeFilter("edges");
+				for (i=0; i<nodes.length; i++)
+				{
+					if (nodes[i].data.parent == undefined)
+					{
+						nodesToKeep.push(nodes[i].data.id);
+						pC = visObject.childNodes(nodes[i]);
+						if (pC.length > 0)
+						{
+							for (j=0; j<pC.length; j++)
+							{
+								pCC = visObject.childNodes(pC[j]);
+								if (multicolor)
+								{
+									if (pCC.length > 0) // Colored datasets
+									{
+										hasColoredDatasets = true;
+										for (k=0; k<pCC.length; k++)
+										{
+											nodesToKeep.push(pCC[k].data.id);
+											visObject.removeElements([pCC[k].data.id],true);
+											pCC[k].data.custom = pCC[k].data.parent; // Save the original parent for restore
+											pCC[k].data.parent = nodes[i].data.id;
+											visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),pCC[k].data,true);
+										}
+									}
+									if (pC[j].data.expression !== "" || pC[j].data.strength !== "" || pC[j].data.ratio !== 999)
+									{
+										nodesToKeep.push(pC[j].data.id);
+										byp = true;
+										bypass["nodes"][nodes[i].data.id] = { compoundColor: "#E0E0E0", compoundBorderWidth: 1, compoundBorderColor: "#666666" };;
+									}
+								}
+								else
+								{
+									if (pC[j].data.strength !== ""  || pC[j].data.expression !== "" || pC[j].data.ratio !== 999)
+									{
+										byp = true;
+										bypass["nodes"][nodes[i].data.id] = { compoundColor: "#2B2B2B", compoundBorderWidth: 5, compoundBorderColor: "#ECBD00", compoundLabelFontColor: "#000000" };
+									}
+								}
+							}
+						}
+					}
+					else
+					{
+						if (nodes[i].data.strength === "Multiple"  || nodes[i].data.expression === "Multiple")
+						{
+							xNodes.push(nodes[i].data.id);
+						}
+					}
+				}
+				if (xNodes.length > 0)
+				{
+					for (i=0; i<xNodes.length; i++)
+					{
+						var ii = $.inArray(xNodes[i],nodesToKeep);
+						if (ii !== -1)
+						{
+							nodesToKeep.splice(ii,1);
+						}
+					}
+				}
+				visObject.filter("nodes",nodesToKeep);
+				filterEdges();
+
+				if (hasColoredDatasets)
+				{
+					var edgesToHide = [];
+					var edges = visObject.edges();
+					for (i=0; i<edges.length; i++)
+					{
+						if (!edges[i].data.interaction.match(/^super/))
+						{
+							edgesToHide.push(edges[i].data.id);
+						}
+					}
+					hideSomeEdges(edgesToHide);
+				}
+				
+				if (visObject.parentNodes().length > 0)
+				{
+					recalculateLayout("CompoundSpringEmbedder");
+				}
+				else
+				{
+					recalculateLayout("ForceDirected");
+				}
+			}
+			break;
+	} }
+
+	if (byp) { visObject.visualStyleBypass(bypass); }
+}
+
+function recalculateLayout(layout)
+{
+	var visObject = getVisData("cytoscapeweb");
+	var layO = getData("cytoscapeweb","layout");
+
+	switch (layout)
+	{
+		case 'ForceDirected':
+			theLayO =
+			{
+				gravitation: layO.ForceDirected.gravitation,
+				mass: layO.ForceDirected.node_mass,
+				tension: layO.ForceDirected.edge_tension
+			};
+			visObject.layout({ name: 'ForceDirected', options: theLayO });
+			break;
+		case 'CompoundSpringEmbedder':
+			theLayO =
+			{
+				tension: layO.CompoundSpringEmbedder.edge_tension,
+				gravitation: layO.CompoundSpringEmbedder.gravitation,
+				centralGravitation: layO.CompoundSpringEmbedder.central_gravitation,
+				centralGravityDistance: layO.CompoundSpringEmbedder.central_gravity_distance,
+				compoundCentralGravitation: layO.CompoundSpringEmbedder.compound_central_gravitation,
+				compoundCentralGravityDistance: layO.CompoundSpringEmbedder.compound_central_gravity_distance,
+			};
+			visObject.layout({ name: 'CompoundSpringEmbedder', options: theLayO });
 			break;
 	}
 }
@@ -1526,9 +1969,17 @@ function initEdgeMapper()
 				{ attrValue: "expression", value: "#9BA402" },
 				{ attrValue: "activation", value: "#00A300" },
 				{ attrValue: "inhibition", value: "#EE0000" },
+				{ attrValue: "superbinding", value: "#028E9B" },
+				{ attrValue: "superptmod", value: "#133CAC" },
+				{ attrValue: "superexpression", value: "#9BA402" },
+				{ attrValue: "superactivation", value: "#00A300" },
+				{ attrValue: "superinhibition", value: "#EE0000" },
 				{ attrValue: "go", value: "#FFAD00" },
 				{ attrValue: "kegg", value: "#D30068" },
-				{ attrValue: "mirna", value: "#FBB0FF" }
+				{ attrValue: "mirna", value: "#FBB0FF" },
+				{ attrValue: "supergo", value: "#FFAD00" },
+				{ attrValue: "superkegg", value: "#D30068" },
+				{ attrValue: "supermirna", value: "#FBB0FF" }
 			]
 		},
 		arrowMapper:
@@ -1539,7 +1990,11 @@ function initEdgeMapper()
 				{ attrValue: "binding", value: "NONE" },
 				{ attrValue: "expression", value: "CIRCLE" },
 				{ attrValue: "activation", value: "ARROW" },
-				{ attrValue: "inhibition", value: "T" }
+				{ attrValue: "inhibition", value: "T" },
+				{ attrValue: "superbinding", value: "NONE" },
+				{ attrValue: "superexpression", value: "CIRCLE" },
+				{ attrValue: "superactivation", value: "ARROW" },
+				{ attrValue: "superinhibition", value: "T" }
 			]
 		},
 		widthMapper:
@@ -1547,9 +2002,17 @@ function initEdgeMapper()
 			attrName: "interaction",
 			entries:
 			[
+				{ attrValue: "superbinding", value: 2 },
+				{ attrValue: "superptmod", value: 2 },
+				{ attrValue: "superexpression", value: 2 },
+				{ attrValue: "superactivation", value: 2 },
+				{ attrValue: "superinhibition", value: 2 },
 				{ attrValue: "go", value: 3 },
 				{ attrValue: "kegg", value: 3 },
-				{ attrValue: "mirna", value: 3 }
+				{ attrValue: "mirna", value: 3 },
+				{ attrValue: "supergo", value: 3 },
+				{ attrValue: "superkegg", value: 3 },
+				{ attrValue: "supermirna", value: 3 }
 			]
 		}
 	};
@@ -1563,8 +2026,8 @@ function initLayoutOpts()
 	{
 		ForceDirected:
 		{
-			gravitation: -50,
-			node_mass: 2,
+			gravitation: -500,
+			node_mass: 5,
 			edge_tension: 0.5
 		},
 		Circle:
@@ -1582,6 +2045,15 @@ function initLayoutOpts()
 		{
 			radius: -500,
 			angle_width: 360
+		},
+		CompoundSpringEmbedder:
+		{
+			gravitation: -50,
+			central_gravitation: 50,
+			central_gravity_distance: 50,
+			compound_central_gravitation: 100,
+			compound_central_gravity_distance: 5,
+			edge_tension: 50
 		}
 	};
 
@@ -1608,7 +2080,18 @@ function setData(container,name,data)
 	$("#"+container).data(name,data);
 }
 
-
+function getAllNodeID()
+{
+	visObject = getVisData("cytoscapeweb");
+	var nodes = visObject.nodes();
+	var nodeID = [];
+	for (i=0; i<nodes.length; i++)
+	{
+		nodeID.push(nodes[i].data.id);
+	}
+	return(nodeID);
+}
+	
 /*function updateLayout()
 {
 	var visObject = getVisData("cytoscapeweb");

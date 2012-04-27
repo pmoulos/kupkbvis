@@ -366,9 +366,7 @@ sub createDB
 				`kegg_tax_id` VARCHAR(10) NOT NULL,
 				`kegg_tax_code` VARCHAR(3) NOT NULL,
 				`kegg_tax_name` VARCHAR(200) NOT NULL,
-				INDEX `kegg_tax_code` (`kegg_tax_code`),
-				FOREIGN KEY (`ncbi_tax_id`) REFERENCES species(`tax_id`)
-				ON DELETE RESTRICT ON UPDATE RESTRICT
+				INDEX `kegg_tax_code` (`kegg_tax_code`)
 				) ENGINE = INNODB;";
 
 	my $ke_cq = "CREATE TABLE `kegg_pathways` (
@@ -378,6 +376,12 @@ sub createDB
 				`organism` VARCHAR(3) NOT NULL,
 				FOREIGN KEY (`organism`) REFERENCES ncbitax_to_keggtax(`kegg_tax_code`)
 				ON DELETE RESTRICT ON UPDATE RESTRICT
+				) ENGINE = INNODB;";
+
+	my $kr_cq = "CREATE TABLE `kegg_reference` (
+				`id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+				`ref_id` VARCHAR(16) NULL,
+				`path_id` VARCHAR(16) NULL
 				) ENGINE = INNODB;";
 
 	my $pm_cq = "CREATE TABLE `pathway_members` (

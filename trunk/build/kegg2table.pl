@@ -57,13 +57,42 @@ my $date = &now;
 disp("$date - Started...");
 
 my @organisms = @{$phref->{"species"}};
-my ($i,$j,$m,$n,$pid,$truncpid,$truncdef,$cuge,$pathways,$genes);
+my ($i,$j,$m,$n,$pid,$truncpid,$truncdef,$pnumber,$cuge,$pathways,$genes);
 my @nc2kgdata;
 my (%nc2kg_fields,%path_fields,%member_fields);
+my %refhash;
 
 &initKEGG;
 # Build the entrez_to_go table
 disp("Building the NCBI to KEGG taxonomy, KEGG pathways and memberships tables...");
+
+disp("Retrieving reference pathways...");
+%nc2kg_fields = &initFields("ncbitax_to_keggtax");
+$nc2kg_fields{"ncbi_tax_id"} = 999999;
+$nc2kg_fields{"kegg_tax_id"} = "genome:T01";
+$nc2kg_fields{"kegg_tax_code"} = "map";
+$nc2kg_fields{"kegg_tax_name"} = "Reference";
+$pathways = $service->list_pathways("map");
+&insertMap(\%nc2kg_fields);
+$m = @{$pathways};
+for ($i=0; $i<$m; $i++)
+{
+	%path_fields = &initFields("kegg_pathways");
+	$truncpid = $pid = ${$pathways}[$i]->{"entry_id"};
+	$truncpid =~ s/path://;
+	$path_fields{"pathway_id"} = $truncpid;
+	$pnumber = $truncpid;
+	$pnumber =~ s/map//;
+	$truncdef = ${$pathways}[$i]->{"definition"};
+	$truncdef =~ s/(\s*\-\s*)([A-Za-z0-9]*\s*)*\(([A-Za-z0-9]*\s*)*\)//;
+	$path_fields{"name"} = $truncdef;
+	$path_fields{"class"} = getClassFromPathway(${$pathways}[$i]->{"entry_id"});
+	$path_fields{"organism"} = "map";
+	disp("Inserting $truncpid to KEGG pathways table...");
+	&insertPathway(\%path_fields);
+	$refhash{$pnumber} = ();
+}
+
 foreach my $org (@organisms)
 {
 	disp("Retrieving general data for $org...");
@@ -95,6 +124,10 @@ foreach my $org (@organisms)
 			$path_fields{"organism"} = $nc2kg_fields{"kegg_tax_code"};
 			disp("Inserting $truncpid to KEGG pathways table...");
 			&insertPathway(\%path_fields);
+
+			$pnumber = $truncpid;
+			$pnumber =~ s/$nc2kg_fields{"kegg_tax_code"}//;
+			push(@{$refhash{$pnumber}},$truncpid) if (exists($refhash{$pnumber}));
 
 			disp("Inserting genes in $pid in pathway members table...");
 			# SOAP is not reliable... We need to repeat the SOAP call until it is successful...
@@ -147,6 +180,9 @@ foreach my $org (@organisms)
 	}
 	else { disp("Nothing found for $org! Moving to next organism..."); }
 }
+
+disp("Mapping organism pathways to reference pathways...");
+&buildReferenceMap(\%refhash);
 
 if ($ref) {} # NYI, we have to figure out what may happen with the foreign keys...
 
@@ -349,6 +385,28 @@ sub insertMember
 	my $iq = "INSERT INTO `pathway_members` (".join(", ",@field).") ".
 			 "VALUES (".join(", ",@value).");";
 	$conn->do($iq);
+	
+	&closeConnection($conn);
+}
+
+sub buildReferenceMap
+{
+	my %hash = %{$_[0]};
+	my $conn = &openConnection(@dbdata);
+	my ($key,$map,$way,$iq);
+
+	foreach $key (keys(%hash))
+	{
+		$map = "map".$key;
+		$map = $conn->quote($map);
+		foreach $way (@{$hash{$key}})
+		{
+			$way = $conn->quote($way);
+			$iq = "INSERT INTO `kegg_reference` (`ref_id`,`path_id`) ".
+				  "VALUES (".$map.",".$way.");";
+			$conn->do($iq);
+		}
+	}
 	
 	&closeConnection($conn);
 }
