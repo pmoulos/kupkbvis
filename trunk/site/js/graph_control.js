@@ -31,7 +31,8 @@ function bypassNodeColors(ajaxData,type)
 	var moreseen = [];
 	var dataSeen = [];
 	var propSeen = [];
-	var multiSpecies = getMultiSpeciesStatus();
+	var sg2en = [];
+	var multispecies = getMultiSpeciesStatus();
 	var i, j, k, currNode;
 	var multicolor, cShape, iShape;
 
@@ -148,81 +149,154 @@ function bypassNodeColors(ajaxData,type)
 	{
 		propSeen = { color: "#2B2B2B", borderWidth: 5, borderColor: "#ECBD00", labelFontColor: "#FFFFFF" };
 	}
-	
-	for (i=0; i<noN; i++)
+
+	if (multispecies)
 	{
-		var ii = $.inArray(nodes[i].data.entrez_id,ajaxNodes);
-		if (ii !== -1) // Node in KUPKB expression data
+		for (i=0; i<noN; i++)
 		{
-			currNode = nodes[i];
-			if (seen[currNode.data.entrez_id].length>1)
+			if(nodes[i].data.object_type !== "supergene")
 			{
-				if (multicolor)
-				{
-					for (j=0; j<seen[currNode.data.entrez_id].length; j++)
-					{
-						k = j+1;
-						cdata = {
-									id: currNode.data.id + "_" + k,
-									label: newData[seen[currNode.data.entrez_id][j]].custom, // + " (" + k + ")",
-									strength: newData[seen[currNode.data.entrez_id][j]].strength,
-									expression: newData[seen[currNode.data.entrez_id][j]].expression,
-									ratio: newData[seen[currNode.data.entrez_id][j]].ratio,
-									pvalue: newData[seen[currNode.data.entrez_id][j]].pvalue,
-									fdr: newData[seen[currNode.data.entrez_id][j]].fdr,
-									entrez_id: currNode.data.entrez_id,
-									object_type: type,
-									dataset_id: newData[seen[currNode.data.entrez_id][j]].dataset_id,
-									parent: currNode.data.id
-								};
-						visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),cdata,true);
-						bypass["nodes"][cdata.id] = visProps[seen[currNode.data.entrez_id][j]];
-					}
-					visObject.updateData([currNode.data.id],dataSeen);
-					bypass[currNode.group][currNode.data.id] = propSeen;
-				}
-				else
-				{
-					visObject.updateData([currNode.data.id],dataSeen);
-					bypass[currNode.group][currNode.data.id] = propSeen;
-				}
+				sg2en[nodes[i].data.label.toLowerCase()] = 0;
 			}
-			else
+		}
+		for (i=0; i<noN; i++)
+		{
+			if(nodes[i].data.object_type !== "supergene")
 			{
-				visObject.updateData([currNode.data.id],newData[ii]);
-				bypass[currNode.group][currNode.data.id] = visProps[ii];
+				sg2en[nodes[i].data.label.toLowerCase()]++;
 			}
 		}
 
-		// Additional search if multiple species based on gene symbols
-		if (multiSpecies)
+		for (i=0; i<noN; i++)
 		{
-			var jj = $.inArray(nodes[i].data.label.toLowerCase(),moreAjaxNodes);
-			if (jj !== -1) // Node in KUPKB expression data
+			if(nodes[i].data.entrez_id === "") { continue; }
+			
+			if (sg2en[nodes[i].data.label.toLowerCase()] === 1)
+			{
+				var jj = $.inArray(nodes[i].data.label.toLowerCase(),moreAjaxNodes);
+				if (jj !== -1) // Node in KUPKB expression data
+				{
+					currNode = nodes[i];
+					if (moreseen[currNode.data.label.toLowerCase()].length > 1)
+					{
+						if (multicolor)
+						{
+							for (j=0; j<moreseen[currNode.data.label.toLowerCase()].length; j++)
+							{
+								k = j+1;
+								cdata = {
+											id: currNode.data.id + "_" + 10*k,
+											label: newData[moreseen[currNode.data.label.toLowerCase()][j]].custom, // + " (" + k + ")",
+											strength: newData[moreseen[currNode.data.label.toLowerCase()][j]].strength,
+											expression: newData[moreseen[currNode.data.label.toLowerCase()][j]].expression,
+											ratio: newData[moreseen[currNode.data.label.toLowerCase()][j]].ratio,
+											pvalue: newData[moreseen[currNode.data.label.toLowerCase()][j]].pvalue,
+											fdr: newData[moreseen[currNode.data.label.toLowerCase()][j]].fdr,
+											entrez_id: ajaxNodes[jj],
+											object_type: type,
+											dataset_id: newData[moreseen[currNode.data.label.toLowerCase()][j]].dataset_id,
+											parent: currNode.data.id
+										};
+								visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),cdata,true);
+								bypass["nodes"][cdata.id] = visProps[moreseen[currNode.data.label.toLowerCase()][j]];
+							}
+							visObject.updateData([currNode.data.id],dataSeen);
+							bypass[currNode.group][currNode.data.id] = propSeen;
+						}
+						else
+						{
+							visObject.updateData([currNode.data.id],dataSeen);
+							bypass[currNode.group][currNode.data.id] = propSeen;
+						}
+					}
+					else
+					{
+						visObject.updateData([currNode.data.id],newData[jj]);
+						bypass[currNode.group][currNode.data.id] = visProps[jj];
+					}
+				}
+			}
+			else // Play with normal entrez ids
+			{
+				for (i=0; i<noN; i++)
+				{
+					var jj = $.inArray(nodes[i].data.entrez_id,ajaxNodes);
+					if (jj !== -1) // Node in KUPKB expression data
+					{
+						currNode = nodes[i];
+						if (seen[currNode.data.entrez_id].length>1)
+						{
+							if (multicolor)
+							{
+								for (j=0; j<seen[currNode.data.entrez_id].length; j++)
+								{
+									k = j+1;
+									cdata = {
+												id: currNode.data.id + "_" + k,
+												label: newData[seen[currNode.data.entrez_id][j]].custom, // + " (" + k + ")",
+												strength: newData[seen[currNode.data.entrez_id][j]].strength,
+												expression: newData[seen[currNode.data.entrez_id][j]].expression,
+												ratio: newData[seen[currNode.data.entrez_id][j]].ratio,
+												pvalue: newData[seen[currNode.data.entrez_id][j]].pvalue,
+												fdr: newData[seen[currNode.data.entrez_id][j]].fdr,
+												entrez_id: currNode.data.entrez_id,
+												object_type: type,
+												dataset_id: newData[seen[currNode.data.entrez_id][j]].dataset_id,
+												parent: currNode.data.id
+											};
+									visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),cdata,true);
+									//alert(visProps[moreseen[currNode.data.label.toLowerCase()][j]].color);
+									bypass["nodes"][cdata.id] = visProps[seen[currNode.data.entrez_id][j]];
+								}
+								visObject.updateData([currNode.data.id],dataSeen);
+								bypass[currNode.group][currNode.data.id] = propSeen;
+							}
+							else
+							{
+								visObject.updateData([currNode.data.id],dataSeen);
+								bypass[currNode.group][currNode.data.id] = propSeen;
+							}
+						}
+						else
+						{
+							visObject.updateData([currNode.data.id],newData[jj]);
+							bypass[currNode.group][currNode.data.id] = visProps[jj];
+						}
+					}
+				}
+			}
+		}
+	}
+	else
+	{
+		for (i=0; i<noN; i++)
+		{
+			var ii = $.inArray(nodes[i].data.entrez_id,ajaxNodes);
+			if (ii !== -1) // Node in KUPKB expression data
 			{
 				currNode = nodes[i];
-				if (moreseen[currNode.data.label.toLowerCase()].length>1)
+				if (seen[currNode.data.entrez_id].length>1)
 				{
 					if (multicolor)
 					{
-						for (j=0; j<moreseen[currNode.data.label.toLowerCase()].length; j++)
+						for (j=0; j<seen[currNode.data.entrez_id].length; j++)
 						{
 							k = j+1;
 							cdata = {
-										id: currNode.data.id + "_" + 10*k,
-										label: newData[moreseen[currNode.data.label.toLowerCase()][j]].custom, // + " (" + k + ")",
-										strength: newData[moreseen[currNode.data.label.toLowerCase()][j]].strength,
-										expression: newData[moreseen[currNode.data.label.toLowerCase()][j]].expression,
-										ratio: newData[moreseen[currNode.data.label.toLowerCase()][j]].ratio,
-										pvalue: newData[moreseen[currNode.data.label.toLowerCase()][j]].pvalue,
-										fdr: newData[moreseen[currNode.data.label.toLowerCase()][j]].fdr,
-										entrez_id: "",
+										id: currNode.data.id + "_" + k,
+										label: newData[seen[currNode.data.entrez_id][j]].custom, // + " (" + k + ")",
+										strength: newData[seen[currNode.data.entrez_id][j]].strength,
+										expression: newData[seen[currNode.data.entrez_id][j]].expression,
+										ratio: newData[seen[currNode.data.entrez_id][j]].ratio,
+										pvalue: newData[seen[currNode.data.entrez_id][j]].pvalue,
+										fdr: newData[seen[currNode.data.entrez_id][j]].fdr,
+										entrez_id: currNode.data.entrez_id,
 										object_type: type,
-										dataset_id: newData[moreseen[currNode.data.label.toLowerCase()][j]].dataset_id,
+										dataset_id: newData[seen[currNode.data.entrez_id][j]].dataset_id,
 										parent: currNode.data.id
 									};
 							visObject.addNode(randomFromTo(300,400),randomFromTo(300,400),cdata,true);
-							bypass["nodes"][cdata.id] = visProps[moreseen[currNode.data.label.toLowerCase()][j]];
+							bypass["nodes"][cdata.id] = visProps[seen[currNode.data.entrez_id][j]];
 						}
 						visObject.updateData([currNode.data.id],dataSeen);
 						bypass[currNode.group][currNode.data.id] = propSeen;
@@ -235,8 +309,8 @@ function bypassNodeColors(ajaxData,type)
 				}
 				else
 				{
-					visObject.updateData([currNode.data.id],newData[jj]);
-					bypass[currNode.group][currNode.data.id] = visProps[jj];
+					visObject.updateData([currNode.data.id],newData[ii]);
+					bypass[currNode.group][currNode.data.id] = visProps[ii];
 				}
 			}
 		}
@@ -1576,7 +1650,7 @@ function updateMultiSpeciesView(type,xNodes)
 							{
 								if ((pC[j].data.expression !== "" || pC[j].data.strength !== "" || pC[j].data.ratio !== 999) &&
 									(pC[j].data.expression !== "Multiple" || pC[j].data.strength !== "Multiple") &&
-									(pC[j].data.id.match(/_\d{1,2,3}$/))) // Stinks from Toulouse as far as to NY!...
+									(pC[j].data.id.match(/_\d{1,3}$/))) // Stinks from Toulouse as far as to NY!...
 								{
 									visObject.removeElements([pC[j].data.id],true);
 									pC[j].data.parent = pC[j].data.custom; // Restore the original parent
@@ -1609,7 +1683,7 @@ function updateMultiSpeciesView(type,xNodes)
 								{
 									if ((pCC[k].data.expression !== "" || pCC[k].data.strength !== "" || pCC[k].data.ratio !== 999) &&
 										(pCC[k].data.expression !== "Multiple" || pCC[k].data.strength !== "Multiple") &&
-										(pCC[k].data.id.match(/_\d{1,2,3}$/))) // Stinks from Toulouse as far as to NY!...
+										(pCC[k].data.id.match(/_\d{1,3}$/))) // Stinks from Toulouse as far as to NY!...
 									{
 										byp = true;
 										bypass["nodes"][pC[j].data.id] = { color: "#2B2B2B", borderWidth: 5, borderColor: "#ECBD00", labelFontColor: "#FFFFFF" };
@@ -1645,6 +1719,10 @@ function updateMultiSpeciesView(type,xNodes)
 						{
 							for (j=0; j<pC.length; j++)
 							{
+								if ((pC[j].data.expression !== "" || pC[j].data.strength !== "" || pC[j].data.ratio !== 999) &&
+									(pC[j].data.expression !== "Multiple" || pC[j].data.strength !== "Multiple")) // Stinks from Toulouse as far as to NY!...
+								{ hasColoredDatasets = true; }
+
 								pCC = visObject.childNodes(pC[j]);
 								if (multicolor)
 								{

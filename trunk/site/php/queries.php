@@ -214,14 +214,15 @@ $ensembl_from_entrez = 'SELECT DISTINCT `entrez_id`,`source` '.
 					   'WHERE entrez_to_ensembl.entrez_id IN ';
 
 /* Find Ensembl protein from set of entrez ids and initiate nodes*/
-$init_nodes = 'SELECT DISTINCT interactions.source AS id,'.
-			  'genes.gene_symbol AS label,'.
-			  'entrez_to_ensembl.entrez_id AS entrez_id '.
-			  'FROM interactions INNER JOIN entrez_to_ensembl '.
-			  'ON interactions.source=entrez_to_ensembl.ensembl_protein '.
-			  'INNER JOIN genes '.
-			  'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
-			  'WHERE entrez_to_ensembl.entrez_id IN ';
+
+
+$init_nodes_1 = 'SELECT DISTINCT `ensembl_protein` AS `id`,genes.gene_symbol AS `label`,entrez_to_ensembl.entrez_id AS `entrez_id`,interactions.source AS `source`,interactions.target AS `target` '.
+				'FROM `entrez_to_ensembl` LEFT JOIN `genes` '.
+				'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
+				'LEFT JOIN `interactions` '.
+				'ON (entrez_to_ensembl.ensembl_protein=interactions.source OR entrez_to_ensembl.ensembl_protein=interactions.target) '.
+				'WHERE entrez_to_ensembl.entrez_id IN ';
+$init_nodes_2 = ' GROUP BY `id`';
 
 /* Get interactions */
 $init_edges_1 = 'SELECT DISTINCT `target`, `source`, `interaction` '.
@@ -509,5 +510,15 @@ $update_mirna_locdata_disease_3 = '\')';*/
 								   'WHERE data.microcosm_id IN ';
 $update_mirna_disdata_location_2_1 = ' AND (datasets.biomaterial_0=\'';
 $update_mirna_disdata_location_2_2 = '\' OR datasets.biomaterial_1=\'';
-$update_mirna_disdata_location_3 = '\')';*/
+$update_mirna_disdata_location_3 = '\')';
+
+/* Find Ensembl protein from set of entrez ids and initiate nodes*/
+/*$init_nodes = 'SELECT DISTINCT interactions.source AS id,'.
+			  'genes.gene_symbol AS label,'.
+			  'entrez_to_ensembl.entrez_id AS entrez_id '.
+			  'FROM interactions INNER JOIN `entrez_to_ensembl` '.
+			  'ON interactions.source=entrez_to_ensembl.ensembl_protein '.
+			  'INNER JOIN `genes` '.
+			  'ON entrez_to_ensembl.entrez_id=genes.entrez_id '.
+			  'WHERE entrez_to_ensembl.entrez_id IN ';*/
 ?>

@@ -1372,7 +1372,7 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 			foreach ($add_edges as $compedge)
 			{
 				$edge = $compedge['data'];
-				if ($eshash[$sehash[$edge['source']]] > 1 && $eshash[$sehash[$edge['target']]] > 1)
+				if ($eshash[$sehash[$edge['source']]] >= 1 && $eshash[$sehash[$edge['target']]] >= 1)
 				{
 					$tmpedges[] = array("group" => "edges",
 										"data" => array("id" => $sehash[$edge['source']]."_to_".$sehash[$edge['target']]."_super".$edge['interaction'],
@@ -1791,23 +1791,47 @@ function initmiRNA($entrez)
 
 function initNodes($entrez,$mirna)
 {
-	global $init_nodes;
+	global $init_nodes_1,$init_nodes_2;
 	$nodes = array();
 	$super = array();
+	$results = array();
 	$multi = FALSE;
 	
 	$conn = open_connection();
 	$gene_list = '('.implode(", ",$entrez).')';
-	$query = $init_nodes.$gene_list;
+	$query = $init_nodes_1.$gene_list.$init_nodes_2;
+	//echo $query;
 	$result = mysql_query($query,$conn);
 
-	while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
+	while (list($id,$label,$entrez_id,$source,$target) = mysql_fetch_array($result))
 	{
-		$ilabel = strtolower($label);
-		$super[$ilabel][] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
-								  "strength" => "", "expression" => "",
-								  "ratio" => 999, "pvalue" => 999, "fdr" => 999,
-								  "object_type" => "gene", "dataset_id" => "", "custom" => "");
+		$results[$entrez_id][] = array("id" => $id, "label" => $label, "source" => $source, "target" => $target);
+	}
+
+	foreach ($results as $e => $h)
+	{
+		if (count($h) > 1)
+		{
+			foreach ($h as $hit)
+			{
+				if (!is_null($hit['source']) && !is_null($hit['target']))
+				{
+					$ilabel = strtolower($hit['label']);
+					$super[$ilabel][] = array("id" => $hit['id'], "label" => $hit['label'], "entrez_id" => (string)$e,
+											  "strength" => "", "expression" => "",
+											  "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+											  "object_type" => "gene", "dataset_id" => "", "custom" => "");
+				}
+			}
+		}
+		else
+		{
+			$ilabel = strtolower($h[0]['label']);
+			$super[$ilabel][] = array("id" => $h[0]['id'], "label" => $h[0]['label'], "entrez_id" => (string)$e,
+									  "strength" => "", "expression" => "",
+									  "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+									  "object_type" => "gene", "dataset_id" => "", "custom" => "");
+		}
 	}
 	
 	foreach ($super as $key => $value)
@@ -1815,7 +1839,7 @@ function initNodes($entrez,$mirna)
 		$size = count($super[$key]);
 		if ($size>1)
 		{
-			$nodes[] = array("id" => $key, "label" => $key, "entrez_id" => $key,
+			$nodes[] = array("id" => $key, "label" => $key, "entrez_id" => "",
 							 "strength" => "", "expression" => "",
 							 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
 							 "object_type" => "supergene", "dataset_id" => "", "custom" => "");
@@ -1830,14 +1854,6 @@ function initNodes($entrez,$mirna)
 			$nodes[] = $value[0];
 		}
 	}
-	
-	/*while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
-	{
-		$nodes[] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
-						 "strength" => "", "expression" => "",
-						 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
-						 "object_type" => "gene", "dataset_id" => "", "custom" => "");
-	}*/
 
 	if (!empty($mirna))
 	{
@@ -1938,7 +1954,7 @@ function initEdges($ensembl,$score,$ms)
 			}
 			foreach ($edges as $edge)
 			{
-				if ($eshash[$sehash[$edge['source']]] > 1 && $eshash[$sehash[$edge['target']]] > 1)
+				if ($eshash[$sehash[$edge['source']]] >= 1 && $eshash[$sehash[$edge['target']]] >= 1)
 				{
 					$tmpedges[] = array("id" => $sehash[$edge['source']]."_to_".$sehash[$edge['target']]."_super".$edge['interaction'],
 										"target" => $sehash[$edge['target']], "source" => $sehash[$edge['source']],
@@ -2391,7 +2407,77 @@ function initEdges($ensembl)
 		#}
 	}
 	return($edges);
-}*/
+}
 
+function initNodes($entrez,$mirna)
+{
+	global $init_nodes;
+	$nodes = array();
+	$super = array();
+	$multi = FALSE;
+	
+	$conn = open_connection();
+	$gene_list = '('.implode(", ",$entrez).')';
+	$query = $init_nodes.$gene_list;
+	//echo $query;
+	$result = mysql_query($query,$conn);
+
+	while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
+	{
+		$ilabel = strtolower($label);
+		$super[$ilabel][] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
+								  "strength" => "", "expression" => "",
+								  "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+								  "object_type" => "gene", "dataset_id" => "", "custom" => "");
+	}
+	
+	foreach ($super as $key => $value)
+	{
+		$size = count($super[$key]);
+		if ($size>1)
+		{
+			$nodes[] = array("id" => $key, "label" => $key, "entrez_id" => "",
+							 "strength" => "", "expression" => "",
+							 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+							 "object_type" => "supergene", "dataset_id" => "", "custom" => "");
+			for ($i=0; $i<$size; $i++)
+			{
+				$nodes[] = array_merge($value[$i],array("parent" => $key));
+			}
+			$multi = TRUE;
+		}
+		else
+		{
+			$nodes[] = $value[0];
+		}
+	}
+	 
+	#while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
+	#{
+	#	$nodes[] = array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
+	#					 "strength" => "", "expression" => "",
+	#					 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+	#					 "object_type" => "gene", "dataset_id" => "", "custom" => "");
+	#}
+
+	if (!empty($mirna))
+	{
+		global $init_mirna_nodes;
+		if (!is_array($mirna)) { $mirna = array($mirna); }
+		$mirna_list = '(\''.implode("', '",$mirna).'\')';
+		$query = $init_mirna_nodes.$mirna_list;
+		$result = mysql_query($query,$conn);
+		while ($row = mysql_fetch_array($result,MYSQL_NUM))
+		{			    
+			$nodes[] = array("id" => $row[0], "label" => $row[0], "entrez_id" => $row[0],
+							 "strength" => "", "expression" => "",
+							 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+							 "object_type" => "mirna", "custom" => "");
+		}
+	}
+	
+	close_connection($conn);
+	return(array("nodes" => $nodes, "ms" => $multi));
+}*/
 ?>
 
