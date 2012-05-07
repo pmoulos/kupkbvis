@@ -297,7 +297,8 @@ $get_neighbors_1 = 'SELECT `ensembl_protein` '.
 				   'FROM `entrez_to_ensembl` INNER JOIN `interactions` '.
 				   'ON entrez_to_ensembl.ensembl_protein=interactions.target '.
 				   'WHERE `source` IN ';
-$get_neighbors_2 = ' AND `target` NOT IN ';
+//$get_neighbors_2 = ' AND `target` NOT IN ';
+$get_neighbors_2 = ' OR `target` IN ';
 $get_neighbors_3 = ' AND score>=';
 $get_neighbors_4 = ' GROUP BY `ensembl_protein`';
 

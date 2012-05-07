@@ -283,10 +283,11 @@ if ($_REQUEST['network']) // The network!
 	$entrez = $_SESSION['entrez'];
 	$mirna = $_SESSION['mirna'];
 	$proteins = $_SESSION['proteins'];
+	$species = $_SESSION['species'];
+	$ms = count($species) > 1 ? TRUE : FALSE;
 	$schema = initDataSchema();
-	$nodearr = initNodes($entrez,$mirna);
-	$nodes = $nodearr['nodes'];
-	$edges = initEdges($proteins,$score,$nodearr['ms']);
+	$nodes = initNodes($entrez,$mirna,$ms);
+	$edges = initEdges($proteins,$score,$ms);
 
 	# Add additional input miRNA edges if any
 	if (!empty($mirna))
@@ -352,10 +353,12 @@ if ($_REQUEST['level'])
 	$es = $_REQUEST['es'];
 	$cdata = $_REQUEST['currset'];
 	$score = $_REQUEST['score'];
+	$species = $_SESSION['species'];
+	$ms = count($species) > 1 ? TRUE : FALSE;
 	$node = json_decode($node,$assoc=TRUE);
 	$nodes = json_decode($nodes,$assoc=TRUE);
 	$cdata = json_decode($cdata,$assoc=TRUE);
-	$elements = getNeighbors($node,$nodes,$level,$ns,$es,$cdata,$score);
+	$elements = getNeighbors($node,$nodes,$level,$ns,$es,$cdata,$score,$ms);
 	echo json_encode($elements);
 	//echo json_encode($elements['elements']);
 }
@@ -1173,7 +1176,7 @@ function getmirnaElements($mirnas,$ensembl,$ms)
 # node: the selected ones to fetch their neighbors
 # nodes: all the current nodes in the network
 # level: the depth of neighborhood
-function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
+function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score,$ms)
 {
 	global $get_neighbors_1,$get_neighbors_2,$get_neighbors_3,$get_neighbors_4;
 	global $get_add_nodes_1,$get_add_nodes_2,$get_add_edges_1,$get_add_edges_2;
@@ -1246,7 +1249,6 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 		
 		# Keep in mind! The cytoscapeweb node and edge queries need to be run only once!
 		# Now fire more queries to get the network elements
-		$multi = FALSE;
 		$neighbor_list = implode("', '",$neighbors);
 		$query = $get_add_nodes_1.'(\''.$neighbor_list.'\')'.$get_add_nodes_2.'(\''.$neighbor_list.'\')';
 		$result = mysql_query($query,$conn);
@@ -1259,11 +1261,11 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 													  "ratio" => 999, "pvalue" => 999, "fdr" => 999,
 													  "object_type" => "gene", "dataset_id" => "", "custom" => ""));
 		}
-		foreach ($super as $key => $value)
+		if ($ms)
 		{
-			$size = count($super[$key]);
-			if ($size>1)
+			foreach ($super as $key => $value)
 			{
+				$size = count($super[$key]);
 				$add_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
 									 "data" => array("id" => $key, "label" => $key, "entrez_id" => $key,
 									 "strength" => "", "expression" => "",
@@ -1275,22 +1277,23 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 					$value[$i]['data'] = $newdata;
 					$add_nodes[] = $value[$i];
 				}
-				$multi = TRUE;
 			}
-			else
+		}
+		else
+		{
+			foreach ($super as $key => $value)
 			{
 				$add_nodes[] = $value[0];
 			}
 		}
 
-		/*while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
-		{
-			$add_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
-								 "data" => array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
-												 "strength" => "", "expression" => "",
-												 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
-												 "object_type" => "gene"));
-		}*/
+		# TODO:
+		# An extra query to find the homologues in multi-species so as to extrapolate
+		# relationships and also visualize the additional nodes
+		# Get symbols, entrez etc. of the added nodes and seek them through entrez_to_ensembl table
+		# Create a new ensembl => symbol hash
+		# Array diff the keys of the new hash with the existing neighbors to get the added ones
+		# Based on the remaining ensembl, add new nodes with parents from the hash
 
 		if ($level == 1) { $nodes = array_merge($nodes,$neighbors); } // Else already done
 		$all_list = implode("', '",$nodes); // Must be redefined, $_SESSION['proteins'] no longer enough...
@@ -1348,7 +1351,7 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 			}
 		}
 		# Now the super edges...
-		if ($multi)
+		if ($ms)
 		{
 			if ($es == "all")
 			{
@@ -1364,6 +1367,7 @@ function getNeighbors($node,$nodes,$level,$ns,$es,$datasets,$score)
 				$sehash[$pro] = $sym;
 				$eshash[$sym] = 0;
 			}
+
 			 # Full of dirty hacks...
 			foreach($sehash as $k => $v)
 			{
@@ -1789,18 +1793,16 @@ function initmiRNA($entrez)
 	return($mirnas);
 }
 
-function initNodes($entrez,$mirna)
+function initNodes($entrez,$mirna,$ms)
 {
 	global $init_nodes_1,$init_nodes_2;
 	$nodes = array();
 	$super = array();
 	$results = array();
-	$multi = FALSE;
 	
 	$conn = open_connection();
 	$gene_list = '('.implode(", ",$entrez).')';
 	$query = $init_nodes_1.$gene_list.$init_nodes_2;
-	//echo $query;
 	$result = mysql_query($query,$conn);
 
 	while (list($id,$label,$entrez_id,$source,$target) = mysql_fetch_array($result))
@@ -1833,12 +1835,12 @@ function initNodes($entrez,$mirna)
 									  "object_type" => "gene", "dataset_id" => "", "custom" => "");
 		}
 	}
-	
-	foreach ($super as $key => $value)
+
+	if ($ms)
 	{
-		$size = count($super[$key]);
-		if ($size>1)
+		foreach ($super as $key => $value)
 		{
+			$size = count($super[$key]);
 			$nodes[] = array("id" => $key, "label" => $key, "entrez_id" => "",
 							 "strength" => "", "expression" => "",
 							 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
@@ -1847,9 +1849,11 @@ function initNodes($entrez,$mirna)
 			{
 				$nodes[] = array_merge($value[$i],array("parent" => $key));
 			}
-			$multi = TRUE;
 		}
-		else
+	}
+	else
+	{
+		foreach ($super as $key => $value)
 		{
 			$nodes[] = $value[0];
 		}
@@ -1872,7 +1876,8 @@ function initNodes($entrez,$mirna)
 	}
 	
 	close_connection($conn);
-	return(array("nodes" => $nodes, "ms" => $multi));
+	//return(array("nodes" => $nodes, "ms" => $multi));
+	return($nodes);
 }
 
 function initEdges($ensembl,$score,$ms)
@@ -2478,6 +2483,29 @@ function initNodes($entrez,$mirna)
 	
 	close_connection($conn);
 	return(array("nodes" => $nodes, "ms" => $multi));
+}*/
+
+/*$size = count($super[$key]);
+if ($size>1)
+{
+	$nodes[] = array("id" => $key, "label" => $key, "entrez_id" => "",
+					 "strength" => "", "expression" => "",
+					 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+					 "object_type" => "supergene", "dataset_id" => "", "custom" => "");
+	for ($i=0; $i<$size; $i++)
+	{
+		$nodes[] = array_merge($value[$i],array("parent" => $key));
+	}
+	$multi = TRUE;
+}
+else { $nodes[] = $value[0]; }*/
+/*while (list($id,$label,$entrez_id) = mysql_fetch_array($result))
+{
+	$add_nodes[] = array("group" => "nodes", "x" => rand(50,400), "y" => rand(50,400),
+						 "data" => array("id" => $id, "label" => $label, "entrez_id" => $entrez_id,
+										 "strength" => "", "expression" => "",
+										 "ratio" => 999, "pvalue" => 999, "fdr" => 999,
+										 "object_type" => "gene"));
 }*/
 ?>
 
