@@ -771,6 +771,14 @@ function exportText(format)
 			$("#infoContainer").text(text);
 			visObject.exportNetwork(format,urlBase + 'php/control.php?export=' + format,{ window: '_self' });
 			break;
+		case 'arena':
+			theModel = visObject.networkModel();	
+			theBypass = visObject.visualStyleBypass();
+			//theBypass = $("#cytoscapeweb").data("bypass");
+			text = arena3d(theModel.data,theBypass.nodes);
+			$("#infoContainer").text(text);
+			export2arena(text);
+			break;
 	}
 }
 
@@ -1389,6 +1397,26 @@ function componentToHex(c)
 function rgbToHex(r,g,b)
 {
 	return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
+
+function hexToRgb(hex)
+{
+	if (hex[0]=="#") hex=hex.substr(1);
+	if (hex.length==3)
+	{
+		var temp=hex; hex='';
+		temp = /^([a-f0-9])([a-f0-9])([a-f0-9])$/i.exec(temp).slice(1);
+		for (var i=0;i<3;i++) hex+=temp[i]+temp[i];
+	}
+	var triplets = /^([a-f0-9]{2})([a-f0-9]{2})([a-f0-9]{2})$/i.exec(hex).slice(1);
+	return({ red: parseInt(triplets[0],16), green: parseInt(triplets[1],16), blue: parseInt(triplets[2],16) });
+}
+
+function hexToRgbNorm(hex)
+{
+	rgb = hexToRgb(hex);
+	color = [rgb.red/255, rgb.green/255, rgb.blue/255];
+	return(color.join(","));
 }
 
 function sigSizeChange()
@@ -2168,6 +2196,195 @@ function getAllNodeID()
 		nodeID.push(nodes[i].data.id);
 	}
 	return(nodeID);
+}
+
+function arena3d(model,bypass)
+{
+	theLayers = { gene: [], pathway: [], mirna: [], go: [], supergene: [] };
+	connections = [];
+	hasBypass = $.isEmptyObject(bypass) ? false : true;
+
+	nodes = model.nodes;
+	for (i=0; i<nodes.length; i++)
+	{
+		if (nodes[i].id.search("_") !== -1) continue;
+		switch(nodes[i].object_type)
+		{
+			case 'gene':
+				//color = hasBypass ? hexToRgbNorm(bypass[nodes[i]].color) : hexToRgbNorm("#f7f7f7");
+				theLayers['gene'].push({ ID: nodes[i].id, SYNONYMS: nodes[i].entrez_id, DESCRIPTION: nodes[i].label,
+					URL: "http://www.ncbi.nlm.nih.gov/gene?term=" + nodes[i].entrez_id, color: hexToRgbNorm("#f7f7f7") });
+				break;
+			case 'pathway':
+				theLayers['pathway'].push({ ID: nodes[i].id, SYNONYMS: nodes[i].entrez_id, DESCRIPTION: nodes[i].label,
+					URL: "http://www.genome.jp/dbget-bin/www_bget?pathway:" + nodes[i].id, color: "0.44,0.04,0" });
+				break;
+			case 'mirna':
+				theLayers['mirna'].push({ ID: nodes[i].id, SYNONYMS: nodes[i].entrez_id, DESCRIPTION: nodes[i].label,
+					URL: "http://www.mirbase.org/cgi-bin/mirna_entry.pl?acc=" + nodes[i].id, color: "0.98,0.94,0.98" });
+				break;
+			case 'component':
+				theLayers['go'].push({ ID: nodes[i].id, SYNONYMS: nodes[i].entrez_id, DESCRIPTION: nodes[i].label,
+					URL: "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + nodes[i].id, color: "0.64,0.41,0.84" });
+				break;
+			case 'function':
+				theLayers['go'].push({ ID: nodes[i].id, SYNONYMS: nodes[i].entrez_id, DESCRIPTION: nodes[i].label,
+					URL: "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + nodes[i].id, color: "0.75,0.65,0.19" });
+				break;
+			case 'process':
+				theLayers['go'].push({ ID: nodes[i].id, SYNONYMS: nodes[i].entrez_id, DESCRIPTION: nodes[i].label,
+					URL: "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=" + nodes[i].id, color: "0.43,0.53,0.84" });
+				break;
+			case 'supergene':
+				theLayers['gene'].push({ ID: nodes[i].id, SYNONYMS: nodes[i].entrez_id, DESCRIPTION: nodes[i].label,
+					URL: "http://www.ncbi.nlm.nih.gov/gene?term=" + nodes[i].entrez_id, color: "1.0,0.99,0.92" });
+				break;
+		}
+	}
+
+	edges = model.edges
+	for (i=0; i<edges.length; i++)
+	{
+		switch(edges[i].interaction)
+		{
+			case 'binding':
+				connections.push({ source_node: edges[i].source, source_type: "gene",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'ptmod':
+				connections.push({ source_node: edges[i].source, source_type: "gene",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'expression':
+				connections.push({ source_node: edges[i].source, source_type: "gene",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'activation':
+				connections.push({ source_node: edges[i].source, source_type: "gene",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'inhibition':
+				connections.push({ source_node: edges[i].source, source_type: "gene",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'superbinding':
+				connections.push({ source_node: edges[i].source, source_type: "supergene",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+			case 'superptmod':
+				connections.push({ source_node: edges[i].source, source_type: "supergene",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+			case 'superexpression':
+				connections.push({ source_node: edges[i].source, source_type: "supergene",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+			case 'superactivation':
+				connections.push({ source_node: edges[i].source, source_type: "supergene",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+			case 'superinhibition':
+				connections.push({ source_node: edges[i].source, source_type: "supergene",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+			case 'go':
+				connections.push({ source_node: edges[i].source, source_type: "go",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'kegg':
+				connections.push({ source_node: edges[i].source, source_type: "pathway",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'mirna':
+				connections.push({ source_node: edges[i].source, source_type: "mirna",
+					target_node: edges[i].target, target_type: "gene"});
+				break;
+			case 'supergo':
+				connections.push({ source_node: edges[i].source, source_type: "go",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+			case 'superkegg':
+				connections.push({ source_node: edges[i].source, source_type: "pathway",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+			case 'supermirna':
+				connections.push({ source_node: edges[i].source, source_type: "mirna",
+					target_node: edges[i].target, target_type: "supergene"});
+				break;
+		}
+	}
+	
+	nLayers = 0;
+	hasGene = hasPathway = hasGo = hasMirna = hasSupergene = false;
+	if (theLayers['gene'].length > 0) { nLayers++; hasGene = true; };
+	if (theLayers['pathway'].length > 0) { nLayers++; hasPathway = true; };
+	if (theLayers['go'].length > 0) { nLayers++; hasGo = true; };
+	if (theLayers['mirna'].length > 0) { nLayers++; hasMirna = true; };
+	if (theLayers['supergene'].length > 0) { nLayers++; hasSupergene = true; };
+	
+	arena = "number_of_layers::" + nLayers + "\n";
+
+	if (hasGene)
+	{
+		arena += "\nlayer::gene\n\n";
+		theGenes = theLayers['gene'];
+		for (i=0; i<theGenes.length; i++)
+		{
+			arena += theGenes[i].ID + "\tSYNONYMS::" + theGenes[i].SYNONYMS + "\tDESCRIPTION::" + theGenes[i].DESCRIPTION +
+				"\tURL::" + theGenes[i].URL + "\tcolor::" + theGenes[i].color + "\n";
+		}
+	}
+	if (hasPathway)
+	{
+		arena += "\nlayer::pathway\n\n";
+		thePathways = theLayers['pathway'];
+		for (i=0; i<thePathways.length; i++)
+		{
+			arena += thePathways[i].ID + "\tSYNONYMS::" + thePathways[i].SYNONYMS + "\tDESCRIPTION::" + thePathways[i].DESCRIPTION +
+				"\tURL::" + thePathways[i].URL + "\tcolor::" + thePathways[i].color + "\n";
+		}
+	}
+	if (hasGo)
+	{
+		arena += "\nlayer::go\n\n";
+		theGos = theLayers['go'];
+		for (i=0; i<theGos.length; i++)
+		{
+			arena += theGos[i].ID + "\tSYNONYMS::" + theGos[i].SYNONYMS + "\tDESCRIPTION::" + theGos[i].DESCRIPTION +
+				"\tURL::" + theGos[i].URL + "\tcolor::" + theGos[i].color + "\n";
+		}
+	}
+	if (hasMirna)
+	{
+		arena += "\nlayer::mirna\n\n";
+		theMirnas = theLayers['mirna'];
+		for (i=0; i<theMirnas.length; i++)
+		{
+			arena += theMirnas[i].ID + "\tSYNONYMS::" + theMirnas[i].SYNONYMS + "\tDESCRIPTION::" + theMirnas[i].DESCRIPTION +
+				"\tURL::" + theMirnas[i].URL + "\tcolor::" + theMirnas[i].color + "\n";
+		}
+	}
+	if (hasSupergene)
+	{
+		arena += "\nlayer::supergene\n\n";
+		theSupergenes = theLayers['supergene'];
+		for (i=0; i<theSupergenes.length; i++)
+		{
+			arena += theSupergenes[i].ID + "\tSYNONYMS::" + theSupergenes[i].SYNONYMS + "\tDESCRIPTION::" + theSupergenes[i].DESCRIPTION +
+				"\tURL::" + theSupergenes[i].URL + "\tcolor::" + theSupergenes[i].color + "\n";
+		}
+	}
+
+	arena += "\nend_of_layers_inputs\n\nstart_connections\n\n";
+
+	for (i=0; i<connections.length; i++)
+	{
+		arena += connections[i].source_node + "::" + connections[i].source_type + "\t" +
+			connections[i].target_node + "::" + connections[i].target_type + "\t1\n";
+	}
+	arena += "\nend_connections\n";
+	
+	return(arena);
 }
 	
 /*function updateLayout()
