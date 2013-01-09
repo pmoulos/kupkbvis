@@ -5,8 +5,10 @@
 #
 # Author      : Panagiotis Moulos (pmoulos@eie.gr)
 # Created     : 21 - 11 - 2011 (dd - mm - yyyy)
-# Last Update : 27 - 10 - 2010 (dd - mm - yyyy)
+# Last Update : XX - XX - XXXX (dd - mm - yyyy)
 # Version     : 1.0
+
+# TODO: Rewrite the whole script as KEGG has moved from SOAP to REST...
 
 use strict;
 use Getopt::Long;

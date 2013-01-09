@@ -33,6 +33,7 @@ include('php/queries.php');
 </head>
 
 <body onunload="endTimer();">
+<body>
 
 <!-- Piwik hack... -->
 <script language="javascript" type="text/javascript">startTimer()</script>
@@ -86,10 +87,12 @@ include('php/queries.php');
 								<li><a onclick="exportText('sif')"><span>SIF</span></a></li>
 								<li><a onclick="exportText('graphml')"><span>GRAPHML</span></a></li>
 								<li><a onclick="exportText('xgmml')" ><span>XGMML</span></a></li>
+								<li><a onclick="exportText('arena')" ><span>Arena3D</span></a></li>
 							</ul>
 						</li>
 					</ul>
 				</li>
+				<li><a href="files/KUPNetViz_guide.pdf" target="_blank" class="parent"><span>Help</span></a></li>
 				<!--<li><a onclick="toggleFullScreen()" class="parent"><span>Fullscreen</span></a></li>-->
 			</ul>
 		</div>
@@ -277,7 +280,12 @@ include('php/queries.php');
 							</ol>
 							The "Advanced" tab contains more advanced functionalities of the network browser related to the nodes/edges appearance, search modes, coloring options and
 							how the filtering lists (tab 2) behave. It also contains functionalities related to the neighbouring genes of each node. The neighbour functions are also
-							accessible by selecting and right-clicking on nodes/edges. Use the tooltips for guidance.
+							accessible by selecting and right-clicking on nodes/edges. Use the tooltips for guidance.<br/><br/>
+							<button id="guide_button" class="secondaryButton" onclick="window.open('files/KUPNetViz_guide.pdf','_blank')">Get the KUPNetViz user's guide</button>
+							<button id="example1_button" class="secondaryButton" onclick="example(1)">Launch example 1 in paper</button>
+							<button id="example2_button" class="secondaryButton" onclick="example(2)">Launch example 2 in paper</button>
+							<button id="example3_button" class="secondaryButton" onclick="example(3)">Launch example 3 in paper</button>
+							<br/><br/><div id="example_warning" style="color:#DF0000; font-weight:bold; display=block; float=left;"></div>
 							</div>
 						</td>
 						</tr>

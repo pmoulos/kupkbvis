@@ -6,7 +6,7 @@
 #
 # Author      : Panagiotis Moulos (pmoulos@eie.gr)
 # Created     : 17 - 11 - 2011 (dd - mm - yyyy)
-# Last Update : XX - XX - XXXX (dd - mm - yyyy)
+# Last Update : 30 - 12 - 2012 (dd - mm - yyyy)
 # Version     : 1.0
 
 use strict;
@@ -104,20 +104,20 @@ if ($mirnaOK==0)
 	disp("================================================================================\n");
 }
 
-#Finally, build the index and relaunch the search daemon
+# Finally, build the index and relaunch the search daemon
 if ($dbindexOK==0)
 {	
 	my ($pidfile,$port,$qfile);
 	if ($dev)
 	{
 		$pidfile = "/var/run/searchd-dev.pid";
-		$port = 60001;
+		$port = 50001;
 		$qfile = "/var/log/sphinxsearch/query-dev.log";
 	}
 	else
 	{
 		$pidfile = "/var/run/searchd.pid";
-		$port = 60000;
+		$port = 50000;
 		$qfile = "/var/log/sphinxsearch/query.log";
 	}
 	&createIndexConf($phref->{"INDEX_PATH"},$pidfile,$port,$qfile);
@@ -130,7 +130,7 @@ if ($dbindexOK==0)
 		disp("Finished building, (re)starting the search daemon...\n");
 		$daemonOK = system("/usr/bin/searchd --config $phref->{\"INDEX_PATH\"}");
 	}
-	else # Daemon was not running or config file did not exist anyay
+	else # Daemon was not running or config file did not exist anyway
 	{
 		disp("Building search index...\n");
 		$indexOK = system("/usr/bin/indexer --config $phref->{\"INDEX_PATH\"} --all");

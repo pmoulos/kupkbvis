@@ -1,5 +1,4 @@
 <?php
-
 session_start();
 
 include('connection.php');
@@ -7,14 +6,8 @@ include('queries.php');
 include('sphinxapi.php');
 include('utils.php');
 
-/*# Get the application root
-if ($_POST['root'])
-{
-	echo get_server_root();
-}*/
-
 # Response to Select species dropdown list or the GO button
-if ($_REQUEST['species'])
+if (isset($_REQUEST['species']))
 {
     $species = $_REQUEST['species'];
 	$genes = $_REQUEST['genes'];
@@ -103,7 +96,7 @@ if ($_REQUEST['species'])
 }
 
 # Response to Select disease dropdown list
-if ($_REQUEST['disease'])
+if (isset($_REQUEST['disease']))
 {
 	$disease = $_REQUEST['disease'];
 	$loc = $_REQUEST['loc'];
@@ -126,7 +119,7 @@ if ($_REQUEST['disease'])
 }
 
 # Response to Select location dropdown list
-if ($_REQUEST['location'])
+if (isset($_REQUEST['location']))
 {
 	$location = $_REQUEST['location'];
 	$dis = $_REQUEST['dis'];
@@ -148,7 +141,7 @@ if ($_REQUEST['location'])
 	}
 }
 
-if ($_REQUEST['dataset'])
+if (isset($_REQUEST['dataset']))
 {
 	$dataset = $_REQUEST['dataset'];
 	$location = $_REQUEST['location_data'];
@@ -161,7 +154,7 @@ if ($_REQUEST['dataset'])
 }
 
 # Response to Select disease mirna dropdown list
-if ($_REQUEST['disease_mirna'])
+if (isset($_REQUEST['disease_mirna']))
 {
 	$disease = $_REQUEST['disease_mirna'];
 	$loc = $_REQUEST['loc_mirna'];
@@ -181,7 +174,7 @@ if ($_REQUEST['disease_mirna'])
 }
 
 # Response to Select location mirna dropdown list
-if ($_REQUEST['location_mirna'])
+if (isset($_REQUEST['location_mirna']))
 {
 	$location = $_REQUEST['location_mirna'];
 	$dis = $_REQUEST['dis_mirna'];
@@ -200,7 +193,7 @@ if ($_REQUEST['location_mirna'])
 	}
 }
 
-if ($_REQUEST['dataset_mirna'])
+if (isset($_REQUEST['dataset_mirna']))
 {
 	$dataset = $_REQUEST['dataset_mirna'];
 	$location = $_REQUEST['location_mirna_data'];
@@ -211,7 +204,7 @@ if ($_REQUEST['dataset_mirna'])
 	echo json_encode($result);
 }
 
-if ($_REQUEST['remove_mirna'])
+if (isset($_REQUEST['remove_mirna']))
 {
 	$remove_mirna = $_REQUEST['remove_mirna'];
 	$current_mirna = $_SESSION['mirna'];
@@ -241,7 +234,7 @@ if ($_REQUEST['remove_mirna'])
 	echo json_encode($resultMiRNA,JSON_FORCE_OBJECT | JSON_NUMERIC_CHECK);
 }
 
-if ($_REQUEST['add_mirna'])
+if (isset($_REQUEST['add_mirna']))
 {
 	# They have been already added to the session because of getmirnaElements function
 	$add_mirna = $_SESSION['mirna'];
@@ -268,7 +261,7 @@ if ($_REQUEST['add_mirna'])
 }
 
 # Response to gene symbol request
-if ($_REQUEST['symbol'])
+if (isset($_REQUEST['symbol']))
 {
 	$symbols = getSymbolFromEntrez($_SESSION['entrez']);
 	$mirnas = empty($_SESSION['mirna']) ? array() : $_SESSION['mirna'];
@@ -277,7 +270,7 @@ if ($_REQUEST['symbol'])
 }
 
 # Response to AJAX network construction
-if ($_REQUEST['network']) // The network!
+if (isset($_REQUEST['network'])) // The network!
 {
 	$score = $_REQUEST['score'];
 	$entrez = $_SESSION['entrez'];
@@ -308,7 +301,7 @@ if ($_REQUEST['network']) // The network!
 }
 
 # Response to Select GO terms multi-select list
-if ($_REQUEST['go'])
+if (isset($_REQUEST['go']))
 {
 	$proteins = $_SESSION['proteins'];
 	$species = $_SESSION['species'];
@@ -320,7 +313,7 @@ if ($_REQUEST['go'])
 }
 
 # Response to Select KEGG pathways multi-select list
-if ($_REQUEST['kegg'])
+if (isset($_REQUEST['kegg']))
 {
     $proteins = $_SESSION['proteins'];
     $species = $_SESSION['species'];
@@ -332,7 +325,7 @@ if ($_REQUEST['kegg'])
 }
 
 # Response to Select miRNA multi-select list
-if ($_REQUEST['mirna'])
+if (isset($_REQUEST['mirna']))
 {
     $proteins = $_SESSION['proteins'];
     $species = $_SESSION['species'];
@@ -344,7 +337,7 @@ if ($_REQUEST['mirna'])
 }
 
 # Response to get neighbor queries
-if ($_REQUEST['level'])
+if (isset($_REQUEST['level']))
 {
 	$level = $_REQUEST['level'];
 	$node = $_REQUEST['node'];
@@ -364,7 +357,7 @@ if ($_REQUEST['level'])
 }
 
 # Response to gene node selection
-if ($_REQUEST['gene_data'])
+if (isset($_REQUEST['gene_data']))
 {
     $the_gene = $_REQUEST['gene_data'];
     $gene_data = getGeneData($the_gene,$_SESSION['species']);
@@ -372,7 +365,7 @@ if ($_REQUEST['gene_data'])
 }
 
 # Response to dataset report request
-if ($_REQUEST['dataset_report'])
+if (isset($_REQUEST['dataset_report']))
 {
     $the_dataset = $_REQUEST['dataset_report'];
     $report = getDatasetReport($the_dataset);
@@ -380,7 +373,7 @@ if ($_REQUEST['dataset_report'])
 }
 
 # Response to gene to gene or pathway to gene edge selection
-if ($_REQUEST['target_data'])
+if (isset($_REQUEST['target_data']))
 {
 	$the_target = $_REQUEST['target_data'];
     $the_source = $_REQUEST['source_data'];
@@ -389,7 +382,7 @@ if ($_REQUEST['target_data'])
     echo json_encode($the_data,JSON_NUMERIC_CHECK);
 }
 
-if ($_REQUEST['suggest_term'])
+if (isset($_REQUEST['suggest_term']))
 {		
 	$term = $_REQUEST['suggest_term'];
 	$species = $_REQUEST['suggest_species'];
@@ -404,7 +397,7 @@ if ($_REQUEST['suggest_term'])
 	echo json_encode($result,JSON_FORCE_OBJECT);
 }
 
-if ($_GET['export'])
+if (isset($_GET['export']))
 {
 	$type = $_GET['export'];
 	$data = file_get_contents("php://input");
@@ -428,8 +421,12 @@ if ($_GET['export'])
 		case "sif":
 			header('Content-type: text/plain');
 			break;
-    }
-    # Force the browser to download the file
+		case "arena":
+			$data = substr(urldecode($data),7);
+			header('Content-type: text/plain');
+			break;
+	}
+	# Force the browser to download the file
     $suff = date('YmdHis');
     header('Content-disposition: attachment; filename="network'.$suff.'.'.$type .'"');
     # Send the data to the browser:
@@ -2036,7 +2033,7 @@ function getIndexedGenes($term,$species)
 	}
 	
 	$cl = new SphinxClient();
-	$cl->SetServer("localhost",60001);
+	$cl->SetServer("localhost",50000);
 	$cl->SetLimits(0,100);
 	$cl->SetMatchMode(SPH_MATCH_ANY);
 	if (isset($species)) { $cl->SetFilter("species",$species); }
@@ -2192,6 +2189,144 @@ function getAllKUPKBGenesAsProteins($did,$conn)
 }
 
 /*
+function buildArenaFile($themodel,$bypass)
+{
+	$the_layers = array("gene" => array(),"pathway" => array(), "mirna" => array(),
+						"go" => array(),"supergene" => array());
+	$the_connections = array(); 
+	
+	foreach ($themodel["nodes"] as $node)
+	{
+		switch($node["object_type"])
+		{
+			case "gene":
+				$color = empty($bypass) ? "" : implode(",",hex2rgb_norm($bypass[$node["id"]]["color"]));
+				$the_layers["gene"][] = array("ID" => $node["id"],"SYNONYMS" => $node["entrez_id"],"DESCRIPTION" => $node["label"],
+					"URL" => "http://www.ncbi.nlm.nih.gov/gene?term=".$node["entrez_id"],"color" => $color);
+				break;
+			case "pathway":
+				$the_layers["pathway"][] = array("ID" => $node["id"],"SYNONYMS" => $node["id"],"DESCRIPTION" => $node["label"],
+					"URL" => "http://www.genome.jp/dbget-bin/www_bget?pathway:".$node["id"],"color" => "0.44,0.04,0");
+				break;
+			case "mirna":
+				$the_layers["mirna"][] = array("ID" => $node["id"],"SYNONYMS" => $node["id"],"DESCRIPTION" => $node["label"],
+					"URL" => "http://www.mirbase.org/cgi-bin/mirna_entry.pl?acc=".$node["id"],"color" => "0.98,0.94,0.98");
+				break;
+			case "component":
+				$the_layers["go"][] = array("ID" => $node["id"],"SYNONYMS" => $node["id"],"DESCRIPTION" => $node["label"],
+					"URL" => "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=".$node["id"],"color" => "0.64,0.41,0.84");
+				break;
+			case "function":
+				$the_layers["go"][] = array("ID" => $node["id"],"SYNONYMS" => $node["label"],"DESCRIPTION" => $node["label"],
+					"URL" => "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=".$node["id"],"color" => "0.75,0.65,0.19");
+				break;
+			case "process":
+				$the_layers["go"][] = array("ID" => $node["id"],"SYNONYMS" => $node["label"],"DESCRIPTION" => $node["label"],
+					"URL" => "http://amigo.geneontology.org/cgi-bin/amigo/term_details?term=".$node["id"],"color" => "0.43,0.53,0.84");
+				break;
+			case "supergene":
+				$the_layers["supergene"][] = array("ID" => $node["id"],"SYNONYMS" => $node["entrez_id"],"DESCRIPTION" => $node["label"],
+					"URL" => "http://www.ncbi.nlm.nih.gov/gene?term=".$node["entrez_id"],"color" => "1.0,0.99,0.92");
+				break;
+		}
+	}
+	
+	foreach ($themodel["edges"] as $edge)
+	{
+		switch($edge["interaction"])
+		{
+			case "binding":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "gene",
+					"target_node" => $edge["target"], "target_type" => "gene");
+				break;
+			case "ptmod":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "gene",
+					"target_node" => $edge["target"], "target_type" => "gene");
+				break;
+			case "expression":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "gene",
+					"target_node" => $edge["target"], "target_type" => "gene");
+				break;
+			case "activation":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "gene",
+					"target_node" => $edge["target"], "target_type" => "gene");
+				break;
+			case "inhibition":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "gene",
+					"target_node" => $edge["target"], "target_type" => "gene");
+				break;
+			case "superbinding":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "supergene",
+					"target_node" => $edge["target"], "target_type" => "supergene");
+				break;
+			case "superptmod":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "supergene",
+					"target_node" => $edge["target"], "target_type" => "supergene");
+				break;
+			case "superexpression":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "supergene",
+					"target_node" => $edge["target"], "target_type" => "supergene");
+				break;
+			case "superactivation":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "supergene",
+					"target_node" => $edge["target"], "target_type" => "supergene");
+				break;
+			case "superinhibition":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "supergene",
+					"target_node" => $edge["target"], "target_type" => "supergene");
+				break;
+			case "go":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "go",
+					"target_node" => $edge["target"], "target_type" => "go");
+				break;
+			case "kegg":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "pathway",
+					"target_node" => $edge["target"], "target_type" => "pathway");
+				break;
+			case "mirna":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "mirna",
+					"target_node" => $edge["target"], "target_type" => "mirna");
+				break;
+			case "supergo":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "go",
+					"target_node" => $edge["target"], "target_type" => "go");
+				break;
+			case "superkegg":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "pathway",
+					"target_node" => $edge["target"], "target_type" => "pathway");
+				break;
+			case "supermirna":
+				$the_connections[] = array("source_node" => $edge["source"],"source_type" => "mirna",
+					"target_node" => $edge["target"], "target_type" => "mirna");
+				break;
+		}
+	}
+
+	$arena_file = "number_of_layers::".count($the_layers)."\n\n";
+
+	$layers_names = array_keys($the_layers);
+	foreach ($layers_names as $layer_name)
+	{
+		$arena_file .= "layer::".$layer_name."\n\n";
+		$tmp_layer = $the_layers[$layer_name];
+		foreach ($tmp_layer as $layer)
+		{
+			$tmp_node = array_implode("::","\t",$layer);
+			$arena_file .= substr($tmp_node,4)."\n";
+		}
+	}
+
+	$arena_file .= "\nend_of_layers_inputs\n\nstart_connections\n\n";
+
+	foreach ($the_connections as $the_connection)
+	{
+		$arena_file .= array_implode("::","\t",$the_connection)."\t1\n";
+	}
+	$arena_file .= "\nend_connections\n";
+
+	return($arena_file);
+}
+
 function getEntrezFromAnyAndMiRNA($terms,$species)
 {					
 	global $entrez_from_any_1,$entrez_from_any_3,$entrez_from_any_4;

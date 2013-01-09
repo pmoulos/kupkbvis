@@ -71,7 +71,7 @@ function search(input)
 	var enteredTerms;
 	var recall = false;
 
-	// We need this in case of veru strict selection (see Advanced tab, search modes)
+	// We need this in case of very strict selection (see Advanced tab, search modes)
 	$("#disease_list").data("locked",false);
 	$("#location_list").data("locked",false);
 	$("#disease_mirna_list").data("locked",false);
@@ -2711,6 +2711,89 @@ function unloadingSmall()
 	}
 }
 
+function disableAll()
+{
+	disable(['search_button','clear_button',
+			 'species_list','disease_list','location_list','dataset_list',
+			 'reset_gene_data_button','color_network_button',
+			 'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
+			 'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
+			 'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
+			 'binding_check','ptmod_check','expression_check','activation_check','inhibition_check',
+			 'go_check','kegg_check','mirna_check',
+			 'disease_mirna_list','location_mirna_list','dataset_mirna_list',
+			 'reset_mirna_data_button','color_mirna_button',
+			 'gene_disease_radio','gene_location_radio','gene_both_radio',
+			 'mirna_disease_radio','mirna_location_radio','mirna_both_radio',
+			 'gene_mode_free_radio','gene_mode_repop_radio','gene_mode_strict_radio',
+			 'mirna_mode_free_radio','mirna_mode_repop_radio','mirna_mode_strict_radio',
+			 'neighbor_all_radio','neighbor_kupkb_radio','score_threshold',
+			 'edge_all_radio','edge_one_radio',
+			 'allow_click_color_gene_check','allow_click_color_mirna_check',
+			 'multicolor_gene_check','multicolor_mirna_check','multiorganism_check',
+			 'multidisease_gene_check','multidisease_mirna_check',
+			 'multilocation_gene_check','multilocation_mirna_check',
+			 'multiannotation_gene_disease','multiannotation_gene_location',
+			 'multiannotation_gene_dataset','multiannotation_gene_type',
+			 'node_labels_check','edge_labels_check','sig_size_check',
+			 'fetch_neighbors_1','fetch_neighbors_2',
+			 'fetch_neighbors_11','fetch_neighbors_22','toggle_fullscreen',
+			 'hide_node','hide_edge','delete_node','delete_edge',
+			 'mark_neighbors','restore_network','ms_compound_radio','ms_merged_radio',
+			 'search_defaults','color_defaults']);
+	$("#layoutOptionContainer").find("input, button, select").attr("disabled","disabled");
+}
+
+function enableAll()
+{
+	enable(['search_button','clear_button',
+			'species_list','disease_list','location_list','dataset_list',
+			'reset_gene_data_button','color_network_button',
+			'go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat',
+			'kegg_list','show_selected_kegg','show_all_kegg','clear_selected_kegg','clear_all_kegg',
+			'mirna_list','show_selected_mirna','show_all_mirna','clear_selected_mirna','clear_all_mirna',
+			'binding_check','ptmod_check','expression_check','activation_check','inhibition_check',
+			'go_check','kegg_check','mirna_check',
+			'disease_mirna_list','location_mirna_list','dataset_mirna_list',
+			'reset_mirna_data_button','color_mirna_button',
+			'gene_disease_radio','gene_location_radio','gene_both_radio',
+			'mirna_disease_radio','mirna_location_radio','mirna_both_radio',
+			'gene_mode_free_radio','gene_mode_repop_radio','gene_mode_strict_radio',
+			'mirna_mode_free_radio','mirna_mode_repop_radio','mirna_mode_strict_radio',
+			'neighbor_all_radio','neighbor_kupkb_radio','score_threshold',
+			'edge_all_radio','edge_one_radio',
+			'allow_click_color_gene_check','allow_click_color_mirna_check',
+			'multicolor_gene_check','multicolor_mirna_check','multiorganism_check',
+			'multidisease_gene_check','multidisease_mirna_check',
+			'multilocation_gene_check','multilocation_mirna_check',
+			'multiannotation_gene_disease','multiannotation_gene_location',
+			'multiannotation_gene_dataset','multiannotation_gene_type',
+			'node_labels_check','edge_labels_check','sig_size_check',
+			'fetch_neighbors_1','fetch_neighbors_2',
+			'fetch_neighbors_11','fetch_neighbors_22','toggle_fullscreen',
+			'hide_node','hide_edge','delete_node','delete_edge',
+			'mark_neighbors','restore_network','ms_compound_radio','ms_merged_radio',
+			'search_defaults','color_defaults']);
+	$("#layoutOptionContainer").find("input, button, select").removeAttr("disabled");
+	if ($("#dataset_list").val() == '0')
+	{
+		disable(['disease_list','location_list','dataset_list','reset_gene_data_button',
+				 'color_network_button','disease_gene_check','location_gene_check']);
+	}
+	if ($("#go_list").text() === '')
+	{
+		disable(['go_list','show_selected_go','show_all_go','clear_selected_go','clear_all_go','clear_all_go_cat']);
+	}
+	if ($("#dataset_mirna_list").val() == '0')
+	{
+		disable(['disease_mirna_list','location_mirna_list','dataset_mirna_list',
+				 'reset_mirna_data_button','color_mirna_button',
+				 'mirna_disease_radio','mirna_location_radio','mirna_both_radio',
+				 'allow_click_color_mirna_check','multicolor_mirna_check',
+				 'multidisease_mirna_check','multilocation_mirna_check']);
+	}
+}
+
 function searchAllow()
 {
 	/*var txt = document.getElementById('enter_genes').value;
@@ -2937,7 +3020,8 @@ function clearCache()
 
 function initMe()
 {
-	var urlBase = 'http://kupkbserver:81/';
+	var urlBase = 'http://localhost/kupkbvis/';
+	//var urlBase = 'http://kupkbserver:81/';
     //var urlBase = 'http://194.57.225.115/kupkbvis/';
     //var urlBase = 'http://kupkb-dev:81/vis/';
     //var urlBase = 'http://www.kupkb.net/vis/';
@@ -3183,6 +3267,128 @@ function detectIE()
 			.show("fast");
 		}
     }
+}
+
+function export2arena(text)
+{
+	urlBase = initMe();
+	// THE BELOW DO NOT WORK!
+	//$.post(urlBase + "php/control.php?export=arena",text,function(data) { window.open(data,"_blank"); });
+	/*html = 
+	"<html><head><script type=\"text/javascript\" src=\"" + urlBase + "js/jquery-1.7.min.js\"></script></head><body>" +
+	"<form id=\"arena\" action=" + urlBase + "php/control.php method=\"POST\" target=\"_blank\" enctype=\"multipart/form-data\">" +
+	"<input id=\"export\" name=\"export\" ></input></form>" +
+	"<script type=\"text/javascript\">$(document).ready(function() { $(\"#export\").val(" + text + "); $(\"#arena\").submit(function() { return true; }); });</script>" +
+	"</body></html>";*/
+	html = 
+	"<form id=\"arena\" action=" + urlBase + "php/control.php?export=arena method=\"POST\" target=\"_self\" enctype=\"text/plain\">" +
+	"<input id=\"hidden\" name=\"hidden\"></input></form>";
+	$("#dialog").html(html);
+	$("#hidden").val(encodeURIComponent(text));
+	$("#arena").submit();
+	$("#dialog").empty();
+}
+
+function example(id)
+{
+	$("#example_warning").html("Please do not use any application control or refresh the page until the example sequence is completed (25-30 seconds)!");
+	if (id === 1)
+	{
+		$("#enter_genes").val(811);
+		$("#edge_one_radio").attr("checked",true);
+		$("#score_threshold").val("0.4");
+		search();
+		setTimeout(function() {
+			var visObject = getVisData("cytoscapeweb");
+			visObject.select("nodes",["ENSP00000320866"]);
+			fetchNeighbors(1);
+		},7000);
+		setTimeout(function() {
+			$("#go_list").val("GO:0005604");
+			showMeta('go','selected');
+			$("#kegg_list").val("hsa04512");
+			showMeta('kegg','selected');
+			updateLayout('ForceDirected');
+		},19000);
+		setTimeout(function() {
+			$("#dataset_list option").each(function() {
+				if ($(this).val() === "nakorchevsky_salomon_humankidneyifta" ||
+					$(this).val() === "rodder_marti_humaniftakidney" ||
+					$(this).val() === "scherer_haller_iftahumankidney") {
+						$(this).attr("selected","selected");
+					}
+			});
+			colorNodes("gene");
+			$("#example_warning").text("");
+		},25000);
+	}
+	if (id === 2)
+	{
+		$("#enter_genes").val("3569\n3570");
+		$("#edge_one_radio").attr("checked",true);
+		$("#score_threshold").val("0.4");
+		search();
+		setTimeout(function() {
+			var visObject = getVisData("cytoscapeweb");
+			visObject.select("nodes",["ENSP00000258743","ENSP00000357470"]);
+			fetchNeighbors(1);
+		},7000);
+		setTimeout(function() {
+			$("#dataset_list option").each(function() {
+				if ($(this).val() === "lai_witzmann_adpkdcystfluidprot" ||
+					$(this).val() === "mason_witzmann_adpkdcystfluidprot" ||
+					$(this).val() === "song_pei_adpkdkidney") {
+						$(this).attr("selected","selected");
+					}
+			});
+			colorNodes("gene");
+			updateLayout('ForceDirected');
+			$("#example_warning").text("");
+		},30000);
+	}
+	if (id === 3)
+	{
+		$("#species_list").val(10116);
+		$("#enter_genes").val("24498\n24499");
+		$("#edge_one_radio").attr("checked",true);
+		$("#score_threshold").val("0.4");
+		search();
+		setTimeout(function() {
+			var visObject = getVisData("cytoscapeweb");
+			visObject.select("nodes",["ENSRNOP00000013732","ENSRNOP00000028234"]);
+			fetchNeighbors(1);
+		},7000);
+		setTimeout(function() {
+			$("#dataset_list option").each(function() {
+				if ($(this).val() === "koupepidou_deltas_ratkidneypkdday0") {
+						$(this).attr("selected","selected");
+					}
+			});
+			colorNodes("gene");
+			updateLayout('ForceDirected');
+		},20000);
+		setTimeout(function() {
+			resetData("gene");
+			$("#dataset_list option").each(function() {
+				if ($(this).val() === "koupepidou_deltas_ratkidneypkdday6") {
+						$(this).attr("selected","selected");
+					}
+			});
+			colorNodes("gene");
+			updateLayout('ForceDirected');
+		},25000);
+		setTimeout(function() {
+			resetData("gene");
+			$("#dataset_list option").each(function() {
+				if ($(this).val() === "koupepidou_deltas_ratkidneypkdday24") {
+						$(this).attr("selected","selected");
+					}
+			});
+			colorNodes("gene");
+			updateLayout('ForceDirected');
+			$("#example_warning").text("");
+		},30000);
+	}
 }
 
 /*function debugMessage(msg)
