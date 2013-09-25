@@ -3020,11 +3020,9 @@ function clearCache()
 
 function initMe()
 {
-	var urlBase = 'http://localhost/kupkbvis/';
-	//var urlBase = 'http://kupkbserver:81/';
-    //var urlBase = 'http://194.57.225.115/kupkbvis/';
-    //var urlBase = 'http://kupkb-dev:81/vis/';
-    //var urlBase = 'http://www.kupkb.net/vis/';
+	//var urlBase = '/vis/';
+	var urlBase = 'http://kupkbserver:81/';
+	//var urlBase = 'http://localhost/kupkbvis/';
 	//hideError(); //Hide previous errors
 	return(urlBase);
 }

@@ -39,7 +39,7 @@ include('php/queries.php');
 <script language="javascript" type="text/javascript">startTimer()</script>
 
 <!-- Main table container layout -->
-<table class="main"><tr><td class="main">
+<table id="totalContainer" class="main"><tr><td class="main">
 
 	<!-- Our modal dialog div -->
 	<div id="dialog"></div>
@@ -52,12 +52,12 @@ include('php/queries.php');
 
 	<div class="mainContainer">
 
-		<!--<a href="#"><img src="images/kupkb-logo-small.png" alt="KUPKB" border="0" style="position:relative; left:50px; top:5px;"/></a>-->
-		<a href="#"><img src="images/logobetaok.jpg" alt="Vis beta" border="0" style="position:static; left:50px; top:5px;"/></a>
-		<table class="titleTable"><tr><td class="innerCell" style="border:none; text-align:center;">
+		<div id="mainLogo"><a href="#"><img src="images/kupkb-logo-small.png" alt="Vis" border="0" style="position:static; left:50px; top:5px;"/></a></div>
+		<table id="mainHeader" class="titleTable"><tr><td class="innerCell" style="border:none; text-align:center;">
 			<span style="color:#0E0E0E; font-size:2.1em; font-weight:bold; font-style:italic">The Kidney &amp; Urinary Pathway <span style="color:#E21A30;">K</span>nowledge <span style="color:#E21A30;">B</span>ase</span>
 			<br/>
-			<span style="font-size: 1.5em; font-weight:bold;"><span style="color:#E21A30;">N</span>etwork <span style="color:#E21A30;">E</span>xplorer<span style="color:#E21A30; font-size:0.7em; vertical-align:super"><em> beta</em></span></span>
+			<!--<span style="font-size: 1.5em; font-weight:bold;"><span style="color:#E21A30;">N</span>etwork <span style="color:#E21A30;">E</span>xplorer<span style="color:#E21A30; font-size:0.7em; vertical-align:super"><em> beta</em></span></span>-->
+			<span style="font-size: 1.5em; font-weight:bold;"><span style="color:#E21A30;">N</span>etwork <span style="color:#E21A30;">E</span>xplorer</span>
 		</td></tr></table>
 		
 		<div id="menu">
@@ -221,10 +221,10 @@ include('php/queries.php');
 							<div>						
 								<textarea id="enter_genes" name="enter_genes" wrap="hard" onkeyup="searchAllow()" onclick="searchAllow()"><?php
 									# Response to external calling (e.g. the iKUP), has to be like this, else a lot of whitespace...
-									if ($_POST['ikup_terms'])
+									if (isset($_POST['ikup_terms']))
 									{
 										$from_ikup = $_POST['ikup_terms'];
-										echo $_POST['ikup_terms'];
+										//echo $_POST['ikup_terms'];
 										$from_ikup = json_decode($from_ikup,$assoc=TRUE);
 										if (!is_array($from_ikup)) { $from_ikup = array($from_ikup); }
 										$terms = implode("\n",$from_ikup);
@@ -788,7 +788,7 @@ include('php/queries.php');
 			</div>
 		</div>
 				
-		<table class="innerTable">
+		<table id="mainFooter" class="innerTable">
 			<tr>
 			<td>    
 			<div class="footer">
@@ -799,6 +799,7 @@ include('php/queries.php');
 					<a href="http://www.inserm.fr" target="_blank"><img class="logo" style="width:180px;" src="images/inserm-logo.png" border="0"></a>
 					<a href="http://www.manchester.ac.uk" target="_blank"><img class="logo" style="height:40px;" src="images/logomanchester.gif" border="0"></a>
 					<a href="http://www.e-lico.eu" target="_blank"><img class="logo" style="width:40px;" src="images/elico-logo.png" border="0"></a>
+					<a href="http://www.protoclin.org" target="_blank"><img class="logo" style="width:160px;" src="images/protoclin_logo.png" border="0"></a>
 				</div>
 			</div>
 			</td>
@@ -825,10 +826,12 @@ include('php/queries.php');
 	detectIE();
 </script>
 
-<!-- Here, PHP code for handling a call from the iKUP. It will receive the JSON, send it
-to control.php with the selected species and then initiate a search through JS -->
 <?php
-if ($_POST['ikup_terms'])
+if (isset($_REQUEST['remove_template']))
+{
+	echo "<script type=\"text/javascript\">$('#mainLogo').hide();$('#mainHeader').hide();$('#mainFooter').hide();$('#totalContainer').removeClass('main');</script>";
+}
+if (isset($_POST['ikup_terms']))
 {
 	echo "<script type=\"text/javascript\">search()</script>";
 }
