@@ -414,6 +414,7 @@ sub createDB
 	$conn->do($eg_cq);
 	$conn->do($ng_cq);
 	$conn->do($ke_cq);
+	$conn->do($kr_cq);
 	$conn->do($pm_cq);
 	$conn->do($mi_cq);
 	

@@ -5,13 +5,13 @@
 #
 # Author      : Panagiotis Moulos (pmoulos@eie.gr)
 # Created     : 21 - 11 - 2011 (dd - mm - yyyy)
-# Last Update : XX - XX - XXXX (dd - mm - yyyy)
-# Version     : 1.0
-
-# TODO: Rewrite the whole script as KEGG has moved from SOAP to REST...
+# Last Update : 18 - 09 - 2013 (dd - mm - yyyy)
+# Version     : 1.1
 
 use strict;
 use Getopt::Long;
+use File::Temp;
+use LWP;
 use POSIX qw(floor
  			 ceil);
  			 
@@ -27,11 +27,9 @@ our $ref;		  # Import reference pathways too?
 our $silent = 0;  # Display verbose messages
 our $help = 0;    # Help?
 
-# The KEGG web service variable
-our $service;
-
 # Check for the presence of YAML, required!!!
 &tryModule("YAML");
+&tryModule("URI");
 
 # Check inputs
 &checkInputs;
@@ -59,14 +57,15 @@ my $date = &now;
 disp("$date - Started...");
 
 my @organisms = @{$phref->{"species"}};
-my ($i,$j,$m,$n,$pid,$truncpid,$truncdef,$pnumber,$cuge,$pathways,$genes);
-my @nc2kgdata;
+my ($i,$j,$m,$n,$pid,$truncpid,$truncdef,$pnumber,$cuge,$pathways,$genes,$tmpfh,$tmpfhg,$line);
+my (@columns,@nc2kgdata);
 my (%nc2kg_fields,%path_fields,%member_fields);
 my %refhash;
 
-&initKEGG;
-# Build the entrez_to_go table
 disp("Building the NCBI to KEGG taxonomy, KEGG pathways and memberships tables...");
+my $tmpdir = File::Temp->newdir();
+my $ua = LWP::UserAgent->new;
+my ($request,$response);
 
 disp("Retrieving reference pathways...");
 %nc2kg_fields = &initFields("ncbitax_to_keggtax");
@@ -74,26 +73,41 @@ $nc2kg_fields{"ncbi_tax_id"} = 999999;
 $nc2kg_fields{"kegg_tax_id"} = "genome:T01";
 $nc2kg_fields{"kegg_tax_code"} = "map";
 $nc2kg_fields{"kegg_tax_name"} = "Reference";
-$pathways = $service->list_pathways("map");
 &insertMap(\%nc2kg_fields);
-$m = @{$pathways};
-for ($i=0; $i<$m; $i++)
+
+$pathways = "http://rest.kegg.jp/list/pathway";
+$request = HTTP::Request->new("POST",$pathways,HTTP::Headers->new());
+$tmpfh = File::Temp->new(DIR => $tmpdir,SUFFIX => ".kegg");
+$ua->request($request,sub {   
+	my ($data,$response) = @_;
+	if ($response->is_success) {
+		print $tmpfh "$data";
+	}
+	else {
+		warn ("Problems with the web server: ".$response->status_line);
+	}
+},1000);
+seek($tmpfh,0,SEEK_SET);
+while ($line = <$tmpfh>)
 {
+	$line =~ s/\r|\n$//g;
+	@columns = split(/\t/,$line);
 	%path_fields = &initFields("kegg_pathways");
-	$truncpid = $pid = ${$pathways}[$i]->{"entry_id"};
+	$truncpid = $pid = $columns[0];
 	$truncpid =~ s/path://;
 	$path_fields{"pathway_id"} = $truncpid;
 	$pnumber = $truncpid;
 	$pnumber =~ s/map//;
-	$truncdef = ${$pathways}[$i]->{"definition"};
+	$truncdef = $columns[1];
 	$truncdef =~ s/(\s*\-\s*)([A-Za-z0-9]*\s*)*\(([A-Za-z0-9]*\s*)*\)//;
 	$path_fields{"name"} = $truncdef;
-	$path_fields{"class"} = getClassFromPathway(${$pathways}[$i]->{"entry_id"});
+	$path_fields{"class"} = getClassFromPathway($columns[0]);
 	$path_fields{"organism"} = "map";
 	disp("Inserting $truncpid to KEGG pathways table...");
 	&insertPathway(\%path_fields);
 	$refhash{$pnumber} = ();
 }
+close($tmpfh);
 
 foreach my $org (@organisms)
 {
@@ -111,56 +125,75 @@ foreach my $org (@organisms)
 		&insertMap(\%nc2kg_fields);
 
 		disp("Retrieving pathways for $org...");
-		$pathways = $service->list_pathways($nc2kg_fields{"kegg_tax_code"});
-		$m = @{$pathways};
-		for ($i=0; $i<$m; $i++)
+		$pathways = "http://rest.kegg.jp/list/pathway/".$nc2kg_fields{"kegg_tax_code"};
+		$request = HTTP::Request->new("POST",$pathways,HTTP::Headers->new());
+		$tmpfh = File::Temp->new(DIR => $tmpdir,SUFFIX => ".kegg");
+		$ua->request($request,sub {   
+			my ($data,$response) = @_;
+			if ($response->is_success) {
+				print $tmpfh "$data";
+			}
+			else {
+				warn ("Problems with the web server: ".$response->status_line);
+			}
+		},1000);
+		seek($tmpfh,0,SEEK_SET);
+		while ($line = <$tmpfh>)
 		{
+			$line =~ s/\r|\n$//g;
+			@columns = split(/\t/,$line);
 			%path_fields = &initFields("kegg_pathways");
-			$truncpid = $pid = ${$pathways}[$i]->{"entry_id"};
+			$truncpid = $pid = $columns[0];
 			$truncpid =~ s/path://;
 			$path_fields{"pathway_id"} = $truncpid;
-			$truncdef = ${$pathways}[$i]->{"definition"};
+			$truncdef = $columns[1];
 			$truncdef =~ s/(\s*\-\s*)([A-Za-z0-9]*\s*)*\(([A-Za-z0-9]*\s*)*\)//;
 			$path_fields{"name"} = $truncdef;
-			$path_fields{"class"} = getClassFromPathway(${$pathways}[$i]->{"entry_id"});
+			$path_fields{"class"} = getClassFromPathway($columns[0]);
 			$path_fields{"organism"} = $nc2kg_fields{"kegg_tax_code"};
-			disp("Inserting $truncpid to KEGG pathways table...");
-			&insertPathway(\%path_fields);
-
 			$pnumber = $truncpid;
 			$pnumber =~ s/$nc2kg_fields{"kegg_tax_code"}//;
 			push(@{$refhash{$pnumber}},$truncpid) if (exists($refhash{$pnumber}));
+			&insertPathway(\%path_fields);
 
 			disp("Inserting genes in $pid in pathway members table...");
-			# SOAP is not reliable... We need to repeat the SOAP call until it is successful...
+			# REST may fail... We need to repeat the request until it is successful...
 			# For the time being, the most error prone process is the genes retrieval for
 			# the large(?) number of pathwats for each organism...
 			my $gotit = 0;
 			my $giveup = 10;
 			my $tries = 1;
+			my $uri;
 			while (!$gotit && $tries<=$giveup)
 			{
-				eval
-				{
-					$genes = $service->get_genes_by_pathway($pid);
-					$gotit = 1;
-				};
-				if ($@)
-				{
-					disp("--- Failed to get genes for $pid! Retry $tries out of $giveup, please check in the end...");
-					$tries++;
-					$gotit = 0;
-				}
+				$uri = "http://rest.kegg.jp/link/genes/$truncpid";
+				$request = HTTP::Request->new("POST",$uri,HTTP::Headers->new());
+				$tmpfhg = File::Temp->new(DIR => $tmpdir,SUFFIX => ".genes.kegg");
+				$ua->request($request,sub {
+					my ($genes,$response) = @_;
+					if ($response->is_success) {
+						$gotit = 1;
+						print $tmpfhg "$genes";
+					}
+					else {
+						warn ("Problems with the web server: ".$response->status_line);
+						disp("--- Failed to get data for $truncpid! Retry $tries out of $giveup...");
+						$tries++;
+						$gotit = 0;
+					}
+				},1000);
 			}
 
 			if ($gotit)
 			{
-				$n = @{$genes};
-				for ($j=0; $j<$n; $j++)
+				seek($tmpfhg,0,SEEK_SET);
+				while (my $geneline = <$tmpfhg>)
 				{
+					$geneline =~ s/\r|\n$//g;
+					@columns = split(/\t/,$geneline);
 					%member_fields = &initFields("pathway_members");
 					$member_fields{"pathway_id"} = $path_fields{"pathway_id"};
-					$cuge = $genes->[$j];
+					$cuge = $columns[1];
 					if ($cuge =~ m/$nc2kg_fields{"kegg_tax_code"}/) # They are not consistent! :@
 					{
 						$member_fields{"kegg_member"} = $cuge;
@@ -177,8 +210,10 @@ foreach my $org (@organisms)
 					&insertMember(\%member_fields) if ($member_fields{"entrez_member"} !~ m/[a-z]/i);
 				}
 			}
-			else { &deathBySOAP; }
+			else { &deathByREST; }
+			close($tmpfhg)
 		}
+		close($tmpfh);
 	}
 	else { disp("Nothing found for $org! Moving to next organism..."); }
 }
@@ -191,99 +226,80 @@ if ($ref) {} # NYI, we have to figure out what may happen with the foreign keys.
 $date = &now;
 disp("$date - Finished!\n");
 
-
-sub SOAP::Serializer::as_ArrayOfstring
-{
-	my ($self,$value,$name,$type,$attr) = @_;
-	return [$name,{'xsi:type' => 'array',%$attr},$value];
-}
-
-sub SOAP::Serializer::as_ArrayOfint
-{
-	my ($self,$value,$name,$type,$attr) = @_;
-	return [$name,{'xsi:type' => 'array',%$attr},$value];
-}
-
-sub initKEGG
-{
-	use SOAP::Lite;
-	disp("Initializing connection with KEGG...");
-	my $wsdl = 'http://soap.genome.jp/KEGG.wsdl';
-	$service = SOAP::Lite->service($wsdl);
-}
-
 sub getTaxDataFromOrganism
 {
 	my $query = $_[0];
-	my $str;
+	my ($uri,$str);
 	my $gotit = 0;
 	my $giveup = 10;
 	my $tries = 1;
+	my $ua = LWP::UserAgent->new;
+	my ($request,$response);
+	my (@firstpart,@secondpart);
+	
 	while (!$gotit && $tries<=$giveup)
 	{
-		eval
-		{
-			$str = $service->bfind("gn ".$query);
-			$gotit = 1;
-		};
-		if ($@)
-		{
-			disp("--- Failed to get data for $query! Retry $tries out of $giveup...");
-			$tries++;
-			$gotit = 0;
-		}
+		$uri = "http://rest.kegg.jp/find/genome/$query";
+		$request = HTTP::Request->new("POST",$uri,HTTP::Headers->new());
+		$ua->request($request,sub {
+			my ($str,$response) = @_;
+			if ($response->is_success) {
+				$gotit = 1;
+				return 0 if (!$str);
+				my @result = split(", ",$str);
+				@firstpart = split(" ",$result[0]);
+				@secondpart = split("; ",$result[2]);
+				$secondpart[1] =~ s/\r|\n$//g; # There is a new line...
+			}
+			else {
+				warn ("Problems with the web server: ".$response->status_line);
+				disp("--- Failed to get data for $query! Retry $tries out of $giveup...");
+				$tries++;
+				$gotit = 0;
+			}
+		},1024);
 	}
-	if ($gotit)
-	{
-		return 0 if (!$str);
-		my @result = split(", ",$str);
-		my @firstpart = split(" ",$result[0]);
-		#my @secondpart = split("; ",$result[3]); # They changed???
-		my @secondpart = split("; ",$result[2]);
-		$secondpart[1] =~ s/\r|\n$//g; # There is a new line...
-		return (@firstpart,@secondpart);
-	}
-	else { &deathBySOAP; }
+	&deathByREST if (!$gotit);
+	return (@firstpart,@secondpart);
 }
 
 sub getClassFromPathway
 {
 	my $entry = shift @_;
-	my ($str,$spos,$epos,$class);
+	my ($uri,$str,$spos,$epos,$class);
 	my $gotit = 0;
 	my $giveup = 10;
 	my $tries = 1;
+	my $ua = LWP::UserAgent->new;
+	my ($request,$response);
+	
 	while (!$gotit && $tries<=$giveup)
 	{
-		eval
-		{
-			$str = $service->bget($entry);
-			$gotit = 1;
-		};
-		if ($@)
-		{
-			disp("--- Failed to get data for $entry! Retry $tries out of $giveup...");
-			$tries++;
-			$gotit = 0;
-		}
+		$uri = "http://rest.kegg.jp/get/$entry";
+		$request = HTTP::Request->new("POST",$uri,HTTP::Headers->new());
+		$ua->request($request,sub {   
+			my ($str,$response) = @_;
+			if ($response->is_success) {
+				$gotit = 1;
+				$spos = index($str,"CLASS");
+				$class = "-";
+				if ($spos != -1) {
+					$epos = index($str,"\n",$spos);
+					$class = substr($str,$spos+5,$epos-$spos-5);
+					$class =~ s/^\s+//;
+					$class =~ s/\s+$//;
+				}
+			}
+			else {
+				warn ("Problems with the web server: ".$response->status_line);
+				disp("--- Failed to get data for $entry! Retry $tries out of $giveup...");
+				$tries++;
+				$gotit = 0;
+			}
+		},8192);
 	}
-	if ($gotit)
-	{
-		$spos = index($str,"CLASS");
-		if ($spos == -1)
-		{
-			return "-";
-		}
-		else
-		{
-			$epos = index($str,"\n",$spos);
-			$class = substr($str,$spos+5,$epos-$spos-5);
-			$class =~ s/^\s+//;
-			$class =~ s/\s+$//;
-			return $class;
-		}
-	}
-	else { &deathBySOAP; }
+	&deathByREST if (!$gotit);
+	return($class);
 }
 
 # Process inputs
@@ -335,6 +351,7 @@ sub insertMap
 	my $iq = "INSERT INTO `ncbitax_to_keggtax` (".join(", ",@field).") ".
 			 "VALUES (".join(", ",@value).");";
 	$conn->do($iq);
+	#disp($iq);
 	
 	&closeConnection($conn);
 }
@@ -362,6 +379,7 @@ sub insertPathway
 	my $iq = "INSERT INTO `kegg_pathways` (".join(", ",@field).") ".
 			 "VALUES (".join(", ",@value).");";
 	$conn->do($iq);
+	#disp($iq);
 	
 	&closeConnection($conn);
 }
@@ -387,6 +405,7 @@ sub insertMember
 	my $iq = "INSERT INTO `pathway_members` (".join(", ",@field).") ".
 			 "VALUES (".join(", ",@value).");";
 	$conn->do($iq);
+	#disp($iq);
 	
 	&closeConnection($conn);
 }
@@ -524,10 +543,10 @@ sub now
 	return($day."/".$month."/".$year." ".$hour.":".$min.":".$sec);
 }
 
-sub deathBySOAP
+sub deathByREST
 {
 	my $d = &now;
-	die "\n$d - SOAP calls failed!!! Please rerun the program... :-(\n\n";
+	die "\n$d - REST calls failed!!! Please rerun the program... :-(\n\n";
 }
 
 sub disp

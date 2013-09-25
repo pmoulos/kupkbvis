@@ -6,6 +6,23 @@ include('queries.php');
 include('sphinxapi.php');
 include('utils.php');
 
+if($_SERVER['HTTP_ORIGIN'] == "http://www.kupkb.org")
+{
+	header('Access-Control-Allow-Origin: http://www.kupkb.org');
+}
+if($_SERVER['HTTP_ORIGIN'] == "http://www.kupkb.com")
+{
+	header('Access-Control-Allow-Origin: http://www.kupkb.com');
+}
+if($_SERVER['HTTP_ORIGIN'] == "http://www.kupkb.net")
+{
+	header('Access-Control-Allow-Origin: http://www.kupkb.net');
+}
+if($_SERVER['HTTP_ORIGIN'] == "http://www.kupkb.eu")
+{
+	header('Access-Control-Allow-Origin: http://www.kupkb.eu');
+}
+
 # Response to Select species dropdown list or the GO button
 if (isset($_REQUEST['species']))
 {
@@ -2033,7 +2050,7 @@ function getIndexedGenes($term,$species)
 	}
 	
 	$cl = new SphinxClient();
-	$cl->SetServer("localhost",50000);
+	$cl->SetServer("localhost",60000);
 	$cl->SetLimits(0,100);
 	$cl->SetMatchMode(SPH_MATCH_ANY);
 	if (isset($species)) { $cl->SetFilter("species",$species); }

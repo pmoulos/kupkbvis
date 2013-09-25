@@ -111,13 +111,13 @@ if ($dbindexOK==0)
 	if ($dev)
 	{
 		$pidfile = "/var/run/searchd-dev.pid";
-		$port = 50001;
+		$port = 60001;
 		$qfile = "/var/log/sphinxsearch/query-dev.log";
 	}
 	else
 	{
 		$pidfile = "/var/run/searchd.pid";
-		$port = 50000;
+		$port = 60000;
 		$qfile = "/var/log/sphinxsearch/query.log";
 	}
 	&createIndexConf($phref->{"INDEX_PATH"},$pidfile,$port,$qfile);

@@ -42,7 +42,7 @@ if ($input =~ m/download/i) # Case where we download from HTTP
 	use Archive::Extract;
 	use LWP::Simple;
 
-	my $staticURL = "http://string-db.org/newstring_download/protein.actions.v9.0.txt.gz";
+	my $staticURL = "http://string-db.org/newstring_download/protein.actions.v9.05.txt.gz";
 	our $tmpdir = File::Temp->newdir();
 	my $tmpzip = File::Spec->catfile($tmpdir,"ppis.gz");
 	disp("Downloading protein-protein interactions file... It might take some time...");
